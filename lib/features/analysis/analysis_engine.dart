@@ -29,6 +29,7 @@ class AnalysisEngine {
             normalized,
             locale,
             categoryName,
+            originalText: text,
             deadline: deadline,
             amount: amount,
           )
@@ -326,6 +327,7 @@ _GenericAnalysis _genericAnalysis(
   String text,
   String locale,
   String category, {
+  required String originalText,
   required DateTime? deadline,
   required String? amount,
 }) {
@@ -344,6 +346,7 @@ _GenericAnalysis _genericAnalysis(
   if (amount != null) {
     facts.add('${copy.amountPrefix} $amount.');
   }
+  facts.addAll(_analysisNotes(text, originalText, locale));
   return _GenericAnalysis(
     title: '${copy.titles[index]} — $category',
     explanation: [
@@ -351,8 +354,195 @@ _GenericAnalysis _genericAnalysis(
       copy.explanations[index],
       ...facts,
     ].join(' '),
-    action: copy.actions[index],
+    action: _concreteAction(
+      locale,
+      copy.actions[index],
+      deadline: deadline,
+      reference: _referenceFor(originalText),
+    ),
   );
+}
+
+List<String> _analysisNotes(String text, String originalText, String locale) {
+  final notes = <String>[];
+  final reference = _referenceFor(originalText);
+  if (reference != null) {
+    notes.add(switch (locale) {
+      'hr' => 'Prepoznati broj predmeta: $reference.',
+      'bs' => 'Prepoznati broj predmeta: $reference.',
+      'mk' => 'Препознаен број на предмет: $reference.',
+      'bg' => 'Разпознат номер на преписка: $reference.',
+      'de' => 'Erkanntes Aktenzeichen: $reference.',
+      'en' => 'Recognized reference number: $reference.',
+      _ => 'Prepoznati broj predmeta: $reference.',
+    });
+  }
+  if (_hasAny(text, const [
+    'vollstreck',
+    'inkasso',
+    'säumnis',
+    'sperr',
+    'mahnung',
+  ])) {
+    notes.add(switch (locale) {
+      'hr' =>
+        'Rizik ako se pismo zanemari: mogući su dodatni troškovi, obustava usluge, naplata ili ovrha.',
+      'bs' =>
+        'Rizik ako se pismo zanemari: mogući su dodatni troškovi, obustava usluge, naplata ili prinudno izvršenje.',
+      'mk' =>
+        'Ризик ако писмото се игнорира: можни се дополнителни трошоци, блокада, наплата или извршување.',
+      'bg' =>
+        'Риск при игнориране: възможни са допълнителни разходи, спиране, събиране или принудително изпълнение.',
+      'de' =>
+        'Risiko bei Nichtreaktion: zusätzliche Kosten, Sperre, Inkasso oder Vollstreckung sind möglich.',
+      'en' =>
+        'Risk if ignored: additional fees, suspension, collection, or enforcement may follow.',
+      _ =>
+        'Rizik ako se pismo ignoriše: mogući su dodatni troškovi, obustava usluge, naplata ili prinudno izvršenje.',
+    });
+  } else if (_hasAny(text, const [
+    'ablehn',
+    'versag',
+    'aufheb',
+    'einstell',
+    'rückforder',
+  ])) {
+    notes.add(switch (locale) {
+      'hr' =>
+        'Rizik ako se ne reagira: pravo ili isplata mogu biti odbijeni, obustavljeni ili zatraženi natrag.',
+      'bs' =>
+        'Rizik ako se ne reaguje: pravo ili isplata mogu biti odbijeni, obustavljeni ili zatraženi nazad.',
+      'mk' =>
+        'Ризик без одговор: правото или исплатата може да бидат одбиени, запрени или побарани назад.',
+      'bg' =>
+        'Риск без отговор: право или плащане може да бъдат отказани, спрени или поискани обратно.',
+      'de' =>
+        'Risiko bei Nichtreaktion: Anspruch oder Zahlung können abgelehnt, eingestellt oder zurückgefordert werden.',
+      'en' =>
+        'Risk if no action is taken: an entitlement or payment may be denied, stopped, or reclaimed.',
+      _ =>
+        'Rizik ako se ne reaguje: pravo ili isplata mogu biti odbijeni, obustavljeni ili zatraženi nazad.',
+    });
+  }
+  if (_hasAny(text, const ['rechtsbehelfsbelehrung', 'widerspruch', 'klage'])) {
+    final relative = _hasAny(text, const [
+      'innerhalb eines monats',
+      'innerhalb von einem monat',
+    ]);
+    notes.add(switch (locale) {
+      'hr' =>
+        relative
+            ? 'Pravni lijek: tekst upućuje na rok od jednog mjeseca od dostave/objave; provjerite Rechtsbehelfsbelehrung.'
+            : 'Pravni lijek: provjerite Rechtsbehelfsbelehrung i točan rok u originalu.',
+      'bs' =>
+        relative
+            ? 'Pravni lijek: tekst ukazuje na rok od jednog mjeseca od dostave/objave; provjerite Rechtsbehelfsbelehrung.'
+            : 'Pravni lijek: provjerite Rechtsbehelfsbelehrung i tačan rok u originalu.',
+      'mk' =>
+        relative
+            ? 'Правен лек: текстот укажува на рок од еден месец од доставувањето; проверете ја Rechtsbehelfsbelehrung.'
+            : 'Правен лек: проверете ја Rechtsbehelfsbelehrung и точниот рок.',
+      'bg' =>
+        relative
+            ? 'Обжалване: текстът сочи срок от един месец от връчването; проверете Rechtsbehelfsbelehrung.'
+            : 'Обжалване: проверете Rechtsbehelfsbelehrung и точния срок.',
+      'de' =>
+        relative
+            ? 'Rechtsbehelf: Der Text nennt einen Monat ab Bekanntgabe/Zustellung; Rechtsbehelfsbelehrung genau prüfen.'
+            : 'Rechtsbehelf: Rechtsbehelfsbelehrung und genaue Frist im Original prüfen.',
+      'en' =>
+        relative
+            ? 'Appeal: the text indicates one month from notification/service; verify the Rechtsbehelfsbelehrung.'
+            : 'Appeal: verify the Rechtsbehelfsbelehrung and exact deadline in the original.',
+      _ =>
+        relative
+            ? 'Pravni lek: tekst ukazuje na rok od jednog meseca od dostave/objave; proverite Rechtsbehelfsbelehrung.'
+            : 'Pravni lek: proverite Rechtsbehelfsbelehrung i tačan rok u originalu.',
+    });
+  }
+  notes.add(switch (locale) {
+    'hr' =>
+      'Provjerite u originalu ime, adresu, broj predmeta, sve stranice i priloge prije postupanja.',
+    'bs' =>
+      'Provjerite u originalu ime, adresu, broj predmeta, sve stranice i priloge prije postupanja.',
+    'mk' =>
+      'Пред постапување проверете ги името, адресата, бројот на предметот, сите страници и прилози.',
+    'bg' =>
+      'Преди действие проверете името, адреса, номер на преписка, всички страници и приложения.',
+    'de' =>
+      'Vor dem Handeln Name, Anschrift, Aktenzeichen, alle Seiten und Anlagen im Original prüfen.',
+    'en' =>
+      'Before acting, verify the name, address, reference number, every page, and all attachments.',
+    _ =>
+      'Pre postupanja proverite u originalu ime, adresu, broj predmeta, sve stranice i priloge.',
+  });
+  return notes;
+}
+
+String _concreteAction(
+  String locale,
+  String coreAction, {
+  required DateTime? deadline,
+  required String? reference,
+}) {
+  final deadlineText = deadline == null
+      ? null
+      : '${deadline.day.toString().padLeft(2, '0')}.'
+            '${deadline.month.toString().padLeft(2, '0')}.${deadline.year}';
+  return switch (locale) {
+    'hr' =>
+      '1. Otvorite original i označite zahtjev'
+          '${reference == null ? '' : ' te broj predmeta $reference'}. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Ako nema jasnog roka, potvrdite ga kod pošiljatelja.' : 'Dovršite radnju prije $deadlineText.'} '
+          '4. Sačuvajte kopiju i potvrdu slanja; ako nešto nije jasno, kontaktirajte ustanovu prije roka.',
+    'bs' =>
+      '1. Otvorite original i označite zahtjev'
+          '${reference == null ? '' : ' i broj predmeta $reference'}. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Ako nema jasnog roka, potvrdite ga kod pošiljaoca.' : 'Završite radnju prije $deadlineText.'} '
+          '4. Sačuvajte kopiju i potvrdu slanja; nejasnoću provjerite kod institucije.',
+    'mk' =>
+      '1. Во оригиналот означете го барањето'
+          '${reference == null ? '' : ' и бројот $reference'}. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Ако нема јасен рок, потврдете го кај испраќачот.' : 'Завршете пред $deadlineText.'} '
+          '4. Чувајте копија и потврда за испраќање.',
+    'bg' =>
+      '1. В оригинала отбележете искането'
+          '${reference == null ? '' : ' и номера $reference'}. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Ако няма ясен срок, потвърдете го с подателя.' : 'Приключете преди $deadlineText.'} '
+          '4. Пазете копие и доказателство за изпращане.',
+    'de' =>
+      '1. Aufforderung'
+          '${reference == null ? '' : ' und Aktenzeichen $reference'} im Original markieren. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Unklare Frist beim Absender bestätigen.' : 'Vor dem $deadlineText erledigen.'} '
+          '4. Kopie und Versandnachweis aufbewahren; Unklarheiten vor Fristablauf klären.',
+    'en' =>
+      '1. Mark the request'
+          '${reference == null ? '' : ' and reference $reference'} in the original. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Confirm any unclear deadline with the sender.' : 'Complete it before $deadlineText.'} '
+          '4. Keep a copy and proof of submission; clarify uncertainty before the deadline.',
+    _ =>
+      '1. Otvorite original i označite tačan zahtev'
+          '${reference == null ? '' : ' i broj predmeta $reference'}. '
+          '2. $coreAction '
+          '3. ${deadlineText == null ? 'Ako rok nije jasan, potvrdite ga kod pošiljaoca.' : 'Završite radnju pre $deadlineText.'} '
+          '4. Sačuvajte kopiju i potvrdu slanja; svaku nejasnoću proverite kod institucije pre roka.',
+  };
+}
+
+String? _referenceFor(String text) {
+  final match = RegExp(
+    r'(?:Aktenzeichen|Geschäftszeichen|Kundennummer|BG-Nummer|'
+    r'Kindergeldnummer|Versicherungsnummer|Steuernummer|Beitragsnummer)'
+    r'\s*[:#.-]?\s*([A-Z0-9][A-Z0-9/.-]{3,30})',
+    caseSensitive: false,
+  ).firstMatch(text);
+  return match?.group(1)?.trim();
 }
 
 _DocumentIntent _documentIntent(String text) {

@@ -30,6 +30,7 @@ import 'app_config.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
 import '../features/analysis/image_preprocessor.dart';
+import '../features/assistant/local_letter_assistant.dart';
 import '../features/ocr/local_ocr.dart';
 import 'local_database_factory.dart';
 import 'native_store_bridge.dart';
@@ -589,7 +590,11 @@ class AiService {
     if (!kCloudAiEnabled ||
         !cloudEnabled ||
         FirebaseAuth.instance.currentUser == null) {
-      return _localAssistant(language, letter);
+      return const LocalLetterAssistant().answer(
+        question: question,
+        language: language,
+        letter: letter,
+      );
     }
     final request = <String, String>{
       'question': question,
@@ -612,7 +617,11 @@ class AiService {
       return answer;
     } on FirebaseFunctionsException catch (error) {
       if (!_backendUnavailable(error)) rethrow;
-      return _localAssistant(language, letter);
+      return const LocalLetterAssistant().answer(
+        question: question,
+        language: language,
+        letter: letter,
+      );
     }
   }
 
@@ -639,33 +648,6 @@ class AiService {
           'werde Ihr Anliegen sowie die angeforderten Unterlagen fristgerecht '
           'bearbeiten.$detail\n\nMit freundlichen Grüßen',
     );
-  }
-
-  String _localAssistant(String language, LetterAnalysis? letter) {
-    final deadline = letter?.deadline?.toIso8601String().split('T').first;
-    final amount = letter?.amount;
-    final locale = language.toLowerCase().split(RegExp('[-_]')).first;
-    final details = <String>[
-      if (deadline != null) '📅 $deadline',
-      if (amount != null) '💶 $amount',
-    ].join(' · ');
-    final suffix = details.isEmpty ? '' : '\n\n$details';
-    return switch (locale) {
-      'hr' =>
-        'Prema lokalnoj analizi: ${letter?.plainExplanation ?? 'najprije analizirajte pismo.'} ${letter?.suggestedAction ?? ''}$suffix',
-      'bs' =>
-        'Prema lokalnoj analizi: ${letter?.plainExplanation ?? 'prvo analizirajte pismo.'} ${letter?.suggestedAction ?? ''}$suffix',
-      'mk' =>
-        'Според локалната анализа: ${letter?.plainExplanation ?? 'прво анализирајте го писмото.'} ${letter?.suggestedAction ?? ''}$suffix',
-      'bg' =>
-        'Според локалния анализ: ${letter?.plainExplanation ?? 'първо анализирайте писмото.'} ${letter?.suggestedAction ?? ''}$suffix',
-      'de' =>
-        'Lokale Analyse: ${letter?.plainExplanation ?? 'Analysieren Sie zuerst das Schreiben.'} ${letter?.suggestedAction ?? ''}$suffix',
-      'en' =>
-        'Local analysis: ${letter?.plainExplanation ?? 'Analyse the letter first.'} ${letter?.suggestedAction ?? ''}$suffix',
-      _ =>
-        'Prema lokalnoj analizi: ${letter?.plainExplanation ?? 'prvo analizirajte pismo.'} ${letter?.suggestedAction ?? ''}$suffix',
-    };
   }
 }
 

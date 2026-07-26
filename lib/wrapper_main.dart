@@ -5,14 +5,43 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 const _appUrl = 'https://briefai-germany-download.onrender.com/app/';
 const _appHost = 'briefai-germany-download.onrender.com';
+const _wrapperImageMaxSide = 2200;
+
+Future<String> _resizeWrapperImage(Map<String, String> job) async {
+  final input = File(job['input']!);
+  final decoded = img.decodeImage(await input.readAsBytes());
+  if (decoded == null) return job['input']!;
+  final oriented = img.bakeOrientation(decoded);
+  final longest = oriented.width > oriented.height
+      ? oriented.width
+      : oriented.height;
+  final resized = longest > _wrapperImageMaxSide
+      ? img.copyResize(
+          oriented,
+          width: oriented.width >= oriented.height
+              ? _wrapperImageMaxSide
+              : null,
+          height: oriented.height > oriented.width
+              ? _wrapperImageMaxSide
+              : null,
+          interpolation: img.Interpolation.linear,
+        )
+      : oriented;
+  await File(
+    job['output']!,
+  ).writeAsBytes(img.encodeJpg(resized, quality: 84), flush: true);
+  return job['output']!;
+}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +83,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
   String? _purchaseWaiter;
   Timer? _purchaseWaiterTimer;
   var _progress = 0;
+  var _preparingFile = false;
   String? _error;
 
   @override
@@ -271,7 +301,9 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           params.acceptTypes.any((type) => type.startsWith('image/'))) {
         final image = await ImagePicker().pickImage(
           source: ImageSource.camera,
-          imageQuality: 92,
+          imageQuality: 84,
+          maxWidth: _wrapperImageMaxSide.toDouble(),
+          maxHeight: _wrapperImageMaxSide.toDouble(),
         );
         return image == null ? <String>[] : <String>[image.path];
       }
@@ -285,8 +317,31 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             ? const ['pdf', 'png', 'jpg', 'jpeg']
             : null,
       );
-      return selection?.paths.whereType<String>().toList() ?? <String>[];
+      final paths = selection?.paths.whereType<String>().toList() ?? <String>[];
+      if (paths.isEmpty) return paths;
+      if (mounted) setState(() => _preparingFile = true);
+      try {
+        return await Future.wait(paths.map(_prepareSelectedFile));
+      } finally {
+        if (mounted) setState(() => _preparingFile = false);
+      }
     });
+  }
+
+  Future<String> _prepareSelectedFile(String path) async {
+    if (path.toLowerCase().endsWith('.pdf')) return path;
+    try {
+      final temporaryDirectory = await getTemporaryDirectory();
+      final output =
+          '${temporaryDirectory.path}${Platform.pathSeparator}'
+          'briefai-${DateTime.now().microsecondsSinceEpoch}.jpg';
+      return await compute(_resizeWrapperImage, {
+        'input': path,
+        'output': output,
+      }).timeout(const Duration(seconds: 18));
+    } on Object {
+      return path;
+    }
   }
 
   @override
@@ -305,6 +360,31 @@ class _WrapperScreenState extends State<_WrapperScreen> {
               WebViewWidget(controller: _controller),
               if (_progress < 100)
                 LinearProgressIndicator(value: _progress / 100),
+              if (_preparingFile)
+                ColoredBox(
+                  color: const Color(0xaa071633),
+                  child: Center(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 22,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text(
+                              'Pripremam fotografiju…',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (_error != null)
                 ColoredBox(
                   color: Theme.of(context).colorScheme.surface,

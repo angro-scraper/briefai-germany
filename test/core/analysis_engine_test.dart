@@ -120,4 +120,29 @@ void main() {
       expect(result.category, LetterCategory.krankenkasse);
     }
   });
+
+  test('opomena daje rizik i numerisane konkretne korake', () {
+    final result = engine.analyse(
+      'Stadtwerke Mahnung. Kundennummer A123456. Offene Forderung '
+      '84,50 EUR ist bis zum 18.08.2026 fällig. Danach Inkasso.',
+      language: 'sr',
+    );
+
+    expect(result.plainExplanation, contains('Rizik'));
+    expect(result.plainExplanation, contains('A123456'));
+    expect(result.suggestedAction, startsWith('1.'));
+    expect(result.suggestedAction, contains('18.08.2026'));
+    expect(result.suggestedAction, contains('4.'));
+  });
+
+  test('prepoznaje relativni rok za pravni lek u objašnjenju', () {
+    final result = engine.analyse(
+      'Bescheid mit Rechtsbehelfsbelehrung. Gegen diesen Bescheid kann '
+      'innerhalb eines Monats nach Bekanntgabe Widerspruch erhoben werden.',
+      language: 'sr',
+    );
+
+    expect(result.plainExplanation, contains('jednog meseca'));
+    expect(result.plainExplanation, contains('Rechtsbehelfsbelehrung'));
+  });
 }
