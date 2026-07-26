@@ -26,6 +26,7 @@ import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'domain.dart';
+import 'app_config.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
 import '../features/analysis/image_preprocessor.dart';
@@ -508,7 +509,9 @@ class AiService {
     required String text,
     required String language,
   }) async {
-    if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
+    if (!kCloudAiEnabled ||
+        !cloudEnabled ||
+        FirebaseAuth.instance.currentUser == null) {
       return _local.analyse(text, language: language, id: letterId);
     }
     try {
@@ -533,7 +536,9 @@ class AiService {
     required String facts,
     required String language,
   }) async {
-    if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
+    if (!kCloudAiEnabled ||
+        !cloudEnabled ||
+        FirebaseAuth.instance.currentUser == null) {
       return _localReply(facts);
     }
     try {
@@ -569,7 +574,9 @@ class AiService {
     required String language,
     LetterAnalysis? letter,
   }) async {
-    if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
+    if (!kCloudAiEnabled ||
+        !cloudEnabled ||
+        FirebaseAuth.instance.currentUser == null) {
       return _localAssistant(language, letter);
     }
     final request = <String, String>{

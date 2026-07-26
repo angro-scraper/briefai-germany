@@ -322,6 +322,10 @@ class AppStrings {
       'premiumActive': 'Premium je aktivan',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Analize, odgovori i podsetnici uz odgovornu upotrebu',
+      'freeBetaActive': 'Besplatna beta: neograničene lokalne analize.',
+      'freeBetaTitle': 'BriefAI besplatna beta',
+      'freeBetaBody':
+          'Plaćanje je isključeno dok testiramo kvalitet. Svi dokumenti ostaju lokalno na vašem uređaju.',
       'privacyPolicy': 'Politika privatnosti',
       'terms': 'Uslovi korišćenja',
       'exportData': 'Preuzmi moje podatke',
@@ -447,6 +451,10 @@ class AppStrings {
       'premiumActive': 'Premium je aktivan',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Analize, odgovori i podsjetnici uz odgovornu uporabu',
+      'freeBetaActive': 'Besplatna beta: neograničene lokalne analize.',
+      'freeBetaTitle': 'BriefAI besplatna beta',
+      'freeBetaBody':
+          'Plaćanje je isključeno dok testiramo kvalitetu. Svi dokumenti ostaju lokalno na vašem uređaju.',
       'privacyPolicy': 'Pravila privatnosti',
       'terms': 'Uvjeti korištenja',
       'exportData': 'Preuzmi moje podatke',
@@ -572,6 +580,10 @@ class AppStrings {
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle':
           'Analize, odgovori i podsjetnici uz odgovornu upotrebu',
+      'freeBetaActive': 'Besplatna beta: neograničene lokalne analize.',
+      'freeBetaTitle': 'BriefAI besplatna beta',
+      'freeBetaBody':
+          'Plaćanje je isključeno dok testiramo kvalitet. Svi dokumenti ostaju lokalno na vašem uređaju.',
       'privacyPolicy': 'Politika privatnosti',
       'terms': 'Uslovi korištenja',
       'exportData': 'Preuzmi moje podatke',
@@ -696,6 +708,10 @@ class AppStrings {
       'premiumActive': 'Premium е активен',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Анализи, одговори и потсетници со одговорна употреба',
+      'freeBetaActive': 'Бесплатна бета: неограничени локални анализи.',
+      'freeBetaTitle': 'BriefAI бесплатна бета',
+      'freeBetaBody':
+          'Плаќањето е исклучено додека го тестираме квалитетот. Сите документи остануваат локално на вашиот уред.',
       'privacyPolicy': 'Политика за приватност',
       'terms': 'Услови за користење',
       'exportData': 'Преземи ги моите податоци',
@@ -823,6 +839,10 @@ class AppStrings {
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle':
           'Analysen, Antworten und Erinnerungen bei fairer Nutzung',
+      'freeBetaActive': 'Kostenlose Beta: unbegrenzte lokale Analysen.',
+      'freeBetaTitle': 'Kostenlose BriefAI-Beta',
+      'freeBetaBody':
+          'Zahlungen sind während des Qualitätstests deaktiviert. Alle Dokumente bleiben lokal auf Ihrem Gerät.',
       'privacyPolicy': 'Datenschutzerklärung',
       'terms': 'Nutzungsbedingungen',
       'exportData': 'Meine Daten herunterladen',
@@ -951,6 +971,10 @@ class AppStrings {
       'premiumActive': 'Premium is active',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Analyses, replies and reminders with responsible use',
+      'freeBetaActive': 'Free beta: unlimited local analyses.',
+      'freeBetaTitle': 'BriefAI free beta',
+      'freeBetaBody':
+          'Payments are disabled while we test quality. All documents remain locally on your device.',
       'privacyPolicy': 'Privacy Policy',
       'terms': 'Terms & Conditions',
       'exportData': 'Download my data',
@@ -1077,6 +1101,10 @@ class AppStrings {
       'premiumActive': 'Premium е активен',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Анализи, отговори и напомняния с отговорна употреба',
+      'freeBetaActive': 'Безплатна бета: неограничени локални анализи.',
+      'freeBetaTitle': 'Безплатна бета на BriefAI',
+      'freeBetaBody':
+          'Плащанията са изключени, докато тестваме качеството. Всички документи остават локално на вашето устройство.',
       'privacyPolicy': 'Политика за поверителност',
       'terms': 'Условия за ползване',
       'exportData': 'Изтегли моите данни',

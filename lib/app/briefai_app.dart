@@ -8,6 +8,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/domain.dart';
+import '../core/app_config.dart';
 import '../core/app_services.dart';
 import '../core/app_localizations.dart';
 import '../core/legal.dart';
@@ -29,7 +30,7 @@ class _BriefAiAppState extends State<BriefAiApp> {
   void initState() {
     super.initState();
     unawaited(_restoreAppState());
-    if (!kIsWeb) {
+    if (kPaymentsEnabled && !kIsWeb) {
       _purchaseSubscription = widget.services.purchases.updates.listen(
         _handlePurchaseUpdates,
         onError: (_) {},
@@ -433,7 +434,8 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final unavailable = !services.cloudEnabled && !kDebugMode;
+    final unavailable =
+        !kFreeBetaMode && !services.cloudEnabled && !kDebugMode;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -490,7 +492,9 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                state.isPremium
+                kFreeBetaMode
+                    ? strings.text('freeBetaActive')
+                    : state.isPremium
                     ? strings.text('unlimited')
                     : strings.remaining(2 - state.freeAnalysesUsed),
                 style: const TextStyle(color: Color(0xFFD7E0FF)),
@@ -893,7 +897,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Future<void> _analyse() async {
-    if (widget.services.cloudEnabled && !widget.services.auth.isSignedIn) {
+    if (!kFreeBetaMode &&
+        widget.services.cloudEnabled &&
+        !widget.services.auth.isSignedIn) {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => SignInScreen(services: widget.services),
@@ -922,7 +928,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         analysis,
         document: _document,
       );
-      if (!widget.state.isPremium) {
+      if (!kFreeBetaMode && !widget.state.isPremium) {
         await widget.services.entitlements.recordAnalysis(
           widget.services.auth.uid ?? 'local-device',
         );
@@ -1549,22 +1555,29 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
         const Divider(),
-        ListTile(
-          leading: const Icon(Icons.workspace_premium),
-          title: Text(
-            state.isPremium
-                ? strings.text('premiumActive')
-                : strings.text('premiumName'),
-          ),
-          subtitle: Text(strings.text('premiumSubtitle')),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  SubscriptionScreen(state: state, services: services),
+        if (kPaymentsEnabled)
+          ListTile(
+            leading: const Icon(Icons.workspace_premium),
+            title: Text(
+              state.isPremium
+                  ? strings.text('premiumActive')
+                  : strings.text('premiumName'),
             ),
+            subtitle: Text(strings.text('premiumSubtitle')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    SubscriptionScreen(state: state, services: services),
+              ),
+            ),
+          )
+        else
+          ListTile(
+            leading: const Icon(Icons.science_outlined),
+            title: Text(strings.text('freeBetaTitle')),
+            subtitle: Text(strings.text('freeBetaBody')),
           ),
-        ),
         if (services.cloudEnabled && !services.auth.isSignedIn)
           ListTile(
             leading: const Icon(Icons.login),
@@ -1836,7 +1849,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Premium i Pro planovi se naplaćuju mesečno preko Google Play-a, App Store-a ili Stripe-a za web. Upravljanje i otkazivanje vrši se kroz kanal preko kog je pretplata kupljena; pristup važi do kraja već plaćenog perioda.',
+    'Tokom besplatne beta faze naplata nije aktivna. Premium i Pro planovi biće ponuđeni tek nakon provere kvaliteta i uz jasno prikazanu cenu i uslove pre kupovine.',
   ),
   (
     '4. Prihvatljivo korišćenje',

@@ -61,7 +61,7 @@ void main() {
     expect(state.onboardingComplete, isTrue);
   });
 
-  test('server quota replaces local free analysis counter', () {
+  test('free beta keeps analysis available without consuming quota', () {
     final state = AppState();
     state.addAnalysis(
       LetterAnalysis(
@@ -78,7 +78,7 @@ void main() {
     state.setFreeAnalysesUsed(2);
 
     expect(state.freeAnalysesUsed, 2);
-    expect(state.canAnalyse, isFalse);
+    expect(state.canAnalyse, isTrue);
   });
 
   test('generated reply retains separate letter and email variants', () {

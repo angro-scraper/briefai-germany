@@ -30,6 +30,9 @@ void main() {
         'archiveSubtitle',
         'privacyPolicy',
         'choosePlan',
+        'freeBetaActive',
+        'freeBetaTitle',
+        'freeBetaBody',
         'deleteAccount',
       ];
 

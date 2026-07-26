@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'app_config.dart';
+
 enum LetterCategory {
   finanzamt,
   krankenkasse,
@@ -172,7 +174,8 @@ class AppState extends ChangeNotifier {
   String localeCode = 'sr';
   final List<LetterAnalysis> letters = [];
 
-  bool get canAnalyse => isPremium || freeAnalysesUsed < 2;
+  bool get canAnalyse =>
+      kFreeBetaMode || isPremium || freeAnalysesUsed < 2;
 
   void setLocale(String value) {
     if (localeCode == value) return;
@@ -192,7 +195,7 @@ class AppState extends ChangeNotifier {
 
   void addAnalysis(LetterAnalysis analysis) {
     letters.insert(0, analysis);
-    if (!isPremium) freeAnalysesUsed++;
+    if (!kFreeBetaMode && !isPremium) freeAnalysesUsed++;
     notifyListeners();
   }
 
