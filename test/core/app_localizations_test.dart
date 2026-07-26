@@ -1,4 +1,5 @@
 import 'package:briefai_germany/core/app_localizations.dart';
+import 'package:briefai_germany/core/domain.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -41,8 +42,14 @@ void main() {
             reason: '${locale.languageCode} is missing $key',
           );
         }
-        expect(strings.category('insurance'), isNot('insurance'));
-        expect(strings.category('familienkasse'), isNot('familienkasse'));
+        for (final category in LetterCategory.values) {
+          expect(
+            strings.category(category.name),
+            isNot(category.name),
+            reason:
+                '${locale.languageCode} is missing category ${category.name}',
+          );
+        }
       }
     },
   );

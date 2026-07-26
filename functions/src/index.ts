@@ -42,7 +42,10 @@ const storeProductIds = new Set(["briefai_premium_monthly", "briefai_pro_monthly
 const allowedCategories = [
   "Finanzamt", "Krankenkasse", "Jobcenter", "Banka", "Osiguranje",
   "Telekom", "Poslodavac", "Stanodavac", "Škola", "Vrtić", "Sud",
-  "Familienkasse", "Ostalo",
+  "Familienkasse", "Agentur für Arbeit", "Ausländerbehörde", "Bürgeramt",
+  "Sozialamt", "Jugendamt", "Wohngeldstelle", "BAföG-Amt",
+  "Rentenversicherung", "Rundfunkbeitrag", "Energieversorger", "Inkasso",
+  "Policija/Tužilaštvo", "Zoll", "Ostalo",
 ] as const;
 
 type Analysis = {
@@ -426,6 +429,8 @@ export const analyzeLetter = onCall(
         instructions: `You are a meticulous German official-letter analyst. Explain the letter in the user's requested language (${preferredLanguage}); supported codes are sr, hr, bs, mk, bg, de, and en. Use natural everyday language for that locale without mixing languages.
 
 First identify the actual sender from letterhead, authority name, contact details, reference number, and subject. Familienkasse / Bundesagentur für Arbeit letters about Kindergeld or Kinderzuschlag MUST be category "Familienkasse", even when they mention Steuer-ID or steuerliche Identifikationsnummer. The word "Steuer" alone is never enough to classify a letter as Finanzamt. Use "Finanzamt" only when the sender or tax-office context is explicit.
+
+Use the narrowest matching category. Distinguish Agentur für Arbeit from Jobcenter and Familienkasse; Ausländerbehörde from Bürgeramt; Sozialamt from Wohngeldstelle and Jugendamt; and court from police/prosecution, customs, or debt collection. Rundfunkbeitrag, energy suppliers, pension insurance, BAföG offices, and Inkasso each have their own category. Use "Ostalo" only when no listed sender type is supported by the text.
 
 Explain concretely in 3-6 short sentences: what the authority decided or requests, why according to the letter, what the user must send/pay/do, and what consequence is explicitly stated. Distinguish the document date from an actual deadline. Never invent a deadline, amount, consequence, legal right, or missing fact. If OCR is ambiguous, say exactly which fact is uncertain instead of guessing. The suggestedAction must be a practical ordered checklist and should mention the reference number (for example Kindergeldnummer) when relevant.
 

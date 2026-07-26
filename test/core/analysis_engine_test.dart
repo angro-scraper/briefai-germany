@@ -50,15 +50,66 @@ void main() {
     expect(result.deadline, isNull);
   });
 
+  test('prepoznaje širok skup nemačkih institucija', () {
+    const cases = <String, LetterCategory>{
+      'Agentur für Arbeit: Bescheid über Arbeitslosengeld':
+          LetterCategory.agenturFuerArbeit,
+      'Ausländerbehörde: Unterlagen zum Aufenthaltstitel':
+          LetterCategory.auslaenderbehoerde,
+      'Bürgeramt: Termin für Ihren Personalausweis': LetterCategory.buergeramt,
+      'Sozialamt: Bescheid über Grundsicherung': LetterCategory.sozialamt,
+      'Jugendamt: Unterhaltsvorschuss und Beistandschaft':
+          LetterCategory.jugendamt,
+      'Wohngeldstelle: Wohngeldbescheid': LetterCategory.wohngeldstelle,
+      'BAföG-Amt: Ausbildungsförderung bewilligt': LetterCategory.bafoegAmt,
+      'Deutsche Rentenversicherung: Ihr Rentenbescheid':
+          LetterCategory.rentenversicherung,
+      'ARD ZDF Deutschlandradio Beitragsservice, Beitragsnummer 123':
+          LetterCategory.rundfunkbeitrag,
+      'Stadtwerke: Stromrechnung und Abschlagszahlung': LetterCategory.energy,
+      'Inkasso: Mahnung wegen offener Forderung': LetterCategory.debtCollection,
+      'Staatsanwaltschaft: Ermittlungsverfahren': LetterCategory.police,
+      'Hauptzollamt: Schreiben der Zollverwaltung': LetterCategory.customs,
+    };
+
+    for (final entry in cases.entries) {
+      expect(
+        engine.analyse(entry.key).category,
+        entry.value,
+        reason: entry.key,
+      );
+    }
+  });
+
+  test('objašnjenje razlikuje vrstu radnje', () {
+    final documents = engine.analyse(
+      'Ausländerbehörde: Bitte reichen Sie Unterlagen und Nachweise '
+      'bis zum 20.09.2026 ein.',
+    );
+    final payment = engine.analyse(
+      'Stadtwerke: Mahnung. Offene Forderung 84,50 EUR ist fällig.',
+    );
+    final appointment = engine.analyse(
+      'Bürgeramt: Termin zur persönlichen Vorsprache am 10.09.2026.',
+    );
+
+    expect(documents.title, contains('dokumenta'));
+    expect(documents.suggestedAction, contains('potvrdu slanja'));
+    expect(payment.title, contains('Plaćanje'));
+    expect(payment.suggestedAction, contains('Ne plaćajte'));
+    expect(appointment.title, contains('Termin'));
+    expect(appointment.suggestedAction, contains('kalendar'));
+  });
+
   test('objašnjava na svim podržanim jezicima', () {
     const expectedPhrases = <String, String>{
-      'sr': 'Pismo je poslato',
-      'hr': 'Pismo je poslao',
-      'bs': 'Pismo je poslao',
-      'mk': 'Писмото е испратено',
-      'bg': 'Писмото е изпратено',
-      'de': 'Das Schreiben stammt',
-      'en': 'The letter was sent',
+      'sr': 'Prepoznati pošiljalac',
+      'hr': 'Prepoznati pošiljatelj',
+      'bs': 'Prepoznati pošiljalac',
+      'mk': 'Препознаен испраќач',
+      'bg': 'Разпознат подател',
+      'de': 'Erkannter Absender',
+      'en': 'Recognized sender',
     };
     for (final entry in expectedPhrases.entries) {
       final result = engine.analyse(

@@ -20,28 +20,26 @@ class AnalysisEngine {
         : deadline != null
         ? Urgency.medium
         : Urgency.low;
-    final copy = _copy[locale]!;
     final categoryName = _categoryName(category, locale);
     final family = category == LetterCategory.familienkasse
         ? _familienkasseAnalysis(normalized, locale, deadline: deadline)
         : null;
-    final title = switch (category) {
-      LetterCategory.finanzamt => copy.finanzamtTitle,
-      LetterCategory.jobcenter => copy.jobcenterTitle,
-      LetterCategory.krankenkasse => copy.krankenkasseTitle,
-      LetterCategory.court => copy.courtTitle,
-      LetterCategory.familienkasse => family!.title,
-      _ => copy.generalTitle,
-    };
+    final general = family == null
+        ? _genericAnalysis(
+            normalized,
+            locale,
+            categoryName,
+            deadline: deadline,
+            amount: amount,
+          )
+        : null;
     return LetterAnalysis(
       id: id ?? DateTime.now().microsecondsSinceEpoch.toString(),
-      title: title,
-      plainExplanation:
-          family?.explanation ??
-          copy.explanation(categoryName, deadline != null),
+      title: family?.title ?? general!.title,
+      plainExplanation: family?.explanation ?? general!.explanation,
       category: category,
       urgency: urgency,
-      suggestedAction: family?.action ?? copy.action,
+      suggestedAction: family?.action ?? general!.action,
       createdAt: DateTime.now(),
       deadline: deadline,
       amount: amount,
@@ -50,44 +48,180 @@ class AnalysisEngine {
   }
 
   LetterCategory _categoryFor(String text) {
-    if (text.contains('familienkasse') ||
-        text.contains('kindergeld') ||
-        text.contains('kinderzuschlag') ||
-        text.contains('kindergeldnummer') ||
-        text.contains('kindergeld-nr')) {
+    if (_containsAny(text, const [
+      'familienkas',
+      'kindergeld',
+      'kindergeid',
+      'kinderzuschlag',
+      'kindergeldnummer',
+      'kindergeld-nr',
+    ])) {
       return LetterCategory.familienkasse;
     }
-    if (text.contains('finanzamt') ||
-        text.contains('steuerbescheid') ||
-        text.contains('einkommensteuer') ||
-        text.contains('umsatzsteuer') ||
-        text.contains('lohnsteuer')) {
-      return LetterCategory.finanzamt;
-    }
-    if (text.contains('jobcenter') || text.contains('bürgergeld')) {
+    if (_containsAny(text, const ['jobcenter', 'bürgergeld'])) {
       return LetterCategory.jobcenter;
     }
-    if (text.contains('krankenkasse') ||
-        text.contains('aok') ||
-        text.contains(' tk ')) {
-      return LetterCategory.krankenkasse;
+    if (_containsAny(text, const [
+      'agentur für arbeit',
+      'arbeitsagentur',
+      'arbeitslosengeld',
+      'kundennummer der agentur',
+    ])) {
+      return LetterCategory.agenturFuerArbeit;
     }
-    if (text.contains('gericht') || text.contains('amtsgericht')) {
+    if (_containsAny(text, const [
+      'ausländerbehörde',
+      'auslaenderbehoerde',
+      'aufenthaltstitel',
+      'aufenthaltserlaubnis',
+      'niederlassungserlaubnis',
+      'fiktionsbescheinigung',
+    ])) {
+      return LetterCategory.auslaenderbehoerde;
+    }
+    if (_containsAny(text, const [
+      'bürgeramt',
+      'buergeramt',
+      'einwohnermeldeamt',
+      'meldebehörde',
+      'personalausweis',
+      'anmeldebestätigung',
+    ])) {
+      return LetterCategory.buergeramt;
+    }
+    if (_containsAny(text, const [
+      'wohngeldstelle',
+      'wohngeldbehörde',
+      'wohngeldbescheid',
+      'wohngeldantrag',
+    ])) {
+      return LetterCategory.wohngeldstelle;
+    }
+    if (_containsAny(text, const [
+      'jugendamt',
+      'unterhaltsvorschuss',
+      'beistandschaft',
+    ])) {
+      return LetterCategory.jugendamt;
+    }
+    if (_containsAny(text, const [
+      'sozialamt',
+      'grundsicherung',
+      'hilfe zum lebensunterhalt',
+      'eingliederungshilfe',
+    ])) {
+      return LetterCategory.sozialamt;
+    }
+    if (_containsAny(text, const ['bafög', 'bafoeg', 'ausbildungsförderung'])) {
+      return LetterCategory.bafoegAmt;
+    }
+    if (_containsAny(text, const [
+      'deutsche rentenversicherung',
+      'rentenversicherung',
+      'rentenbescheid',
+      'versicherungsverlauf',
+    ])) {
+      return LetterCategory.rentenversicherung;
+    }
+    if (_containsAny(text, const [
+      'beitragsservice',
+      'rundfunkbeitrag',
+      'ard zdf deutschlandradio',
+      'beitragsnummer',
+    ])) {
+      return LetterCategory.rundfunkbeitrag;
+    }
+    if (_containsAny(text, const [
+      'hauptzollamt',
+      'zollamt',
+      'zollverwaltung',
+    ])) {
+      return LetterCategory.customs;
+    }
+    if (_containsAny(text, const [
+      'staatsanwaltschaft',
+      'polizeipräsidium',
+      'polizeiinspektion',
+      'kriminalpolizei',
+      'ermittlungsverfahren',
+    ])) {
+      return LetterCategory.police;
+    }
+    if (_containsAny(text, const [
+      'amtsgericht',
+      'landgericht',
+      'sozialgericht',
+      'verwaltungsgericht',
+      'arbeitsgericht',
+      'mahngericht',
+    ])) {
       return LetterCategory.court;
     }
+    if (_containsAny(text, const [
+      'finanzamt',
+      'steuerbescheid',
+      'einkommensteuer',
+      'umsatzsteuer',
+      'lohnsteuer',
+    ])) {
+      return LetterCategory.finanzamt;
+    }
+    if (_containsAny(text, const [
+      'krankenkasse',
+      'pflegekasse',
+      ' aok ',
+      ' techniker krankenkasse',
+      'barmer',
+      'dak-gesundheit',
+    ])) {
+      return LetterCategory.krankenkasse;
+    }
+    if (_containsAny(text, const [
+      'inkasso',
+      'forderungseinzug',
+      'collection services',
+      'forderungsgesellschaft',
+    ])) {
+      return LetterCategory.debtCollection;
+    }
+    if (_containsAny(text, const [
+      'stadtwerke',
+      'energieversorgung',
+      'energieversorger',
+      'stromrechnung',
+      'gasrechnung',
+      'zählerstand',
+      'abschlagszahlung',
+    ])) {
+      return LetterCategory.energy;
+    }
     if (text.contains('versicherung')) return LetterCategory.insurance;
-    if (text.contains('bank') || text.contains('sparkasse')) {
+    if (_containsAny(text, const ['bank', 'sparkasse', 'volksbank'])) {
       return LetterCategory.bank;
     }
-    if (text.contains('telekom') ||
-        text.contains('vodafone') ||
-        text.contains('o2')) {
+    if (_containsAny(text, const [
+      'telekom',
+      'vodafone',
+      'telefonica',
+      ' o2 ',
+    ])) {
       return LetterCategory.telecom;
     }
-    if (text.contains('arbeitgeber') || text.contains('kündigung')) {
+    if (_containsAny(text, const [
+      'arbeitgeber',
+      'arbeitsvertrag',
+      'lohnabrechnung',
+      'gehaltsabrechnung',
+    ])) {
       return LetterCategory.employer;
     }
-    if (text.contains('vermieter') || text.contains('miete')) {
+    if (_containsAny(text, const [
+      'vermieter',
+      'hausverwaltung',
+      'mietvertrag',
+      'nebenkostenabrechnung',
+      'mieterhöhung',
+    ])) {
       return LetterCategory.landlord;
     }
     if (text.contains('kindergarten') || text.contains('kita')) {
@@ -96,6 +230,9 @@ class AnalysisEngine {
     if (text.contains('schule')) return LetterCategory.school;
     return LetterCategory.other;
   }
+
+  bool _containsAny(String text, List<String> values) =>
+      values.any(text.contains);
 
   DateTime? _deadlineFor(String text) {
     final match = RegExp(
@@ -117,116 +254,371 @@ String _supportedLocale(String value) {
   return _copy.containsKey(locale) ? locale : 'sr';
 }
 
-String _categoryName(LetterCategory category, String locale) {
-  const names = <String, List<String>>{
-    'sr': [
-      'poreska uprava',
-      'zdravstveno osiguranje',
-      'Jobcenter',
-      'banka',
-      'osiguranje',
-      'telekom',
-      'poslodavac',
-      'stanodavac',
-      'škola',
-      'vrtić',
-      'sud',
-      'Familienkasse',
-      'druga institucija',
-    ],
-    'hr': [
-      'porezna uprava',
-      'zdravstveno osiguranje',
-      'Jobcenter',
-      'banka',
-      'osiguranje',
-      'telekom',
-      'poslodavac',
-      'stanodavac',
-      'škola',
-      'vrtić',
-      'sud',
-      'Familienkasse',
-      'druga institucija',
-    ],
-    'bs': [
-      'porezna uprava',
-      'zdravstveno osiguranje',
-      'Jobcenter',
-      'banka',
-      'osiguranje',
-      'telekom',
-      'poslodavac',
-      'stanodavac',
-      'škola',
-      'vrtić',
-      'sud',
-      'Familienkasse',
-      'druga institucija',
-    ],
-    'mk': [
-      'даночна управа',
-      'здравствено осигурување',
-      'Jobcenter',
-      'банка',
-      'осигурување',
-      'телеком',
-      'работодавач',
-      'сопственик на стан',
-      'училиште',
-      'градинка',
-      'суд',
-      'Familienkasse',
-      'друга институција',
-    ],
-    'bg': [
-      'данъчна служба',
-      'здравна каса',
-      'Jobcenter',
-      'банка',
-      'застраховател',
-      'телеком',
-      'работодател',
-      'наемодател',
-      'училище',
-      'детска градина',
-      'съд',
-      'Familienkasse',
-      'друга институция',
-    ],
-    'de': [
-      'Finanzamt',
-      'Krankenkasse',
-      'Jobcenter',
-      'Bank',
-      'Versicherung',
-      'Telekommunikationsanbieter',
-      'Arbeitgeber',
-      'Vermieter',
-      'Schule',
-      'Kindergarten',
-      'Gericht',
-      'Familienkasse',
-      'andere Stelle',
-    ],
-    'en': [
-      'tax office',
-      'health insurer',
-      'Jobcenter',
-      'bank',
-      'insurer',
-      'telecom provider',
-      'employer',
-      'landlord',
-      'school',
-      'kindergarten',
-      'court',
-      'Familienkasse',
-      'another institution',
-    ],
-  };
-  return names[locale]![category.index];
+String _categoryName(LetterCategory category, String _) => switch (category) {
+  LetterCategory.finanzamt => 'Finanzamt',
+  LetterCategory.krankenkasse => 'Krankenkasse',
+  LetterCategory.jobcenter => 'Jobcenter',
+  LetterCategory.bank => 'Bank',
+  LetterCategory.insurance => 'Versicherung',
+  LetterCategory.telecom => 'Telekommunikationsanbieter',
+  LetterCategory.employer => 'Arbeitgeber',
+  LetterCategory.landlord => 'Vermieter',
+  LetterCategory.school => 'Schule',
+  LetterCategory.kindergarten => 'Kindergarten/Kita',
+  LetterCategory.court => 'Gericht',
+  LetterCategory.familienkasse => 'Familienkasse',
+  LetterCategory.agenturFuerArbeit => 'Agentur für Arbeit',
+  LetterCategory.auslaenderbehoerde => 'Ausländerbehörde',
+  LetterCategory.buergeramt => 'Bürgeramt',
+  LetterCategory.sozialamt => 'Sozialamt',
+  LetterCategory.jugendamt => 'Jugendamt',
+  LetterCategory.wohngeldstelle => 'Wohngeldstelle',
+  LetterCategory.bafoegAmt => 'BAföG-Amt',
+  LetterCategory.rentenversicherung => 'Deutsche Rentenversicherung',
+  LetterCategory.rundfunkbeitrag => 'ARD ZDF Deutschlandradio Beitragsservice',
+  LetterCategory.energy => 'Energieversorger',
+  LetterCategory.debtCollection => 'Inkassounternehmen',
+  LetterCategory.police => 'Polizei/Staatsanwaltschaft',
+  LetterCategory.customs => 'Zoll',
+  LetterCategory.other => 'andere Stelle',
+};
+
+enum _DocumentIntent {
+  documents,
+  payment,
+  appointment,
+  decision,
+  response,
+  information,
 }
+
+class _GenericAnalysis {
+  const _GenericAnalysis({
+    required this.title,
+    required this.explanation,
+    required this.action,
+  });
+
+  final String title;
+  final String explanation;
+  final String action;
+}
+
+class _IntentLocale {
+  const _IntentLocale({
+    required this.titles,
+    required this.explanations,
+    required this.actions,
+    required this.senderPrefix,
+    required this.deadlinePrefix,
+    required this.amountPrefix,
+  });
+
+  final List<String> titles;
+  final List<String> explanations;
+  final List<String> actions;
+  final String senderPrefix;
+  final String deadlinePrefix;
+  final String amountPrefix;
+}
+
+_GenericAnalysis _genericAnalysis(
+  String text,
+  String locale,
+  String category, {
+  required DateTime? deadline,
+  required String? amount,
+}) {
+  final intent = _documentIntent(text);
+  final copy = _intentCopy[locale]!;
+  final index = intent.index;
+  final facts = <String>[];
+  if (deadline != null) {
+    facts.add(
+      '${copy.deadlinePrefix} '
+      '${deadline.day.toString().padLeft(2, '0')}.'
+      '${deadline.month.toString().padLeft(2, '0')}.'
+      '${deadline.year}.',
+    );
+  }
+  if (amount != null) {
+    facts.add('${copy.amountPrefix} $amount.');
+  }
+  return _GenericAnalysis(
+    title: '${copy.titles[index]} — $category',
+    explanation: [
+      '${copy.senderPrefix} $category.',
+      copy.explanations[index],
+      ...facts,
+    ].join(' '),
+    action: copy.actions[index],
+  );
+}
+
+_DocumentIntent _documentIntent(String text) {
+  if (_hasAny(text, const [
+    'unterlagen',
+    'nachweis',
+    'mitwirkung',
+    'einzureichen',
+    'vorzulegen',
+    'nachzureichen',
+    'formular ausfüllen',
+    'fehlende dokumente',
+  ])) {
+    return _DocumentIntent.documents;
+  }
+  if (_hasAny(text, const [
+    'mahnung',
+    'zahlung',
+    'zu überweisen',
+    'offene forderung',
+    'zahlbar',
+    'fällig',
+    'rechnung',
+    'rückstand',
+    'vollstreckung',
+  ])) {
+    return _DocumentIntent.payment;
+  }
+  if (_hasAny(text, const [
+    'termin',
+    'vorladung',
+    'einladung',
+    'persönliche vorsprache',
+    'persönlich erscheinen',
+  ])) {
+    return _DocumentIntent.appointment;
+  }
+  if (_hasAny(text, const [
+    'bescheid',
+    'bewilligt',
+    'abgelehnt',
+    'festgesetzt',
+    'genehmigt',
+    'rechtsbehelfsbelehrung',
+  ])) {
+    return _DocumentIntent.decision;
+  }
+  if (_hasAny(text, const [
+    'anhörung',
+    'stellungnahme',
+    'bitte antworten',
+    'äußerung',
+    'rückmeldung',
+  ])) {
+    return _DocumentIntent.response;
+  }
+  return _DocumentIntent.information;
+}
+
+bool _hasAny(String text, List<String> values) => values.any(text.contains);
+
+const _intentCopy = <String, _IntentLocale>{
+  'sr': _IntentLocale(
+    titles: [
+      'Zahtev za dokumenta',
+      'Plaćanje ili opomena',
+      'Termin ili poziv',
+      'Službena odluka',
+      'Traži se vaš odgovor',
+      'Službeno obaveštenje',
+    ],
+    senderPrefix: 'Prepoznati pošiljalac ili vrsta institucije:',
+    explanations: [
+      'U pismu se traže dokumenta, dokazi ili dodatni podaci radi obrade vašeg predmeta. Tačan spisak mora se proveriti u originalu.',
+      'Pismo sadrži račun, dospelu obavezu, zahtev za plaćanje ili opomenu. Prvo proverite osnov, period, primaoca i da li je iznos zaista označen kao dug.',
+      'Pismo navodi termin, poziv ili lično javljanje. Proverite datum, vreme, adresu, potrebna dokumenta i da li je dolazak označen kao obavezan.',
+      'Pismo izgleda kao rešenje ili odluka kojom se nešto odobrava, odbija, menja ili obračunava. Proverite period važenja i obrazloženje.',
+      'Institucija traži odgovor, izjavu ili vaše izjašnjenje. Proverite na koje pitanje treba odgovoriti i koji broj predmeta treba navesti.',
+      'Pismo je informativno ili zahtev nije pouzdano prepoznat. Proverite predmet, označene pasuse i da li postoji konkretna radnja.',
+    ],
+    deadlinePrefix: 'Izričito prepoznat rok:',
+    amountPrefix: 'Prepoznat je iznos koji treba proveriti u kontekstu pisma:',
+    actions: [
+      '1. Zapišite broj predmeta. 2. Napravite kopije samo traženih dokumenata. 3. Pošaljite ih na navedeni kanal pre roka. 4. Sačuvajte potvrdu slanja.',
+      'Ne plaćajte samo na osnovu sažetka. Uporedite pošiljaoca, IBAN, broj predmeta, period i iznos sa originalom. Kod nejasne ili sporne obaveze prvo kontaktirajte pošiljaoca ili savetovalište.',
+      'Unesite termin u kalendar, pripremite navedena dokumenta i odmah kontaktirajte pošiljaoca ako ne možete doći. Sačuvajte potvrdu o promeni termina.',
+      'Proverite lične podatke, period, iznos i obrazloženje. Sačuvajte celu odluku i pročitajte odeljak o roku i mogućnosti prigovora ako postoji.',
+      'Odgovorite kratko i činjenično, navedite broj predmeta i priložite samo relevantne dokaze. Sačuvajte kopiju odgovora i potvrdu slanja.',
+      'Sačuvajte pismo. Ako original ne sadrži zahtev ili rok, nije potrebna hitna radnja; kod nejasnoće kontaktirajte pošiljaoca koristeći podatke sa zvanične stranice.',
+    ],
+  ),
+  'hr': _IntentLocale(
+    titles: [
+      'Zahtjev za dokumente',
+      'Plaćanje ili opomena',
+      'Termin ili poziv',
+      'Službena odluka',
+      'Traži se vaš odgovor',
+      'Službena obavijest',
+    ],
+    senderPrefix: 'Prepoznati pošiljatelj ili vrsta ustanove:',
+    explanations: [
+      'U pismu se traže dokumenti, dokazi ili dodatni podaci za obradu predmeta. Točan popis provjerite u izvorniku.',
+      'Pismo sadrži račun, dospjelu obvezu, zahtjev za plaćanje ili opomenu. Provjerite osnovu, razdoblje, primatelja i je li iznos označen kao dug.',
+      'Pismo navodi termin, poziv ili osobni dolazak. Provjerite datum, vrijeme, adresu, dokumente i je li dolazak obvezan.',
+      'Pismo izgleda kao rješenje ili odluka kojom se nešto odobrava, odbija, mijenja ili obračunava.',
+      'Ustanova traži odgovor, izjavu ili očitovanje. Provjerite pitanje i broj predmeta koji treba navesti.',
+      'Pismo je informativno ili zahtjev nije pouzdano prepoznat. Provjerite predmet i označene odlomke.',
+    ],
+    deadlinePrefix: 'Izričito prepoznati rok:',
+    amountPrefix: 'Prepoznati iznos koji treba provjeriti u kontekstu:',
+    actions: [
+      'Zapišite broj predmeta, kopirajte samo tražene dokumente, pošaljite ih navedenim kanalom prije roka i sačuvajte potvrdu.',
+      'Ne plaćajte samo prema sažetku. Usporedite pošiljatelja, IBAN, predmet, razdoblje i iznos s izvornikom; nejasnu obvezu prvo provjerite.',
+      'Unesite termin u kalendar, pripremite dokumente i kontaktirajte pošiljatelja ako ne možete doći.',
+      'Provjerite osobne podatke, razdoblje, iznos i obrazloženje. Sačuvajte odluku i pročitajte uputu o pravnom lijeku.',
+      'Odgovorite kratko i činjenično, navedite broj predmeta, priložite relevantne dokaze i sačuvajte potvrdu slanja.',
+      'Sačuvajte pismo. Bez zahtjeva ili roka nema hitne radnje; nejasnoću provjerite kod pošiljatelja.',
+    ],
+  ),
+  'bs': _IntentLocale(
+    titles: [
+      'Zahtjev za dokumente',
+      'Plaćanje ili opomena',
+      'Termin ili poziv',
+      'Službena odluka',
+      'Traži se vaš odgovor',
+      'Službeno obavještenje',
+    ],
+    senderPrefix: 'Prepoznati pošiljalac ili vrsta institucije:',
+    explanations: [
+      'U pismu se traže dokumenti, dokazi ili dodatni podaci za obradu predmeta. Tačan spisak provjerite u originalu.',
+      'Pismo sadrži račun, dospjelu obavezu, zahtjev za plaćanje ili opomenu. Provjerite osnov, period, primaoca i da li je iznos označen kao dug.',
+      'Pismo navodi termin, poziv ili lični dolazak. Provjerite datum, vrijeme, adresu, dokumente i da li je dolazak obavezan.',
+      'Pismo izgleda kao rješenje ili odluka kojom se nešto odobrava, odbija, mijenja ili obračunava.',
+      'Institucija traži odgovor, izjavu ili izjašnjenje. Provjerite pitanje i broj predmeta koji treba navesti.',
+      'Pismo je informativno ili zahtjev nije pouzdano prepoznat. Provjerite predmet i označene pasuse.',
+    ],
+    deadlinePrefix: 'Izričito prepoznat rok:',
+    amountPrefix: 'Prepoznat iznos koji treba provjeriti u kontekstu:',
+    actions: [
+      'Zapišite broj predmeta, kopirajte samo tražene dokumente, pošaljite ih navedenim kanalom prije roka i sačuvajte potvrdu.',
+      'Ne plaćajte samo prema sažetku. Uporedite pošiljaoca, IBAN, predmet, period i iznos s originalom; nejasnu obavezu prvo provjerite.',
+      'Unesite termin u kalendar, pripremite dokumente i kontaktirajte pošiljaoca ako ne možete doći.',
+      'Provjerite lične podatke, period, iznos i obrazloženje. Sačuvajte odluku i pročitajte uputu o pravnom lijeku.',
+      'Odgovorite kratko i činjenično, navedite broj predmeta, priložite relevantne dokaze i sačuvajte potvrdu slanja.',
+      'Sačuvajte pismo. Bez zahtjeva ili roka nema hitne radnje; nejasnoću provjerite kod pošiljaoca.',
+    ],
+  ),
+  'mk': _IntentLocale(
+    titles: [
+      'Барање за документи',
+      'Плаќање или опомена',
+      'Термин или покана',
+      'Службена одлука',
+      'Се бара ваш одговор',
+      'Службено известување',
+    ],
+    senderPrefix: 'Препознаен испраќач или вид институција:',
+    explanations: [
+      'Се бараат документи, докази или дополнителни податоци за обработка на предметот. Точниот список проверете го во оригиналот.',
+      'Писмото содржи сметка, доспеана обврска, барање за плаќање или опомена. Проверете ги основата, периодот, примачот и износот.',
+      'Писмото наведува термин, покана или лично јавување. Проверете ги датумот, времето, адресата, документите и дали присуството е задолжително.',
+      'Писмото изгледа како решение со кое нешто се одобрува, одбива, менува или пресметува.',
+      'Институцијата бара одговор, изјава или произнесување. Проверете го прашањето и бројот на предметот.',
+      'Писмото е информативно или барањето не е сигурно препознаено. Проверете ги предметот и означените пасуси.',
+    ],
+    deadlinePrefix: 'Изрично препознаен рок:',
+    amountPrefix: 'Препознаен износ што треба да се провери:',
+    actions: [
+      'Запишете го бројот на предметот, копирајте ги само бараните документи, испратете ги преку наведениот канал пред рокот и чувајте потврда.',
+      'Не плаќајте само според резимето. Споредете ги испраќачот, IBAN, предметот, периодот и износот со оригиналот.',
+      'Внесете го терминот во календар, подгответе ги документите и контактирајте го испраќачот ако не можете да дојдете.',
+      'Проверете ги личните податоци, периодот, износот и образложението. Чувајте ја одлуката и прочитајте ја правната поука.',
+      'Одговорете кратко и фактички, наведете го бројот на предметот, приложете релевантни докази и чувајте потврда.',
+      'Чувајте го писмото. Без барање или рок нема итна постапка; нејаснотијата проверете ја кај испраќачот.',
+    ],
+  ),
+  'bg': _IntentLocale(
+    titles: [
+      'Искане за документи',
+      'Плащане или напомняне',
+      'Среща или призовка',
+      'Официално решение',
+      'Изисква се ваш отговор',
+      'Официално известие',
+    ],
+    senderPrefix: 'Разпознат подател или вид институция:',
+    explanations: [
+      'Искат се документи, доказателства или допълнителни данни за обработване на случая. Проверете точния списък в оригинала.',
+      'Писмото съдържа сметка, изискуемо задължение, искане за плащане или напомняне. Проверете основанието, периода, получателя и сумата.',
+      'Писмото посочва среща, покана или лично явяване. Проверете датата, часа, адреса, документите и дали присъствието е задължително.',
+      'Писмото изглежда като решение, с което нещо се одобрява, отказва, променя или изчислява.',
+      'Институцията иска отговор, декларация или становище. Проверете въпроса и номера на преписката.',
+      'Писмото е информативно или искането не е разпознато надеждно. Проверете темата и отбелязаните абзаци.',
+    ],
+    deadlinePrefix: 'Изрично разпознат срок:',
+    amountPrefix: 'Разпозната сума за проверка в контекста:',
+    actions: [
+      'Запишете номера на преписката, копирайте само исканите документи, изпратете ги по посочения канал преди срока и пазете потвърждение.',
+      'Не плащайте само по резюмето. Сравнете подателя, IBAN, преписката, периода и сумата с оригинала.',
+      'Добавете срещата в календара, подгответе документите и се свържете с подателя, ако не можете да присъствате.',
+      'Проверете личните данни, периода, сумата и мотивите. Пазете решението и прочетете указанията за обжалване.',
+      'Отговорете кратко и фактологично, посочете номера на преписката, приложете относимите доказателства и пазете потвърждение.',
+      'Пазете писмото. Без искане или срок няма спешно действие; проверете неяснотата при подателя.',
+    ],
+  ),
+  'de': _IntentLocale(
+    titles: [
+      'Unterlagenanforderung',
+      'Zahlung oder Mahnung',
+      'Termin oder Vorladung',
+      'Behördliche Entscheidung',
+      'Ihre Antwort wird verlangt',
+      'Offizielle Mitteilung',
+    ],
+    senderPrefix: 'Erkannter Absender oder Institutionstyp:',
+    explanations: [
+      'Das Schreiben fordert Unterlagen, Nachweise oder zusätzliche Angaben zur Bearbeitung des Vorgangs an. Prüfen Sie die genaue Liste im Original.',
+      'Das Schreiben enthält eine Rechnung, fällige Forderung, Zahlungsaufforderung oder Mahnung. Prüfen Sie Grundlage, Zeitraum, Empfänger und Betrag.',
+      'Das Schreiben nennt einen Termin, eine Einladung oder persönliche Vorsprache. Prüfen Sie Datum, Uhrzeit, Anschrift, Unterlagen und Anwesenheitspflicht.',
+      'Das Schreiben scheint etwas zu bewilligen, abzulehnen, zu ändern oder festzusetzen. Prüfen Sie Zeitraum und Begründung.',
+      'Die Stelle verlangt eine Antwort, Stellungnahme oder Anhörung. Prüfen Sie die konkrete Frage und das anzugebende Aktenzeichen.',
+      'Das Schreiben ist informativ oder die Aufforderung wurde nicht sicher erkannt. Prüfen Sie Betreff und hervorgehobene Abschnitte.',
+    ],
+    deadlinePrefix: 'Ausdrücklich erkannte Frist:',
+    amountPrefix: 'Im Kontext zu prüfender erkannter Betrag:',
+    actions: [
+      'Aktenzeichen notieren, nur die verlangten Unterlagen kopieren, fristgerecht über den genannten Kanal senden und den Nachweis aufbewahren.',
+      'Nicht allein aufgrund der Zusammenfassung zahlen. Absender, IBAN, Aktenzeichen, Zeitraum und Betrag mit dem Original abgleichen und Unklarheiten klären.',
+      'Termin eintragen, Unterlagen vorbereiten und den Absender sofort kontaktieren, wenn Sie nicht teilnehmen können.',
+      'Personendaten, Zeitraum, Betrag und Begründung prüfen. Entscheidung vollständig aufbewahren und die Rechtsbehelfsbelehrung lesen.',
+      'Kurz und sachlich antworten, Aktenzeichen nennen, nur relevante Nachweise beifügen und Versandnachweis aufbewahren.',
+      'Schreiben aufbewahren. Ohne Aufforderung oder Frist besteht keine dringende Handlung; Unklarheiten beim Absender klären.',
+    ],
+  ),
+  'en': _IntentLocale(
+    titles: [
+      'Document request',
+      'Payment or reminder',
+      'Appointment or summons',
+      'Official decision',
+      'Your response is required',
+      'Official notice',
+    ],
+    senderPrefix: 'Recognized sender or institution type:',
+    explanations: [
+      'The letter requests documents, evidence, or additional information to process the case. Check the original for the exact list.',
+      'The letter contains an invoice, amount due, payment request, or reminder. Verify the basis, period, recipient, and amount.',
+      'The letter gives an appointment, invitation, or personal-attendance request. Check the date, time, address, documents, and whether attendance is mandatory.',
+      'The letter appears to approve, reject, change, or calculate something. Check the applicable period and reasoning.',
+      'The institution requests a reply, statement, or hearing response. Check the exact question and reference number.',
+      'The letter is informational or its request was not recognized reliably. Check the subject and highlighted sections.',
+    ],
+    deadlinePrefix: 'Explicitly recognized deadline:',
+    amountPrefix: 'Recognized amount to verify in context:',
+    actions: [
+      'Note the reference number, copy only requested documents, submit them through the stated channel before the deadline, and keep proof.',
+      'Do not pay based on the summary alone. Compare the sender, IBAN, reference, period, and amount with the original and clarify uncertainty first.',
+      'Add the appointment to your calendar, prepare the documents, and contact the sender immediately if you cannot attend.',
+      'Check personal data, period, amount, and reasons. Keep the complete decision and read any appeal-information section.',
+      'Reply briefly and factually, include the reference number, attach only relevant evidence, and keep proof of submission.',
+      'Keep the letter. Without a request or deadline, no urgent action is indicated; clarify uncertainty with the sender.',
+    ],
+  ),
+};
 
 enum _FamilyIntent { documents, repayment, decision, information }
 
