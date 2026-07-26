@@ -52,3 +52,4 @@ app.*.map.json
 
 # Distributable binaries are published as GitHub Release assets, never committed.
 /outputs/*.apk
+/android/build/

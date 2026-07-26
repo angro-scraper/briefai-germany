@@ -1,6 +1,6 @@
 {
-    "name": "briefai_germany",
-    "short_name": "briefai_germany",
+    "name": "BriefAI Germany",
+    "short_name": "BriefAI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
