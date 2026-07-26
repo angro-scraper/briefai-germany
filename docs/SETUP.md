@@ -17,11 +17,13 @@ C:\flutter\bin\cache\dart-sdk\bin\dart.exe C:\flutter\bin\cache\flutter_tools.sn
 ## Firebase pre produkcije
 
 1. Kreirati Firebase projekat i Android/iOS/web aplikacije.
-2. Pokrenuti `flutterfire configure`; generisani `firebase_options.dart` ne sme biti ručno menjan.
+2. Pokrenuti `flutterfire configure`; on zamenjuje početni `lib/firebase_options.dart` stvarnim generisanim opcijama. Generisani fajl se ne menja ručno i mora biti uključen u build.
 3. Omogućiti Email/Password, Google i Apple prijavu.
 4. Dodati Firebase Secret `OPENAI_API_KEY`; nikad ga ne stavljati u Flutter kod ili `.env` koji se objavljuje.
 5. Podesiti Play Console, App Store Connect i Stripe webhook tajne na serveru.
 6. Pre objave, pravnik treba da odobri nemačku Privacy Policy i Terms & Conditions, posebno obradu dokumenata i AI ograničenja.
+
+Release build namerno ne prelazi u lokalni AI/OCR režim ako Firebase inicijalizacija ne uspe: prikazuje nedostupnost usluge i blokira novu analizu. Lokalni deterministički analizator je dostupan samo u debug buildu.
 
 ### Document AI OCR
 

@@ -22,6 +22,7 @@ import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'domain.dart';
+import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
 
 @pragma('vm:entry-point')
@@ -32,6 +33,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class AppServices {
   AppServices._({
     required this.cloudEnabled,
+    required this.configurationError,
     required this.auth,
     required this.documents,
     required this.ai,
@@ -43,6 +45,7 @@ class AppServices {
   });
 
   final bool cloudEnabled;
+  final String? configurationError;
   final AuthService auth;
   final DocumentService documents;
   final AiService ai;
@@ -54,8 +57,11 @@ class AppServices {
 
   static Future<AppServices> bootstrap() async {
     var cloudEnabled = false;
+    String? configurationError;
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: kIsWeb ? DefaultFirebaseOptions.currentPlatform : null,
+      );
       cloudEnabled = true;
       await FirebaseAppCheck.instance.activate(
         providerAndroid: kDebugMode
@@ -70,12 +76,17 @@ class AppServices {
       await FirebaseAnalytics.instance.logAppOpen();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     } catch (_) {
-      // Firebase config is intentionally optional for local UI development.
+      // Local deterministic analysis is allowed only while developing. A release
+      // build must make a missing Firebase configuration visible to the user.
+      configurationError = kDebugMode
+          ? 'Firebase nije podešen; uključen je lokalni razvojni režim.'
+          : 'Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.';
     }
     final reminders = ReminderService(cloudEnabled: cloudEnabled);
     await reminders.initialize();
     return AppServices._(
       cloudEnabled: cloudEnabled,
+      configurationError: configurationError,
       auth: AuthService(cloudEnabled: cloudEnabled),
       documents: DocumentService(cloudEnabled: cloudEnabled),
       ai: AiService(cloudEnabled: cloudEnabled),
@@ -337,7 +348,8 @@ class AiService {
     String? storagePath,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
-      return _local.analyse(text);
+      if (kDebugMode) return _local.analyse(text);
+      throw StateError('Za analizu pisma potrebna je prijava i povezana usluga.');
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('analyzeLetter')
@@ -357,7 +369,10 @@ class AiService {
     required String language,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
-      return 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
+      if (kDebugMode) {
+        return 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
+      }
+      throw StateError('Za generisanje odgovora potrebna je prijava i povezana usluga.');
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('generateReply')
@@ -375,7 +390,10 @@ class AiService {
     String? letterId,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
-      return 'Za odgovor vezan za konkretno pismo prijavite se i povežite Firebase projekat. U lokalnom režimu mogu da prikažem samo osnovne rokove iz analize.';
+      if (kDebugMode) {
+        return 'Za odgovor vezan za konkretno pismo prijavite se i povežite Firebase projekat. U lokalnom režimu mogu da prikažem samo osnovne rokove iz analize.';
+      }
+      throw StateError('Za AI asistenta potrebna je prijava i povezana usluga.');
     }
     final request = <String, String>{
       'question': question,

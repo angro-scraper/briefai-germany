@@ -303,7 +303,9 @@ class HomeScreen extends StatelessWidget {
   final AppState state;
   final AppServices services;
   @override
-  Widget build(BuildContext context) => ListView(
+  Widget build(BuildContext context) {
+    final unavailable = !services.cloudEnabled && !kDebugMode;
+    return ListView(
     padding: const EdgeInsets.all(20),
     children: [
       Text(
@@ -341,9 +343,18 @@ class HomeScreen extends StatelessWidget {
                   : 'Preostalo: ${2 - state.freeAnalysesUsed} od 2 besplatne analize.',
               style: const TextStyle(color: Color(0xFFD7E0FF)),
             ),
+            if (unavailable) ...[
+              const SizedBox(height: 10),
+              Text(
+                services.configurationError ?? 'Usluga nije dostupna.',
+                style: const TextStyle(color: Color(0xFFFFC2C2)),
+              ),
+            ],
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: state.canAnalyse
+              onPressed: unavailable
+                  ? null
+                  : state.canAnalyse
                   ? () => !services.cloudEnabled || services.auth.isSignedIn
                         ? Navigator.of(context).push(
                             MaterialPageRoute(
@@ -390,7 +401,8 @@ class HomeScreen extends StatelessWidget {
       else
         ...state.letters.take(3).map((letter) => LetterCard(letter: letter)),
     ],
-  );
+    );
+  }
 }
 
 class SignInScreen extends StatefulWidget {
