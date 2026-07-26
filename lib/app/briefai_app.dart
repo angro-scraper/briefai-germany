@@ -749,6 +749,7 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen> {
   final _text = TextEditingController();
   bool _loading = false;
+  bool _ocrComplete = false;
   PickedDocument? _document;
   @override
   void dispose() {
@@ -803,11 +804,68 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               ],
             ),
             if (_document != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'Izabrano: ${_document!.name}',
-                  style: Theme.of(context).textTheme.bodySmall,
+              Card(
+                margin: const EdgeInsets.only(top: 12),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      if (!_document!.isPdf)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            _document!.bytes,
+                            width: 64,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const SizedBox(
+                              width: 64,
+                              height: 80,
+                              child: Icon(Icons.description_outlined),
+                            ),
+                          ),
+                        )
+                      else
+                        const SizedBox(
+                          width: 64,
+                          height: 80,
+                          child: Icon(Icons.picture_as_pdf_outlined, size: 38),
+                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _document!.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _loading
+                                  ? strings.text('ocrReading')
+                                  : _ocrComplete
+                                  ? strings.text('ocrReady')
+                                  : strings.text('ocrNotReady'),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: _ocrComplete
+                                        ? Colors.green.shade700
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             const SizedBox(height: 12),
@@ -845,11 +903,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   Future<void> _analyse() async {
     setState(() => _loading = true);
+    final enterTextFirst = context.strings.text('enterTextFirst');
     try {
       final id = newLetterId();
       final language = await widget.services.auth.preferredLanguage();
-      if (_document != null) {
+      if (_document != null && _text.text.trim().isEmpty) {
         _text.text = await widget.services.documents.ocr(_document!);
+      }
+      if (_text.text.trim().isEmpty) {
+        throw StateError(enterTextFirst);
       }
       final analysis = await widget.services.ai.analyse(
         letterId: id,
@@ -901,9 +963,47 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Future<void> _select(Future<PickedDocument?> Function() source) async {
-    final selected = await source();
-    if (selected == null) return;
-    setState(() => _document = selected);
+    if (_loading) return;
+    try {
+      final selected = await source();
+      if (selected == null || !mounted) return;
+      setState(() {
+        _document = selected;
+        _ocrComplete = false;
+        _loading = true;
+        _text.clear();
+      });
+      final recognized = await widget.services.documents.ocr(selected);
+      if (!mounted) return;
+      setState(() {
+        _text.text = recognized;
+        _text.selection = TextSelection.collapsed(offset: recognized.length);
+        _ocrComplete = true;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.strings.text('ocrReady'))));
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _ocrComplete = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${context.strings.text('ocrFailed')}: '
+            '${_readableError(error)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _readableError(Object error) {
+    return error.toString().replaceFirst(
+      RegExp(r'^(StateError|Exception):\s*'),
+      '',
+    );
   }
 }
 
