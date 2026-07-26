@@ -6,6 +6,30 @@
     return (result?.data?.text || '').trim();
   }
 
+  async function prepareImage(bytes, mimeType) {
+    const blob = new Blob([bytes], {type: mimeType});
+    if (!window.createImageBitmap) return blob;
+    const bitmap = await createImageBitmap(blob, {
+      imageOrientation: 'from-image',
+    });
+    try {
+      const maxSide = Math.max(bitmap.width, bitmap.height);
+      const scale = Math.min(1, 2400 / maxSide);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext('2d', {alpha: false});
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.filter = 'contrast(1.15) brightness(1.03)';
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      context.filter = 'none';
+      return canvas;
+    } finally {
+      bitmap.close();
+    }
+  }
+
   window.briefAiRecognizeDocument = async function (rawBytes, mimeType) {
     if (!window.Tesseract) {
       throw new Error('Lokalni OCR još nije učitan. Pokušajte ponovo.');
@@ -16,13 +40,8 @@
     const worker = await window.Tesseract.createWorker('deu+eng');
     try {
       if (mimeType !== 'application/pdf') {
-        const blob = new Blob([bytes], {type: mimeType});
-        const url = URL.createObjectURL(blob);
-        try {
-          return await recognizeWithWorker(worker, url);
-        } finally {
-          URL.revokeObjectURL(url);
-        }
+        const source = await prepareImage(bytes, mimeType);
+        return await recognizeWithWorker(worker, source);
       }
 
       const pdfjs = await import(

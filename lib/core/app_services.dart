@@ -481,6 +481,9 @@ class DocumentService {
   }
 
   PickedDocument _preprocess(PickedDocument document) {
+    // Browser canvas performs this transform much faster than decoding a
+    // multi-megapixel camera photo in Dart on the web UI thread.
+    if (kIsWeb) return document;
     final processed = preprocessImageForOcr(
       name: document.name,
       bytes: document.bytes,

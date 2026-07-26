@@ -507,21 +507,12 @@ class HomeScreen extends StatelessWidget {
                 onPressed: unavailable
                     ? null
                     : state.canAnalyse
-                    ? () => !services.cloudEnabled || services.auth.isSignedIn
-                          ? Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => AnalysisScreen(
-                                  state: state,
-                                  services: services,
-                                ),
-                              ),
-                            )
-                          : Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    SignInScreen(services: services),
-                              ),
-                            )
+                    ? () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AnalysisScreen(state: state, services: services),
+                        ),
+                      )
                     : () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => SubscriptionScreen(
@@ -902,6 +893,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Future<void> _analyse() async {
+    if (widget.services.cloudEnabled && !widget.services.auth.isSignedIn) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SignInScreen(services: widget.services),
+        ),
+      );
+      if (!mounted || !widget.services.auth.isSignedIn) return;
+    }
     setState(() => _loading = true);
     final enterTextFirst = context.strings.text('enterTextFirst');
     try {
