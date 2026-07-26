@@ -48,6 +48,7 @@ class AppStrings {
       'school': 'Škola',
       'kindergarten': 'Vrtić',
       'court': 'Sud',
+      'familienkasse': 'Familienkasse / Kindergeld',
       'other': 'Ostalo',
     },
     'hr': {
@@ -62,6 +63,7 @@ class AppStrings {
       'school': 'Škola',
       'kindergarten': 'Vrtić',
       'court': 'Sud',
+      'familienkasse': 'Familienkasse / Kindergeld',
       'other': 'Ostalo',
     },
     'bs': {
@@ -76,6 +78,7 @@ class AppStrings {
       'school': 'Škola',
       'kindergarten': 'Vrtić',
       'court': 'Sud',
+      'familienkasse': 'Familienkasse / Kindergeld',
       'other': 'Ostalo',
     },
     'mk': {
@@ -90,6 +93,7 @@ class AppStrings {
       'school': 'Училиште',
       'kindergarten': 'Градинка',
       'court': 'Суд',
+      'familienkasse': 'Familienkasse / детски додаток',
       'other': 'Друго',
     },
     'de': {
@@ -104,6 +108,7 @@ class AppStrings {
       'school': 'Schule',
       'kindergarten': 'Kindergarten',
       'court': 'Gericht',
+      'familienkasse': 'Familienkasse / Kindergeld',
       'other': 'Sonstiges',
     },
     'en': {
@@ -118,6 +123,7 @@ class AppStrings {
       'school': 'School',
       'kindergarten': 'Kindergarten',
       'court': 'Court',
+      'familienkasse': 'Familienkasse / child benefit',
       'other': 'Other',
     },
     'bg': {
@@ -132,6 +138,7 @@ class AppStrings {
       'school': 'Училище',
       'kindergarten': 'Детска градина',
       'court': 'Съд',
+      'familienkasse': 'Familienkasse / детски надбавки',
       'other': 'Друго',
     },
   };

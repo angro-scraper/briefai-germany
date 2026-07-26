@@ -42,6 +42,7 @@ void main() {
           );
         }
         expect(strings.category('insurance'), isNot('insurance'));
+        expect(strings.category('familienkasse'), isNot('familienkasse'));
       }
     },
   );

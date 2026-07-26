@@ -12,6 +12,7 @@ enum LetterCategory {
   school,
   kindergarten,
   court,
+  familienkasse,
   other;
 
   String get label => switch (this) {
@@ -26,6 +27,7 @@ enum LetterCategory {
     school => 'Škola',
     kindergarten => 'Vrtić',
     court => 'Sud',
+    familienkasse => 'Familienkasse',
     other => 'Ostalo',
   };
 }
