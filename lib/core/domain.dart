@@ -141,9 +141,16 @@ class AppState extends ChangeNotifier {
   bool onboardingComplete = false;
   int freeAnalysesUsed = 0;
   bool isPremium = false;
+  String localeCode = 'sr';
   final List<LetterAnalysis> letters = [];
 
   bool get canAnalyse => isPremium || freeAnalysesUsed < 2;
+
+  void setLocale(String value) {
+    if (localeCode == value) return;
+    localeCode = value;
+    notifyListeners();
+  }
 
   void completeOnboarding() {
     onboardingComplete = true;

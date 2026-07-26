@@ -75,6 +75,12 @@ async function loadMetrics() {
   document.querySelector('#analyses').textContent = metric.analyses ?? 0;
   document.querySelector('#premium-users').textContent = metric.premiumUsers ?? 0;
   document.querySelector('#revenue').textContent = new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format((metric.revenueCents ?? 0) / 100);
+  const usd = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'});
+  document.querySelector('#ai-spend').textContent =
+    `${usd.format((metric.aiCostMicros ?? 0) / 1_000_000)} / ${usd.format(metric.aiMonthlyBudgetUsd ?? 0)}`;
+  document.querySelector('#ai-tokens').textContent =
+    new Intl.NumberFormat('de-DE').format((metric.aiInputTokens ?? 0) + (metric.aiOutputTokens ?? 0));
+  document.querySelector('#ai-model').textContent = metric.aiModel ?? '—';
 }
 
 document.querySelector('#notification-form').addEventListener('submit', async (event) => {

@@ -263,6 +263,7 @@ class AuthService {
       );
     }
     if (preferredLanguage != null) {
+      await preferences.setString('briefai.ui-language', preferredLanguage);
       await preferences.setString(
         _profileKey(userId, 'preferredLanguage'),
         preferredLanguage,
@@ -308,10 +309,25 @@ class AuthService {
 
   Future<String> preferredLanguage() async {
     final userId = uid;
-    if (!cloudEnabled || userId == null) return 'sr';
     final preferences = await SharedPreferences.getInstance();
+    if (!cloudEnabled || userId == null) {
+      return preferences.getString('briefai.ui-language') ?? 'sr';
+    }
     return preferences.getString(_profileKey(userId, 'preferredLanguage')) ??
+        preferences.getString('briefai.ui-language') ??
         'sr';
+  }
+
+  Future<void> setPreferredLanguage(String language) async {
+    const supported = {'sr', 'hr', 'bs', 'mk', 'de', 'en', 'bg'};
+    if (!supported.contains(language)) {
+      throw ArgumentError.value(language, 'language');
+    }
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('briefai.ui-language', language);
+    if (isSignedIn) {
+      await updateProfile(preferredLanguage: language);
+    }
   }
 
   Future<Map<String, dynamic>> localAccountData() async {
@@ -330,8 +346,15 @@ class AuthService {
     final preferences = await SharedPreferences.getInstance();
     final languageKey = _profileKey(user.uid, 'preferredLanguage');
     if (!preferences.containsKey(languageKey)) {
-      await preferences.setString(languageKey, 'sr');
+      await preferences.setString(
+        languageKey,
+        preferences.getString('briefai.ui-language') ?? 'sr',
+      );
     }
+    await preferences.setString(
+      'briefai.ui-language',
+      preferences.getString(languageKey) ?? 'sr',
+    );
     final displayNameKey = _profileKey(user.uid, 'displayName');
     if (!preferences.containsKey(displayNameKey)) {
       await preferences.setString(displayNameKey, user.displayName ?? '');

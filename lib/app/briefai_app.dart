@@ -3,11 +3,13 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/domain.dart';
 import '../core/app_services.dart';
+import '../core/app_localizations.dart';
 import '../core/legal.dart';
 
 class BriefAiApp extends StatefulWidget {
@@ -40,6 +42,7 @@ class _BriefAiAppState extends State<BriefAiApp> {
     _state.restoreOnboarding(
       preferences.getBool('briefai.onboarding-complete') ?? false,
     );
+    _state.setLocale(await widget.services.auth.preferredLanguage());
     if (mounted) setState(() => _restored = true);
   }
 
@@ -80,6 +83,14 @@ class _BriefAiAppState extends State<BriefAiApp> {
     builder: (context, _) => MaterialApp(
       title: 'BriefAI Germany',
       debugShowCheckedModeBanner: false,
+      locale: Locale(_state.localeCode),
+      supportedLocales: AppStrings.supportedLocales,
+      localizationsDelegates: const [
+        AppStrings.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: _theme(),
       home: !_restored
           ? const SplashScreen()
@@ -184,27 +195,28 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _page = 0;
-  static const _pages = [
-    (
-      'Fotografiši nemačko pismo',
-      'Snimite dokument ili učitajte PDF i sliku.',
-      Icons.document_scanner_outlined,
-    ),
-    (
-      'AI objašnjava šta znači',
-      'Jasno objašnjenje na vašem jeziku, bez administrativnog žargona.',
-      Icons.auto_awesome,
-    ),
-    (
-      'Ne propusti rokove',
-      'Sačuvajte dokument i dobićete podsetnike za važne datume.',
-      Icons.notifications_active_outlined,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final item = _pages[_page];
+    final strings = context.strings;
+    final pages = [
+      (
+        strings.text('onboardPhoto'),
+        strings.text('onboardPhotoBody'),
+        Icons.document_scanner_outlined,
+      ),
+      (
+        strings.text('onboardAi'),
+        strings.text('onboardAiBody'),
+        Icons.auto_awesome,
+      ),
+      (
+        strings.text('onboardDeadline'),
+        strings.text('onboardDeadlineBody'),
+        Icons.notifications_active_outlined,
+      ),
+    ];
+    final item = pages[_page];
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -276,11 +288,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                 ),
-                child: Text(_page == 2 ? 'Počni bezbedno' : 'Nastavi'),
+                child: Text(
+                  _page == 2 ? strings.text('start') : strings.text('next'),
+                ),
               ),
               TextButton(
                 onPressed: widget.onComplete,
-                child: const Text('Preskoči'),
+                child: Text(strings.text('skip')),
               ),
             ],
           ),
@@ -315,6 +329,11 @@ class _AppShellState extends State<AppShell> {
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
         if (user != null) {
+          unawaited(
+            widget.services.auth.preferredLanguage().then(
+              widget.state.setLocale,
+            ),
+          );
           unawaited(widget.services.auth.touchActivity());
           unawaited(widget.services.reminders.syncToken());
           _entitlementSubscription = widget.services.entitlements
@@ -356,6 +375,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
     final screens = [
       HomeScreen(state: widget.state, services: widget.services),
       ArchiveScreen(state: widget.state, services: widget.services),
@@ -367,26 +387,26 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (value) => setState(() => _tab = value),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Početna',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: strings.text('home'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Arhiva',
+            icon: const Icon(Icons.folder_outlined),
+            selectedIcon: const Icon(Icons.folder),
+            label: strings.text('archive'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Asistent',
+            icon: const Icon(Icons.chat_bubble_outline),
+            selectedIcon: const Icon(Icons.chat_bubble),
+            label: strings.text('assistant'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profil',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: strings.text('profile'),
           ),
         ],
       ),
@@ -400,18 +420,42 @@ class HomeScreen extends StatelessWidget {
   final AppServices services;
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
     final unavailable = !services.cloudEnabled && !kDebugMode;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'Dobro došli',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                strings.text('welcome'),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            _LanguageMenu(state: state, services: services),
+          ],
         ),
         const SizedBox(height: 8),
-        const Text('Razumite nemačka pisma, na jeziku koji vam odgovara.'),
+        Text(strings.text('homeSubtitle')),
+        if (services.cloudEnabled && !services.auth.isSignedIn) ...[
+          const SizedBox(height: 18),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.account_circle_outlined),
+              title: Text(strings.text('accountCta')),
+              subtitle: Text(strings.text('accountCtaSubtitle')),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SignInScreen(services: services),
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         Container(
           padding: const EdgeInsets.all(24),
@@ -424,9 +468,9 @@ class HomeScreen extends StatelessWidget {
             children: [
               const Icon(Icons.auto_awesome, color: Color(0xFF9DB5FF)),
               const SizedBox(height: 16),
-              const Text(
-                'Analiziraj novo pismo',
-                style: TextStyle(
+              Text(
+                strings.text('analyzeNew'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 21,
                   fontWeight: FontWeight.bold,
@@ -435,8 +479,8 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 state.isPremium
-                    ? 'Neograničene analize su aktivne.'
-                    : 'Preostalo: ${2 - state.freeAnalysesUsed} od 2 besplatne analize.',
+                    ? strings.text('unlimited')
+                    : strings.remaining(2 - state.freeAnalysesUsed),
                 style: const TextStyle(color: Color(0xFFD7E0FF)),
               ),
               if (unavailable) ...[
@@ -476,7 +520,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                 icon: const Icon(Icons.add_a_photo_outlined),
                 label: Text(
-                  state.canAnalyse ? 'Dodaj dokument' : 'Aktiviraj Premium',
+                  state.canAnalyse
+                      ? strings.text('addDocument')
+                      : strings.text('activatePremium'),
                 ),
               ),
             ],
@@ -484,16 +530,16 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 28),
         Text(
-          'Poslednja pisma',
+          strings.text('recentLetters'),
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (state.letters.isEmpty)
-          const _EmptyState(
+          _EmptyState(
             icon: Icons.inbox_outlined,
-            text: 'Još nemate sačuvanih pisama.',
+            text: strings.text('emptyLetters'),
           )
         else
           ...state.letters
@@ -515,6 +561,41 @@ class HomeScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+class _LanguageMenu extends StatelessWidget {
+  const _LanguageMenu({required this.state, required this.services});
+
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<String>(
+    tooltip: context.strings.text('appLanguage'),
+    initialValue: state.localeCode,
+    icon: const Icon(Icons.translate),
+    onSelected: (language) async {
+      await services.auth.setPreferredLanguage(language);
+      state.setLocale(language);
+    },
+    itemBuilder: (_) => _languageLabels.entries
+        .map(
+          (entry) => PopupMenuItem<String>(
+            value: entry.key,
+            child: Row(
+              children: [
+                if (entry.key == state.localeCode)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(Icons.check, size: 18),
+                  ),
+                Text(entry.value),
+              ],
+            ),
+          ),
+        )
+        .toList(),
+  );
 }
 
 class SignInScreen extends StatefulWidget {
@@ -539,67 +620,82 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(_create ? 'Kreiraj nalog' : 'Prijava')),
-    body: ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          'Sačuvajte pisma na bezbedan način.',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _create ? strings.text('createAccount') : strings.text('signIn'),
         ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _email,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'Email'),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _password,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Lozinka (najmanje 6 znakova)',
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text(
+            strings.text('secureLetters'),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _loading ? null : _emailSignIn,
-          child: Text(_create ? 'Kreiraj nalog' : 'Prijavi se'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _loading ? null : _google,
-          icon: const Icon(Icons.g_mobiledata),
-          label: const Text('Nastavi sa Google'),
-        ),
-        if (Theme.of(context).platform == TargetPlatform.iOS)
+          const SizedBox(height: 20),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: InputDecoration(labelText: strings.text('email')),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            autofillHints: _create
+                ? const [AutofillHints.newPassword]
+                : const [AutofillHints.password],
+            decoration: InputDecoration(labelText: strings.text('password')),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _loading ? null : _emailSignIn,
+            child: Text(
+              _create ? strings.text('createAccount') : strings.text('signIn'),
+            ),
+          ),
+          const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: _loading ? null : _apple,
-            icon: const Icon(Icons.apple),
-            label: const Text('Nastavi sa Apple'),
+            onPressed: _loading ? null : _google,
+            icon: const Icon(Icons.g_mobiledata),
+            label: Text(strings.text('continueGoogle')),
           ),
-        TextButton(
-          onPressed: () => setState(() => _create = !_create),
-          child: Text(
-            _create
-                ? 'Već imate nalog? Prijavite se'
-                : 'Nemate nalog? Registrujte se',
+          if (Theme.of(context).platform == TargetPlatform.iOS)
+            OutlinedButton.icon(
+              onPressed: _loading ? null : _apple,
+              icon: const Icon(Icons.apple),
+              label: Text(strings.text('continueApple')),
+            ),
+          TextButton(
+            onPressed: () => setState(() => _create = !_create),
+            child: Text(
+              _create
+                  ? strings.text('haveAccount')
+                  : strings.text('needAccount'),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
-  Future<void> _emailSignIn() => _run(
-    () => widget.services.auth.signInWithEmail(
-      _email.text.trim(),
+  Future<void> _emailSignIn() => _run(() async {
+    final email = _email.text.trim();
+    if (!email.contains('@') || _password.text.length < 6) {
+      throw const FormatException('Proverite email i lozinku.');
+    }
+    await widget.services.auth.signInWithEmail(
+      email,
       _password.text,
       create: _create,
-    ),
-  );
+    );
+  });
   Future<void> _google() => _run(widget.services.auth.signInWithGoogle);
   Future<void> _apple() => _run(widget.services.auth.signInWithApple);
 
@@ -612,9 +708,11 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Prijava nije uspela: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.strings.text('signInFailed')}: $error'),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -647,84 +745,91 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Nova analiza')),
-    body: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Učitajte dokument',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Slika ili PDF obrađuju se lokalno na ovom uređaju. Original, OCR tekst i analiza ne šalju se u cloud arhivu. Tekst možete uneti i ručno.',
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: _loading
-                    ? null
-                    : () => _select(widget.services.documents.capture),
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Kamera'),
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('newAnalysis'))),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              strings.text('uploadDocument'),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(strings.text('localProcessing')),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _loading
+                      ? null
+                      : () => _select(widget.services.documents.capture),
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: Text(strings.text('camera')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _loading
+                      ? null
+                      : () => _select(widget.services.documents.gallery),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(strings.text('gallery')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _loading
+                      ? null
+                      : () => _select(widget.services.documents.file),
+                  icon: const Icon(Icons.upload_file_outlined),
+                  label: Text(strings.text('pdfImage')),
+                ),
+              ],
+            ),
+            if (_document != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Izabrano: ${_document!.name}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
-              OutlinedButton.icon(
-                onPressed: _loading
-                    ? null
-                    : () => _select(widget.services.documents.gallery),
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Galerija'),
-              ),
-              OutlinedButton.icon(
-                onPressed: _loading
-                    ? null
-                    : () => _select(widget.services.documents.file),
-                icon: const Icon(Icons.upload_file_outlined),
-                label: const Text('PDF ili slika'),
-              ),
-            ],
-          ),
-          if (_document != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Izabrano: ${_document!.name}',
-                style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 12),
+            Expanded(
+              child: TextField(
+                controller: _text,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: InputDecoration(
+                  hintText: strings.text('letterText'),
+                ),
               ),
             ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: TextField(
-              controller: _text,
-              maxLines: null,
-              expands: true,
-              textAlignVertical: TextAlignVertical.top,
-              decoration: const InputDecoration(hintText: 'Tekst sa pisma'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _loading ? null : _analyse,
+              icon: _loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome),
+              label: Text(
+                _loading
+                    ? strings.text('processing')
+                    : strings.text('analyzeLetter'),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _loading ? null : _analyse,
-            icon: _loading
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.auto_awesome),
-            label: Text(_loading ? 'AI obrađuje…' : 'Analiziraj pismo'),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _analyse() async {
     setState(() => _loading = true);
@@ -1095,12 +1200,7 @@ class AssistantScreen extends StatefulWidget {
 
 class _AssistantScreenState extends State<AssistantScreen> {
   final _question = TextEditingController();
-  final List<_ChatMessage> _messages = [
-    const _ChatMessage(
-      text: 'Zdravo! Pitajte me o pismu koje ste upravo analizirali.',
-      fromUser: false,
-    ),
-  ];
+  final List<_ChatMessage> _messages = [];
   bool _sending = false;
 
   @override
@@ -1110,64 +1210,70 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('AI asistent')),
-    body: Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: _messages
-                .map(
-                  (message) => Align(
-                    alignment: message.fromUser
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: message.fromUser
-                            ? const Color(0xFFDDE5FF)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final visibleMessages = _messages.isEmpty
+        ? [_ChatMessage(text: strings.text('assistantHello'), fromUser: false)]
+        : _messages;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('assistantTitle'))),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: visibleMessages
+                  .map(
+                    (message) => Align(
+                      alignment: message.fromUser
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: message.fromUser
+                              ? const Color(0xFFDDE5FF)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(message.text),
                       ),
-                      child: Text(message.text),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _question,
+                    decoration: InputDecoration(
+                      hintText: strings.text('assistantHint'),
                     ),
                   ),
-                )
-                .toList(),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _question,
-                  decoration: const InputDecoration(
-                    hintText: 'Npr. Koji je rok?',
-                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                onPressed: _sending ? null : _ask,
-                icon: _sending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send),
-              ),
-            ],
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _sending ? null : _ask,
+                  icon: _sending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   Future<void> _ask() async {
     final question = _question.text.trim();
@@ -1215,226 +1321,244 @@ class ProfileScreen extends StatelessWidget {
   final AppState state;
   final AppServices services;
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      CircleAvatar(
-        radius: 32,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        child: const Icon(Icons.person, size: 34),
-      ),
-      const SizedBox(height: 12),
-      Center(
-        child: Text(
-          'Moj profil',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        CircleAvatar(
+          radius: 32,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: const Icon(Icons.person, size: 34),
         ),
-      ),
-      const SizedBox(height: 24),
-      if (services.cloudEnabled && services.auth.isSignedIn)
-        StreamBuilder<Map<String, dynamic>?>(
-          stream: services.auth.profileChanges(),
-          builder: (context, snapshot) {
-            final profile = snapshot.data ?? const <String, dynamic>{};
-            final language = profile['preferredLanguage'] as String? ?? 'sr';
-            final country = profile['countryOfOrigin'] as String? ?? '';
-            final name = profile['displayName'] as String? ?? '';
-            return Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.badge_outlined),
-                  title: const Text('Ime'),
-                  subtitle: Text(name.isEmpty ? 'Dodajte ime' : name),
-                  onTap: () => _editTextProfile(
-                    context,
-                    services,
-                    'Ime',
-                    name,
-                    (value) => services.auth.updateProfile(displayName: value),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.language),
-                  title: const Text('Preferirani jezik'),
-                  subtitle: Text(_languageLabels[language] ?? language),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) =>
-                        services.auth.updateProfile(preferredLanguage: value),
-                    itemBuilder: (_) => _languageLabels.entries
-                        .map(
-                          (entry) => PopupMenuItem(
-                            value: entry.key,
-                            child: Text(entry.value),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.public),
-                  title: const Text('Zemlja porekla'),
-                  subtitle: Text(
-                    country.isEmpty ? 'Dodajte zemlju porekla' : country,
-                  ),
-                  onTap: () => _editTextProfile(
-                    context,
-                    services,
-                    'Zemlja porekla',
-                    country,
-                    (value) =>
-                        services.auth.updateProfile(countryOfOrigin: value),
-                  ),
-                ),
-              ],
-            );
-          },
-        )
-      else ...const [
-        ListTile(
-          leading: Icon(Icons.language),
-          title: Text('Preferirani jezik'),
-          subtitle: Text('Srpski'),
-        ),
-        ListTile(
-          leading: Icon(Icons.public),
-          title: Text('Zemlja porekla'),
-          subtitle: Text('Prijavite se da biste sačuvali profil'),
-        ),
-      ],
-      const Divider(),
-      ListTile(
-        leading: const Icon(Icons.workspace_premium),
-        title: Text(state.isPremium ? 'Premium je aktivan' : 'BriefAI Premium'),
-        subtitle: const Text('Neograničene analize, odgovori i podsetnici'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) =>
-                SubscriptionScreen(state: state, services: services),
+        const SizedBox(height: 12),
+        Center(
+          child: Text(
+            strings.text('myProfile'),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
-      ),
-      if (services.cloudEnabled && !services.auth.isSignedIn)
+        const SizedBox(height: 24),
+        if (services.cloudEnabled && services.auth.isSignedIn)
+          StreamBuilder<Map<String, dynamic>?>(
+            stream: services.auth.profileChanges(),
+            builder: (context, snapshot) {
+              final profile = snapshot.data ?? const <String, dynamic>{};
+              final language = profile['preferredLanguage'] as String? ?? 'sr';
+              final country = profile['countryOfOrigin'] as String? ?? '';
+              final name = profile['displayName'] as String? ?? '';
+              return Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.badge_outlined),
+                    title: const Text('Ime'),
+                    subtitle: Text(name.isEmpty ? 'Dodajte ime' : name),
+                    onTap: () => _editTextProfile(
+                      context,
+                      services,
+                      'Ime',
+                      name,
+                      (value) =>
+                          services.auth.updateProfile(displayName: value),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.language),
+                    title: Text(strings.text('preferredLanguage')),
+                    subtitle: Text(_languageLabels[language] ?? language),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        await services.auth.setPreferredLanguage(value);
+                        state.setLocale(value);
+                      },
+                      itemBuilder: (_) => _languageLabels.entries
+                          .map(
+                            (entry) => PopupMenuItem(
+                              value: entry.key,
+                              child: Text(entry.value),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.public),
+                    title: Text(strings.text('country')),
+                    subtitle: Text(
+                      country.isEmpty ? strings.text('addCountry') : country,
+                    ),
+                    onTap: () => _editTextProfile(
+                      context,
+                      services,
+                      'Zemlja porekla',
+                      country,
+                      (value) =>
+                          services.auth.updateProfile(countryOfOrigin: value),
+                    ),
+                  ),
+                ],
+              );
+            },
+          )
+        else ...[
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(strings.text('appLanguage')),
+            subtitle: Text(
+              _languageLabels[state.localeCode] ?? state.localeCode,
+            ),
+            trailing: _LanguageMenu(state: state, services: services),
+          ),
+          ListTile(
+            leading: const Icon(Icons.public),
+            title: Text(strings.text('country')),
+            subtitle: Text(strings.text('signInForProfile')),
+          ),
+        ],
+        const Divider(),
         ListTile(
-          leading: const Icon(Icons.login),
-          title: const Text('Prijavite se ili kreirajte nalog'),
+          leading: const Icon(Icons.workspace_premium),
+          title: Text(
+            state.isPremium ? 'Premium je aktivan' : 'BriefAI Premium',
+          ),
+          subtitle: const Text('Neograničene analize, odgovori i podsetnici'),
+          trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => SignInScreen(services: services)),
-          ),
-        ),
-      if (services.cloudEnabled && services.auth.isSignedIn)
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Odjavi se'),
-          onTap: services.auth.signOut,
-        ),
-      ListTile(
-        leading: const Icon(Icons.privacy_tip_outlined),
-        title: const Text('Privacy Policy'),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const LegalScreen(privacy: true)),
-        ),
-      ),
-      ListTile(
-        leading: const Icon(Icons.gavel_outlined),
-        title: const Text('Terms & Conditions'),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const LegalScreen(privacy: false)),
-        ),
-      ),
-      ListTile(
-        leading: const Icon(Icons.download_outlined),
-        title: const Text('Preuzmi moje podatke'),
-        subtitle: const Text(
-          'Lokalni JSON izvoz profila, analiza i originalnih dokumenata',
-        ),
-        onTap: () => _exportAccountData(context, state, services),
-      ),
-      if (!services.auth.isSignedIn)
-        ListTile(
-          leading: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
-          title: const Text('Obriši lokalnu arhivu'),
-          subtitle: const Text('Briše dokumente samo iz anonimnog vault-a'),
-          onTap: () => showDialog<void>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Obrisati lokalnu arhivu?'),
-              content: const Text(
-                'Originalni dokumenti, OCR tekst, analize i podsetnici biće trajno obrisani sa ovog uređaja.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Odustani'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    await services.letters.clearAll(
-                      services.auth.localVaultKey,
-                    );
-                    await services.reminders.cancelAll();
-                    state.replaceLetters(const []);
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop();
-                    }
-                  },
-                  child: const Text('Obriši'),
-                ),
-              ],
+            MaterialPageRoute(
+              builder: (_) =>
+                  SubscriptionScreen(state: state, services: services),
             ),
           ),
         ),
-      if (services.cloudEnabled && services.auth.isSignedIn)
-        ListTile(
-          leading: const Icon(Icons.delete_forever_outlined, color: Colors.red),
-          title: const Text('Trajno obriši nalog'),
-          onTap: () => showDialog<void>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Obrisati nalog?'),
-              content: const Text(
-                'Ova radnja trajno briše lokalne dokumente, OCR tekst, analize, podsetnike i korisnički nalog. Aktivnu Store pretplatu morate posebno otkazati u prodavnici.',
+        if (services.cloudEnabled && !services.auth.isSignedIn)
+          ListTile(
+            leading: const Icon(Icons.login),
+            title: Text(strings.text('accountCta')),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SignInScreen(services: services),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Odustani'),
+            ),
+          ),
+        if (services.cloudEnabled && services.auth.isSignedIn)
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: Text(strings.text('signOut')),
+            onTap: services.auth.signOut,
+          ),
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('Privacy Policy'),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const LegalScreen(privacy: true)),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.gavel_outlined),
+          title: const Text('Terms & Conditions'),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const LegalScreen(privacy: false),
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.download_outlined),
+          title: const Text('Preuzmi moje podatke'),
+          subtitle: const Text(
+            'Lokalni JSON izvoz profila, analiza i originalnih dokumenata',
+          ),
+          onTap: () => _exportAccountData(context, state, services),
+        ),
+        if (!services.auth.isSignedIn)
+          ListTile(
+            leading: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
+            title: const Text('Obriši lokalnu arhivu'),
+            subtitle: const Text('Briše dokumente samo iz anonimnog vault-a'),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Obrisati lokalnu arhivu?'),
+                content: const Text(
+                  'Originalni dokumenti, OCR tekst, analize i podsetnici biće trajno obrisani sa ovog uređaja.',
                 ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Odustani'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
                       await services.letters.clearAll(
                         services.auth.localVaultKey,
                       );
                       await services.reminders.cancelAll();
                       state.replaceLetters(const []);
-                      await services.auth.deleteAccount();
                       if (dialogContext.mounted) {
                         Navigator.of(dialogContext).pop();
                       }
-                    } on Object catch (error) {
-                      if (dialogContext.mounted) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Lokalni podaci su obrisani, ali brisanje naloga '
-                              'nije završeno: $error',
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('Obriši'),
-                ),
-              ],
+                    },
+                    child: const Text('Obriši'),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-    ],
-  );
+        if (services.cloudEnabled && services.auth.isSignedIn)
+          ListTile(
+            leading: const Icon(
+              Icons.delete_forever_outlined,
+              color: Colors.red,
+            ),
+            title: const Text('Trajno obriši nalog'),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Obrisati nalog?'),
+                content: const Text(
+                  'Ova radnja trajno briše lokalne dokumente, OCR tekst, analize, podsetnike i korisnički nalog. Aktivnu Store pretplatu morate posebno otkazati u prodavnici.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Odustani'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await services.letters.clearAll(
+                          services.auth.localVaultKey,
+                        );
+                        await services.reminders.cancelAll();
+                        state.replaceLetters(const []);
+                        await services.auth.deleteAccount();
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      } on Object catch (error) {
+                        if (dialogContext.mounted) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Lokalni podaci su obrisani, ali brisanje naloga '
+                                'nije završeno: $error',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Obriši'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 const _languageLabels = {

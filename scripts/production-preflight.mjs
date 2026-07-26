@@ -58,6 +58,10 @@ if (mode !== 'static') {
     const parameterText = text('functions/.env.briefai-germany');
     for (const name of [
       'WEB_APP_ORIGIN',
+      'OPENAI_MODEL',
+      'AI_MONTHLY_BUDGET_USD',
+      'AI_USER_MONTHLY_BUDGET_USD',
+      'AI_PRO_USER_MONTHLY_BUDGET_USD',
       'ANDROID_PACKAGE_NAME',
       'APPLE_BUNDLE_ID',
       'APPLE_APP_STORE_ISSUER_ID',
