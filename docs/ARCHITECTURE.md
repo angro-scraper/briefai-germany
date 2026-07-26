@@ -14,6 +14,7 @@ Flutter (Android / iOS / web)
         ├─ analyzeDocument → OCR → OpenAI structured output → Firestore
         ├─ generateReply → OpenAI structured output
         ├─ scheduleDeadlineReminders → Cloud Tasks / FCM
+        ├─ askLetterAssistant → authenticated letter context + OpenAI follow-up chat
         ├─ deleteAccount → Auth + Storage + Firestore cascade
         └─ Stripe webhook → subscription entitlement
 ```

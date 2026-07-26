@@ -37,6 +37,10 @@ C:\flutter\bin\cache\dart-sdk\bin\dart.exe C:\flutter\bin\cache\flutter_tools.sn
 3. U Stripe Dashboard-u dodati webhook endpoint `https://europe-west3-<project-id>.cloudfunctions.net/stripeWebhook` i uključiti najmanje `customer.subscription.created`, `customer.subscription.updated` i `customer.subscription.deleted` događaje.
 4. Flutter/web klijent poziva `createStripeCheckout`; Stripe webhook, a ne klijent, upisuje `subscriptions/{uid}` entitlement.
 
+### AI asistent za pismo
+
+`askLetterAssistant` prima samo korisničko pitanje i ID pisma. Funkcija učitava analizu i OCR tekst isključivo iz `users/{uid}/letters/{letterId}`, ograničava dužinu sadržaja i šalje tekst OpenAI-ju sa instrukcijom da sadržaj dokumenta ne sme menjati pravila asistenta. Zato se OCR sadržaj drugog korisnika ne može proslediti preko klijenta. Testirati ovaj tok sa stvarnim Firebase Auth korisnikom, App Check-om i nalogom bez pristupa tuđem pismu.
+
 ## Važna ograničenja ove isporuke
 
 Ovaj repozitorijum sadrži funkcionalni lokalni tok korisničkog interfejsa i deterministički razvojni analizator da se aplikacija može testirati bez slanja stvarnih dokumenata. Prava OCR/AI obrada, prijava, naplata, obaveštenja i objava zahtevaju konfiguraciju navedenih eksternih naloga i nikada se ne mogu bezbedno završiti bez njihovih podataka.

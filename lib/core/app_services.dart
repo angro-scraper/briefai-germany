@@ -362,6 +362,29 @@ class AiService {
         });
     return result.data['reply'] as String;
   }
+
+  Future<String> askLetterAssistant({
+    required String question,
+    required String language,
+    String? letterId,
+  }) async {
+    if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
+      return 'Za odgovor vezan za konkretno pismo prijavite se i povežite Firebase projekat. U lokalnom režimu mogu da prikažem samo osnovne rokove iz analize.';
+    }
+    final request = <String, String>{
+      'question': question,
+      'preferredLanguage': language,
+    };
+    if (letterId != null) request['letterId'] = letterId;
+    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('askLetterAssistant')
+        .call<Map<Object?, Object?>>(request);
+    final answer = result.data['answer'];
+    if (answer is! String || answer.trim().isEmpty) {
+      throw StateError('AI asistent nije vratio odgovor.');
+    }
+    return answer;
+  }
 }
 
 class LetterRepository {

@@ -263,7 +263,7 @@ class _AppShellState extends State<AppShell> {
     final screens = [
       HomeScreen(state: widget.state, services: widget.services),
       ArchiveScreen(state: widget.state, services: widget.services),
-      AssistantScreen(state: widget.state),
+      AssistantScreen(state: widget.state, services: widget.services),
       ProfileScreen(state: widget.state, services: widget.services),
     ];
     return Scaffold(
@@ -852,17 +852,23 @@ class ArchiveScreen extends StatelessWidget {
 }
 
 class AssistantScreen extends StatefulWidget {
-  const AssistantScreen({super.key, required this.state});
+  const AssistantScreen({super.key, required this.state, required this.services});
   final AppState state;
+  final AppServices services;
   @override
   State<AssistantScreen> createState() => _AssistantScreenState();
 }
 
 class _AssistantScreenState extends State<AssistantScreen> {
   final _question = TextEditingController();
-  final List<String> _messages = [
-    'Zdravo! Pitajte me o pismu koje ste upravo analizirali.',
+  final List<_ChatMessage> _messages = [
+    const _ChatMessage(
+      text: 'Zdravo! Pitajte me o pismu koje ste upravo analizirali.',
+      fromUser: false,
+    ),
   ];
+  bool _sending = false;
+
   @override
   void dispose() {
     _question.dispose();
@@ -880,19 +886,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
             children: _messages
                 .map(
                   (message) => Align(
-                    alignment: message.startsWith('Zdravo')
-                        ? Alignment.centerLeft
-                        : Alignment.centerRight,
+                    alignment: message.fromUser
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: message.startsWith('Zdravo')
-                            ? Colors.white
-                            : const Color(0xFFDDE5FF),
+                        color: message.fromUser
+                            ? const Color(0xFFDDE5FF)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Text(message),
+                      child: Text(message.text),
                     ),
                   ),
                 )
@@ -912,7 +918,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filled(onPressed: _ask, icon: const Icon(Icons.send)),
+              IconButton.filled(
+                onPressed: _sending ? null : _ask,
+                icon: _sending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send),
+              ),
             ],
           ),
         ),
@@ -920,21 +935,44 @@ class _AssistantScreenState extends State<AssistantScreen> {
     ),
   );
 
-  void _ask() {
+  Future<void> _ask() async {
     final question = _question.text.trim();
-    if (question.isEmpty) return;
+    if (question.isEmpty || _sending) return;
     final letter = widget.state.letters.isEmpty
         ? null
         : widget.state.letters.first;
-    final answer = letter?.deadline != null
-        ? 'Rok koji je pronađen u poslednjem pismu je ${letter!.deadline!.day}.${letter.deadline!.month}.${letter.deadline!.year}. Sačuvajte dokaz o slanju odgovora.'
-        : 'U ovom trenutku nemam pronađen rok. Proverite originalno pismo ili dodajte dokument za analizu.';
     setState(() {
-      _messages.add(question);
-      _messages.add(answer);
+      _messages.add(_ChatMessage(text: question, fromUser: true));
       _question.clear();
+      _sending = true;
     });
+    try {
+      final language = await widget.services.auth.preferredLanguage();
+      final answer = await widget.services.ai.askLetterAssistant(
+        question: question,
+        language: language,
+        letterId: letter?.id,
+      );
+      if (!mounted) return;
+      setState(() => _messages.add(_ChatMessage(text: answer, fromUser: false)));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(_ChatMessage(
+          text: 'Odgovor nije dostupan: $error',
+          fromUser: false,
+        ));
+      });
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
+}
+
+class _ChatMessage {
+  const _ChatMessage({required this.text, required this.fromUser});
+  final String text;
+  final bool fromUser;
 }
 
 class ProfileScreen extends StatelessWidget {
