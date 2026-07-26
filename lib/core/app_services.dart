@@ -19,6 +19,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:sembast/sembast.dart' hide FieldValue;
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:uuid/uuid.dart';
@@ -140,6 +141,8 @@ class AppServices {
 class AuthService {
   AuthService({required this.cloudEnabled});
   final bool cloudEnabled;
+  final StreamController<Map<String, dynamic>?> _profileUpdates =
+      StreamController<Map<String, dynamic>?>.broadcast();
 
   Stream<User?> get authChanges => cloudEnabled
       ? FirebaseAuth.instance.authStateChanges()
@@ -228,11 +231,7 @@ class AuthService {
     if (!cloudEnabled || userId == null) {
       return Stream<Map<String, dynamic>?>.value(null);
     }
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .snapshots()
-        .map((document) => document.data());
+    return _localProfileStream(userId);
   }
 
   Future<void> updateProfile({
@@ -244,6 +243,27 @@ class AuthService {
     if (!cloudEnabled || userId == null) {
       throw StateError('Prijava je obavezna za čuvanje profila.');
     }
+    final preferences = await SharedPreferences.getInstance();
+    if (displayName != null) {
+      await preferences.setString(
+        _profileKey(userId, 'displayName'),
+        displayName,
+      );
+    }
+    if (countryOfOrigin != null) {
+      await preferences.setString(
+        _profileKey(userId, 'countryOfOrigin'),
+        countryOfOrigin,
+      );
+    }
+    if (preferredLanguage != null) {
+      await preferences.setString(
+        _profileKey(userId, 'preferredLanguage'),
+        preferredLanguage,
+      );
+    }
+    _profileUpdates.add(await _localProfile(userId));
+
     final values = <String, Object?>{'updatedAt': FieldValue.serverTimestamp()};
     if (displayName != null) {
       values['displayName'] = displayName;
@@ -254,10 +274,15 @@ class AuthService {
     if (preferredLanguage != null) {
       values['preferredLanguage'] = preferredLanguage;
     }
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .set(values, SetOptions(merge: true));
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .set(values, SetOptions(merge: true));
+    } on FirebaseException {
+      // The device-local profile is canonical. A temporary Firestore outage or
+      // a deliberately closed ruleset must not break login or language choice.
+    }
   }
 
   /// Records a returning authenticated user without changing profile fields.
@@ -266,33 +291,75 @@ class AuthService {
   Future<void> touchActivity() async {
     final userId = uid;
     if (!cloudEnabled || userId == null) return;
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'lastActiveAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'lastActiveAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } on FirebaseException {
+      // Activity metrics are best-effort and never block the local app.
+    }
   }
 
   Future<String> preferredLanguage() async {
     final userId = uid;
     if (!cloudEnabled || userId == null) return 'sr';
-    final profile = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .get();
-    return profile.data()?['preferredLanguage'] as String? ?? 'sr';
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_profileKey(userId, 'preferredLanguage')) ??
+        'sr';
   }
 
   Future<void> _ensureProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-      'email': user.email,
-      'displayName': user.displayName,
-      'preferredLanguage': 'sr',
-      'countryOfOrigin': '',
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastActiveAt': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    final preferences = await SharedPreferences.getInstance();
+    final languageKey = _profileKey(user.uid, 'preferredLanguage');
+    if (!preferences.containsKey(languageKey)) {
+      await preferences.setString(languageKey, 'sr');
+    }
+    final displayNameKey = _profileKey(user.uid, 'displayName');
+    if (!preferences.containsKey(displayNameKey)) {
+      await preferences.setString(displayNameKey, user.displayName ?? '');
+    }
+    final countryKey = _profileKey(user.uid, 'countryOfOrigin');
+    if (!preferences.containsKey(countryKey)) {
+      await preferences.setString(countryKey, '');
+    }
+    _profileUpdates.add(await _localProfile(user.uid));
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'displayName': user.displayName,
+        'preferredLanguage': preferences.getString(languageKey) ?? 'sr',
+        'countryOfOrigin': preferences.getString(countryKey) ?? '',
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastActiveAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } on FirebaseException {
+      // Authentication has succeeded. Profile mirroring is best-effort so a
+      // closed Firestore ruleset cannot turn a successful login into an error.
+    }
+  }
+
+  String _profileKey(String userId, String field) =>
+      'briefai.profile.$userId.$field';
+
+  Future<Map<String, dynamic>> _localProfile(String userId) async {
+    final preferences = await SharedPreferences.getInstance();
+    return <String, dynamic>{
+      'displayName':
+          preferences.getString(_profileKey(userId, 'displayName')) ?? '',
+      'countryOfOrigin':
+          preferences.getString(_profileKey(userId, 'countryOfOrigin')) ?? '',
+      'preferredLanguage':
+          preferences.getString(_profileKey(userId, 'preferredLanguage')) ??
+          'sr',
+    };
+  }
+
+  Stream<Map<String, dynamic>?> _localProfileStream(String userId) async* {
+    yield await _localProfile(userId);
+    yield* _profileUpdates.stream;
   }
 }
 
@@ -496,8 +563,8 @@ class AiService {
 class LetterRepository {
   LetterRepository({required this.cloudEnabled});
   final bool cloudEnabled;
-  final StoreRef<String, Map<String, Object?>> _store =
-      stringMapStoreFactory.store('letters');
+  final StoreRef<String, Map<String, Object?>> _store = stringMapStoreFactory
+      .store('letters');
   Database? _database;
 
   Future<Database> _db() async =>
@@ -506,11 +573,7 @@ class LetterRepository {
   Stream<List<LetterAnalysis>> watch(String uid) {
     return Stream.fromFuture(_db()).asyncExpand(
       (database) => _store
-          .query(
-            finder: Finder(
-              sortOrders: [SortOrder('createdAt', false)],
-            ),
-          )
+          .query(finder: Finder(sortOrders: [SortOrder('createdAt', false)]))
           .onSnapshots(database)
           .map(
             (records) => records

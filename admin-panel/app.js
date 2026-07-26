@@ -1,6 +1,11 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
 import {initializeAppCheck, ReCaptchaV3Provider} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js';
-import {getAuth, GoogleAuthProvider, signInWithPopup} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
 import {getFunctions, httpsCallable} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js';
 
 // Replace values from Firebase Console. This public web configuration is not a secret.
@@ -25,17 +30,40 @@ if (configured) {
   });
   const auth = getAuth(app);
   functions = getFunctions(app, 'europe-west3');
-  document.querySelector('#sign-in').addEventListener('click', async () => {
+  const completeSignIn = async () => {
+    await loadMetrics();
+    status.textContent =
+      'Signed in. Metrics are visible only to users with the Firebase admin custom claim.';
+  };
+  document.querySelector('#google-sign-in').addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
-      await loadMetrics();
-      status.textContent = 'Signed in. Metrics are visible only to users with the Firebase admin custom claim.';
+      await completeSignIn();
+    } catch (error) {
+      status.textContent = `Access failed: ${error.message}`;
+    }
+  });
+  document.querySelector('#email-sign-in').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await signInWithEmailAndPassword(
+        auth,
+        document.querySelector('#admin-email').value,
+        document.querySelector('#admin-password').value,
+      );
+      document.querySelector('#admin-password').value = '';
+      await completeSignIn();
     } catch (error) {
       status.textContent = `Access failed: ${error.message}`;
     }
   });
 } else {
-  document.querySelector('#sign-in').disabled = true;
+  document.querySelector('#google-sign-in').disabled = true;
+  document.querySelector('#email-sign-in')
+    .querySelectorAll('input, button')
+    .forEach((element) => {
+      element.disabled = true;
+    });
   status.textContent = 'Add Firebase web configuration and the App Check reCAPTCHA v3 site key in app.js.';
 }
 
