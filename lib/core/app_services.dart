@@ -425,10 +425,20 @@ class DocumentService {
   Future<void> prepareOcr() => prepareLocalOcr();
 
   Future<PickedDocument?> capture() => _fromXFile(
-    _picker.pickImage(source: ImageSource.camera, imageQuality: 92),
+    _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90,
+      maxWidth: 2400,
+      maxHeight: 2400,
+    ),
   );
   Future<PickedDocument?> gallery() => _fromXFile(
-    _picker.pickImage(source: ImageSource.gallery, imageQuality: 92),
+    _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 2400,
+      maxHeight: 2400,
+    ),
   );
 
   Future<PickedDocument?> file() async {

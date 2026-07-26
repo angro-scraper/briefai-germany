@@ -17,6 +17,7 @@ void main() {
         'createAccount',
         'uploadDocument',
         'ocrReading',
+        'loadingImage',
         'ocrReady',
         'ocrNotReady',
         'ocrFailed',

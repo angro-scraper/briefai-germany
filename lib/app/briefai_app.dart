@@ -45,9 +45,6 @@ class _BriefAiAppState extends State<BriefAiApp> {
     );
     _state.setLocale(await widget.services.auth.preferredLanguage());
     if (mounted) setState(() => _restored = true);
-    // Warm the self-hosted OCR engine in the background so it is normally
-    // ready before the user has chosen or photographed a document.
-    unawaited(widget.services.documents.prepareOcr().catchError((_) {}));
   }
 
   Future<void> _completeOnboarding() async {
@@ -751,14 +748,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   PickedDocument? _document;
 
   @override
-  void initState() {
-    super.initState();
-    // Start loading the local OCR engine while the user frames or chooses the
-    // document. Failure is retried and shown when OCR is actually requested.
-    unawaited(widget.services.documents.prepareOcr().catchError((_) {}));
-  }
-
-  @override
   void dispose() {
     _text.dispose();
     super.dispose();
@@ -825,6 +814,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                             _document!.bytes,
                             width: 64,
                             height: 80,
+                            cacheWidth: 256,
+                            filterQuality: FilterQuality.low,
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => const SizedBox(
                               width: 64,
@@ -904,7 +895,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 _loading
                     ? _recognizing
                           ? strings.text('ocrReading')
-                          : strings.text('processing')
+                          : strings.text('loadingImage')
                     : strings.text('analyzeLetter'),
               ),
             ),
@@ -987,16 +978,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   Future<void> _select(Future<PickedDocument?> Function() source) async {
     if (_loading) return;
+    setState(() {
+      _loading = true;
+      _recognizing = false;
+    });
     try {
       final selected = await source();
       if (selected == null || !mounted) return;
       setState(() {
         _document = selected;
         _ocrComplete = false;
-        _loading = true;
         _recognizing = true;
         _text.clear();
       });
+      // Let Flutter paint the thumbnail and OCR status before starting the
+      // CPU-intensive WASM recognition job.
+      await WidgetsBinding.instance.endOfFrame;
       final recognized = await widget.services.documents.ocr(selected);
       if (!mounted) return;
       setState(() {
