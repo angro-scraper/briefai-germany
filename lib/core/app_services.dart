@@ -59,8 +59,12 @@ class AppServices {
     var cloudEnabled = false;
     String? configurationError;
     try {
+      // `flutterfire configure` generates options for every supported
+      // platform.  Supplying them here is important: it prevents a native
+      // release from accidentally attaching to a differently configured
+      // default Firebase app on a build machine.
       await Firebase.initializeApp(
-        options: kIsWeb ? DefaultFirebaseOptions.currentPlatform : null,
+        options: DefaultFirebaseOptions.currentPlatform,
       );
       cloudEnabled = true;
       await FirebaseAppCheck.instance.activate(

@@ -525,9 +525,23 @@ export const stripeWebhook = onRequest(
 
 export const deleteAccount = onCall({region: "europe-west3", enforceAppCheck: true}, async (request) => {
   const uid = requireUser(request.auth?.uid);
+  // These collections are intentionally outside /users/{uid}, so they need
+  // an explicit GDPR cleanup in addition to recursive deletion of the user
+  // document. They contain device identifiers and document-derived reminder
+  // metadata and must not survive account removal.
+  const [deviceTokens, deliveries] = await Promise.all([
+    db.collection("deviceTokens").where("uid", "==", uid).get(),
+    db.collection("reminderDeliveries").where("uid", "==", uid).get(),
+  ]);
+  // BulkWriter keeps deletion valid even for an account with more than the
+  // 500-document limit of a Firestore write batch.
+  const cleanup = db.bulkWriter();
+  for (const token of deviceTokens.docs) cleanup.delete(token.ref);
+  for (const delivery of deliveries.docs) cleanup.delete(delivery.ref);
+  cleanup.delete(db.collection("subscriptions").doc(uid));
+  await cleanup.close();
   await getStorage().bucket().deleteFiles({prefix: `users/${uid}/`});
   await db.recursiveDelete(db.collection("users").doc(uid));
-  await db.collection("subscriptions").doc(uid).delete();
   await getAuth().deleteUser(uid);
   return {deleted: true};
 });

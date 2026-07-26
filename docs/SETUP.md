@@ -17,7 +17,7 @@ C:\flutter\bin\cache\dart-sdk\bin\dart.exe C:\flutter\bin\cache\flutter_tools.sn
 ## Firebase pre produkcije
 
 1. Kreirati Firebase projekat i Android/iOS/web aplikacije.
-2. Pokrenuti `flutterfire configure`; on zamenjuje početni `lib/firebase_options.dart` stvarnim generisanim opcijama. Generisani fajl se ne menja ručno i mora biti uključen u build.
+2. Pokrenuti `flutterfire configure`; on zamenjuje početni `lib/firebase_options.dart` stvarnim generisanim opcijama. Generisani fajl se ne menja ručno i mora biti uključen u build. Aplikacija na svakom targetu eksplicitno koristi `DefaultFirebaseOptions.currentPlatform`, pa release ne sme koristiti početni placeholder fajl.
 3. Omogućiti Email/Password, Google i Apple prijavu.
 4. Dodati Firebase Secret `OPENAI_API_KEY`; nikad ga ne stavljati u Flutter kod ili `.env` koji se objavljuje.
 5. Podesiti Play Console, App Store Connect i Stripe webhook tajne na serveru.
@@ -79,3 +79,9 @@ Klijent nikada ne dodeljuje Premium lokalno. Posle kupovine ili restore-a šalje
 1. Dodati Firebase Secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` sa kompletnim JSON-om servisnog naloga kome je u Play Console dodeljen pristup aplikaciji i Google Play Developer API-ju. U `functions/.env` postaviti `ANDROID_PACKAGE_NAME`.
 2. Za App Store Server API dodati Firebase Secret `APPLE_APP_STORE_PRIVATE_KEY` (p8 ključ), a u `functions/.env` postaviti `APPLE_APP_STORE_ISSUER_ID`, `APPLE_APP_STORE_KEY_ID`, `APPLE_BUNDLE_ID` i `APPLE_APP_STORE_ENV` (`sandbox` za test, `production` za objavu).
 3. U Play Console i App Store Connect napraviti auto-renewable proizvode sa identifikatorima `briefai_premium_monthly` i `briefai_pro_monthly`. Testirati kupovinu i restore na stvarnom sandbox uređaju pre objave.
+
+### Potpisani store build preko GitHub Actions
+
+Workflow **Store release** ne pravi javni debug APK. Ručno se pokreće tek kada su secrets popunjeni i pravi potpisani Android App Bundle (`.aab`) za Play Console. Potrebni repository secrets su `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` i `GOOGLE_SERVICES_JSON_BASE64`. Sadrže samo potpisni materijal i Android Firebase konfiguraciju; OpenAI, Stripe i store API ključevi ostaju isključivo Firebase Functions secrets.
+
+Pre aktiviranja workflow-a, zameniti placeholder kroz `flutterfire configure`, dodati iOS `GoogleService-Info.plist`, proveriti Apple Sign In / Push Notifications capabilities i napraviti TestFlight build na macOS-u. Detaljan redosled je u `docs/STORE_RELEASE.md`.
