@@ -2,6 +2,7 @@ services:
   - type: web
     name: briefai-germany-download
     runtime: static
+    buildCommand: mkdir -p install-site/download && tar -xJf distribution/BriefAI-Germany-debug.tar.xz -C install-site/download
     staticPublishPath: ./install-site
     autoDeployTrigger: commit
     headers:
