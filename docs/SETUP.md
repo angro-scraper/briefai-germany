@@ -1,0 +1,57 @@
+# Pokretanje i produkciona konfiguracija
+
+## Lokalno pokretanje
+
+```powershell
+C:\flutter\bin\flutter.bat pub get
+C:\flutter\bin\flutter.bat test
+C:\flutter\bin\flutter.bat run
+```
+
+Ako desktop sandbox ne dozvoljava standardnom `flutter` wrapperu pristup SDK lock fajlu, ekvivalentna test komanda je:
+
+```powershell
+C:\flutter\bin\cache\dart-sdk\bin\dart.exe C:\flutter\bin\cache\flutter_tools.snapshot test --no-pub --reporter compact
+```
+
+## Firebase pre produkcije
+
+1. Kreirati Firebase projekat i Android/iOS/web aplikacije.
+2. Pokrenuti `flutterfire configure`; generisani `firebase_options.dart` ne sme biti ručno menjan.
+3. Omogućiti Email/Password, Google i Apple prijavu.
+4. Dodati Firebase Secret `OPENAI_API_KEY`; nikad ga ne stavljati u Flutter kod ili `.env` koji se objavljuje.
+5. Podesiti Play Console, App Store Connect i Stripe webhook tajne na serveru.
+6. Pre objave, pravnik treba da odobri nemačku Privacy Policy i Terms & Conditions, posebno obradu dokumenata i AI ograničenja.
+
+### Document AI OCR
+
+1. U Google Cloud projektu omogućiti **Document AI API** i napraviti OCR processor u `eu` lokaciji.
+2. Firebase Functions servisnom nalogu dodeliti rolu `Document AI API User` za taj processor.
+3. Postaviti `DOCUMENT_AI_PROCESSOR=<processor-id>` u `functions/.env`; ovo je deploy parametar, ne API tajna.
+4. PDF se čuva privatno u Storage, a `extractDocumentText` proverava da li putanja pripada prijavljenom korisniku pre slanja sadržaja OCR servisu.
+
+### Stripe za web
+
+1. U Stripe-u napraviti mesečne recurring cene za Premium i Pro i njihove ID-jeve postaviti kao `STRIPE_PREMIUM_PRICE_ID` i `STRIPE_PRO_PRICE_ID` u `functions/.env`.
+2. Postaviti `STRIPE_SECRET_KEY` i `STRIPE_WEBHOOK_SECRET` pomoću `firebase functions:secrets:set`.
+3. U Stripe Dashboard-u dodati webhook endpoint `https://europe-west3-<project-id>.cloudfunctions.net/stripeWebhook` i uključiti najmanje `customer.subscription.created`, `customer.subscription.updated` i `customer.subscription.deleted` događaje.
+4. Flutter/web klijent poziva `createStripeCheckout`; Stripe webhook, a ne klijent, upisuje `subscriptions/{uid}` entitlement.
+
+## Važna ograničenja ove isporuke
+
+Ovaj repozitorijum sadrži funkcionalni lokalni tok korisničkog interfejsa i deterministički razvojni analizator da se aplikacija može testirati bez slanja stvarnih dokumenata. Prava OCR/AI obrada, prijava, naplata, obaveštenja i objava zahtevaju konfiguraciju navedenih eksternih naloga i nikada se ne mogu bezbedno završiti bez njihovih podataka.
+
+## Obavezne produkcione komande
+
+```powershell
+firebase login
+firebase use --add
+firebase functions:secrets:set OPENAI_API_KEY
+firebase deploy --only firestore:rules,storage,functions
+firebase target:apply hosting admin <admin-hosting-site-id>
+firebase deploy --only hosting:admin
+flutterfire configure
+C:\flutter\bin\flutter.bat build appbundle --release
+```
+
+Nakon `flutterfire configure`, proveriti da je generisani `lib/firebase_options.dart` uključen u `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`. Pre slanja u prodavnice, uneti i verifikovati proizvode `briefai_premium_monthly` i `briefai_pro_monthly`; entitlement se na produkciji ažurira isključivo posle server-side provere store transakcije.

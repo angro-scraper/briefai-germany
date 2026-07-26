@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: briefai-germany-download
+    runtime: static
+    staticPublishPath: ./install-site
+    autoDeployTrigger: commit
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
