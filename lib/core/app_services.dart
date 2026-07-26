@@ -363,14 +363,18 @@ class AiService {
     return LetterAnalysis.fromMap(id: letterId, map: data, sourceText: text);
   }
 
-  Future<String> generateReply({
+  Future<GeneratedReply> generateReply({
     required String letterId,
     required String facts,
     required String language,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
       if (kDebugMode) {
-        return 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
+        const letter = 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
+        return const GeneratedReply(
+          letter: letter,
+          email: 'Betreff: Antwort auf Ihr Schreiben\n\nSehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Ich bestätige den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen',
+        );
       }
       throw StateError('Za generisanje odgovora potrebna je prijava i povezana usluga.');
     }
@@ -381,7 +385,17 @@ class AiService {
           'facts': facts,
           'preferredLanguage': language,
         });
-    return result.data['reply'] as String;
+    final reply = result.data['reply'];
+    if (reply is! Map) {
+      throw StateError('AI odgovor nema očekivani format.');
+    }
+    final letter = reply['letter'];
+    final email = reply['email'];
+    if (letter is! String || letter.trim().isEmpty ||
+        email is! String || email.trim().isEmpty) {
+      throw StateError('AI odgovor nema obe verzije.');
+    }
+    return GeneratedReply(letter: letter, email: email);
   }
 
   Future<String> askLetterAssistant({

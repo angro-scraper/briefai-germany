@@ -34,6 +34,13 @@ enum Urgency { low, medium, high }
 
 enum LetterStatus { newLetter, inProgress, done }
 
+class GeneratedReply {
+  const GeneratedReply({required this.letter, required this.email});
+
+  final String letter;
+  final String email;
+}
+
 class LetterAnalysis {
   const LetterAnalysis({
     required this.id,

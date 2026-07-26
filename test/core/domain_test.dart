@@ -52,4 +52,14 @@ void main() {
 
     expect(state.letters.single.id, 'cloud');
   });
+
+  test('generated reply retains separate letter and email variants', () {
+    const reply = GeneratedReply(
+      letter: 'Sehr geehrte Damen und Herren,',
+      email: 'Betreff: Antwort auf Ihr Schreiben',
+    );
+
+    expect(reply.letter, startsWith('Sehr geehrte'));
+    expect(reply.email, startsWith('Betreff:'));
+  });
 }

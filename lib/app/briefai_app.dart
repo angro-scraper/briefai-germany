@@ -766,7 +766,7 @@ class ResponseScreen extends StatefulWidget {
 }
 
 class _ResponseScreenState extends State<ResponseScreen> {
-  late final Future<String> _response = () async {
+  late final Future<GeneratedReply> _response = () async {
     final language = await widget.services.auth.preferredLanguage();
     return widget.services.ai.generateReply(
       letterId: widget.letter.id,
@@ -774,11 +774,12 @@ class _ResponseScreenState extends State<ResponseScreen> {
       language: language,
     );
   }();
+  bool _emailVersion = false;
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Predlog odgovora')),
-    body: FutureBuilder<String>(
+    body: FutureBuilder<GeneratedReply>(
       future: _response,
       builder: (context, snapshot) => Padding(
         padding: const EdgeInsets.all(20),
@@ -792,6 +793,25 @@ class _ResponseScreenState extends State<ResponseScreen> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+            if (snapshot.hasData)
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    icon: Icon(Icons.article_outlined),
+                    label: Text('Pismo'),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    icon: Icon(Icons.email_outlined),
+                    label: Text('E-mail'),
+                  ),
+                ],
+                selected: {_emailVersion},
+                onSelectionChanged: (selected) =>
+                    setState(() => _emailVersion = selected.first),
+              ),
+            if (snapshot.hasData) const SizedBox(height: 12),
             Expanded(
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -802,7 +822,11 @@ class _ResponseScreenState extends State<ResponseScreen> {
                 child: snapshot.hasError
                     ? Text('Odgovor nije dostupan: ${snapshot.error}')
                     : snapshot.hasData
-                    ? SelectableText(snapshot.data!)
+                    ? SelectableText(
+                        _emailVersion
+                            ? snapshot.data!.email
+                            : snapshot.data!.letter,
+                      )
                     : const Center(child: CircularProgressIndicator()),
               ),
             ),
@@ -810,7 +834,11 @@ class _ResponseScreenState extends State<ResponseScreen> {
             if (snapshot.hasData) ...[
               FilledButton.icon(
                 onPressed: () async {
-                  await widget.services.exports.copy(snapshot.data!);
+                  await widget.services.exports.copy(
+                    _emailVersion
+                        ? snapshot.data!.email
+                        : snapshot.data!.letter,
+                  );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Odgovor je kopiran.')),
@@ -824,7 +852,7 @@ class _ResponseScreenState extends State<ResponseScreen> {
               OutlinedButton.icon(
                 onPressed: () => widget.services.exports.composeEmail(
                   subject: 'Odgovor na: ${widget.letter.title}',
-                  body: snapshot.data!,
+                  body: snapshot.data!.email,
                 ),
                 icon: const Icon(Icons.email_outlined),
                 label: const Text('Pošalji e-mail'),
@@ -833,7 +861,9 @@ class _ResponseScreenState extends State<ResponseScreen> {
               OutlinedButton.icon(
                 onPressed: () => widget.services.exports.savePdf(
                   title: 'BriefAI Germany — ${widget.letter.title}',
-                  body: snapshot.data!,
+                  body: _emailVersion
+                      ? snapshot.data!.email
+                      : snapshot.data!.letter,
                 ),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: const Text('Sačuvaj PDF'),

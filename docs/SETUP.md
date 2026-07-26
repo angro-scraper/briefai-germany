@@ -51,6 +51,8 @@ U `admin-panel/app.js` popuniti svih šest Firebase web vrednosti i reCAPTCHA v3
 
 `askLetterAssistant` prima samo korisničko pitanje i ID pisma. Funkcija učitava analizu i OCR tekst isključivo iz `users/{uid}/letters/{letterId}`, ograničava dužinu sadržaja i šalje tekst OpenAI-ju sa instrukcijom da sadržaj dokumenta ne sme menjati pravila asistenta. Zato se OCR sadržaj drugog korisnika ne može proslediti preko klijenta. Testirati ovaj tok sa stvarnim Firebase Auth korisnikom, App Check-om i nalogom bez pristupa tuđem pismu.
 
+`analyzeLetter` transakcijski rezerviše besplatnu analizu pre OpenAI poziva; tako paralelni zahtevi ne mogu preći limit od dve analize mesečno. Ako AI poziv ne uspe, rezervacija se vraća. `generateReply` vraća strogo strukturisane `letter` i `email` varijante, koje klijent prikazuje odvojeno i koristi za PDF odnosno e-mail izvoz.
+
 ## Važna ograničenja ove isporuke
 
 Ovaj repozitorijum sadrži funkcionalni lokalni tok korisničkog interfejsa i deterministički razvojni analizator da se aplikacija može testirati bez slanja stvarnih dokumenata. Prava OCR/AI obrada, prijava, naplata, obaveštenja i objava zahtevaju konfiguraciju navedenih eksternih naloga i nikada se ne mogu bezbedno završiti bez njihovih podataka.
