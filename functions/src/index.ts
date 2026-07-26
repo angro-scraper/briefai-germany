@@ -744,7 +744,14 @@ export const deleteAccount = onCall({region: "europe-west3", enforceAppCheck: tr
   for (const delivery of deliveries.docs) cleanup.delete(delivery.ref);
   cleanup.delete(db.collection("subscriptions").doc(uid));
   await cleanup.close();
-  await getStorage().bucket().deleteFiles({prefix: `users/${uid}/`});
+  try {
+    await getStorage().bucket().deleteFiles({prefix: `users/${uid}/`});
+  } catch (error) {
+    // BriefAI's privacy-first deployment intentionally has no Storage bucket:
+    // originals and the archive remain local. Missing Storage must not block
+    // GDPR account deletion, but every other Storage error is still fatal.
+    if ((error as {code?: number}).code !== 404) throw error;
+  }
   await db.recursiveDelete(db.collection("users").doc(uid));
   await getAuth().deleteUser(uid);
   return {deleted: true};
