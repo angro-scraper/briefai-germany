@@ -887,9 +887,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       );
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Analiza nije uspela: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.strings.text('analysisFailed')}: $error'),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -916,84 +918,91 @@ class ResultScreen extends StatelessWidget {
   final LetterAnalysis letter;
   final AppServices services;
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Rezultat analize')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _Badge(
-          label: letter.urgency.name.toUpperCase(),
-          color: letter.urgency == Urgency.high
-              ? Colors.red
-              : letter.urgency == Urgency.medium
-              ? Colors.orange
-              : Colors.green,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          letter.title,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-        _ResultSection(
-          title: 'Jednostavno objašnjenje',
-          content: letter.plainExplanation,
-        ),
-        _ResultSection(title: 'Kategorija', content: letter.category.label),
-        if (letter.deadline != null)
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('resultTitle'))),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _Badge(
+            label: letter.urgency.name.toUpperCase(),
+            color: letter.urgency == Urgency.high
+                ? Colors.red
+                : letter.urgency == Urgency.medium
+                ? Colors.orange
+                : Colors.green,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            letter.title,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
           _ResultSection(
-            title: 'Rok',
-            content:
-                '${letter.deadline!.day.toString().padLeft(2, '0')}.${letter.deadline!.month.toString().padLeft(2, '0')}.${letter.deadline!.year}',
+            title: strings.text('simpleExplanation'),
+            content: letter.plainExplanation,
           ),
-        if (letter.amount != null)
-          _ResultSection(title: 'Pronađen iznos', content: letter.amount!),
-        _ResultSection(
-          title: 'Šta sada da uradite',
-          content: letter.suggestedAction,
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final document = await services.letters.loadDocument(
-              services.auth.localVaultKey,
-              letter.id,
-            );
-            if (!context.mounted) return;
-            if (document == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Originalni dokument nije sačuvan uz analizu.'),
-                ),
-              );
-              return;
-            }
-            await services.exports.shareDocument(document);
-          },
-          icon: const Icon(Icons.attach_file_rounded),
-          label: const Text('Otvori ili preuzmi original'),
-        ),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  ResponseScreen(letter: letter, services: services),
+          _ResultSection(
+            title: strings.text('category'),
+            content: strings.category(letter.category.name),
+          ),
+          if (letter.deadline != null)
+            _ResultSection(
+              title: strings.text('deadline'),
+              content:
+                  '${letter.deadline!.day.toString().padLeft(2, '0')}.${letter.deadline!.month.toString().padLeft(2, '0')}.${letter.deadline!.year}',
             ),
+          if (letter.amount != null)
+            _ResultSection(
+              title: strings.text('amount'),
+              content: letter.amount!,
+            ),
+          _ResultSection(
+            title: strings.text('nextSteps'),
+            content: letter.suggestedAction,
           ),
-          icon: const Icon(Icons.edit_note),
-          label: const Text('Generiši odgovor'),
-        ),
-        TextButton(
-          onPressed: () =>
-              Navigator.of(context).popUntil((route) => route.isFirst),
-          child: const Text('Završi i idi na početnu'),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final document = await services.letters.loadDocument(
+                services.auth.localVaultKey,
+                letter.id,
+              );
+              if (!context.mounted) return;
+              if (document == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(strings.text('originalMissing'))),
+                );
+                return;
+              }
+              await services.exports.shareDocument(document);
+            },
+            icon: const Icon(Icons.attach_file_rounded),
+            label: Text(strings.text('openOriginal')),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    ResponseScreen(letter: letter, services: services),
+              ),
+            ),
+            icon: const Icon(Icons.edit_note),
+            label: Text(strings.text('generateReply')),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).popUntil((route) => route.isFirst),
+            child: Text(strings.text('finishHome')),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class ResponseScreen extends StatefulWidget {
@@ -1022,103 +1031,108 @@ class _ResponseScreenState extends State<ResponseScreen> {
   bool _emailVersion = false;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Predlog odgovora')),
-    body: FutureBuilder<GeneratedReply>(
-      future: _response,
-      builder: (context, snapshot) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Formalni nemački odgovor',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            if (snapshot.hasData)
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                    value: false,
-                    icon: Icon(Icons.article_outlined),
-                    label: Text('Pismo'),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    icon: Icon(Icons.email_outlined),
-                    label: Text('E-mail'),
-                  ),
-                ],
-                selected: {_emailVersion},
-                onSelectionChanged: (selected) =>
-                    setState(() => _emailVersion = selected.first),
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('replyTitle'))),
+      body: FutureBuilder<GeneratedReply>(
+        future: _response,
+        builder: (context, snapshot) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                strings.text('formalReply'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-            if (snapshot.hasData) const SizedBox(height: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+              const SizedBox(height: 12),
+              if (snapshot.hasData)
+                SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
+                      value: false,
+                      icon: const Icon(Icons.article_outlined),
+                      label: Text(strings.text('letter')),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: const Icon(Icons.email_outlined),
+                      label: Text('E-mail'),
+                    ),
+                  ],
+                  selected: {_emailVersion},
+                  onSelectionChanged: (selected) =>
+                      setState(() => _emailVersion = selected.first),
                 ),
-                child: snapshot.hasError
-                    ? Text('Odgovor nije dostupan: ${snapshot.error}')
-                    : snapshot.hasData
-                    ? SelectableText(
-                        _emailVersion
-                            ? snapshot.data!.email
-                            : snapshot.data!.letter,
-                      )
-                    : const Center(child: CircularProgressIndicator()),
+              if (snapshot.hasData) const SizedBox(height: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: snapshot.hasError
+                      ? Text(
+                          '${strings.text('responseUnavailable')}: ${snapshot.error}',
+                        )
+                      : snapshot.hasData
+                      ? SelectableText(
+                          _emailVersion
+                              ? snapshot.data!.email
+                              : snapshot.data!.letter,
+                        )
+                      : const Center(child: CircularProgressIndicator()),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            if (snapshot.hasData) ...[
-              FilledButton.icon(
-                onPressed: () async {
-                  await widget.services.exports.copy(
-                    _emailVersion
+              const SizedBox(height: 16),
+              if (snapshot.hasData) ...[
+                FilledButton.icon(
+                  onPressed: () async {
+                    await widget.services.exports.copy(
+                      _emailVersion
+                          ? snapshot.data!.email
+                          : snapshot.data!.letter,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(strings.text('replyCopied'))),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: Text(strings.text('copyReply')),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => widget.services.exports.composeEmail(
+                    subject: 'Odgovor na: ${widget.letter.title}',
+                    body: snapshot.data!.email,
+                  ),
+                  icon: const Icon(Icons.email_outlined),
+                  label: Text(strings.text('sendEmail')),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => widget.services.exports.savePdf(
+                    title: 'BriefAI Germany — ${widget.letter.title}',
+                    body: _emailVersion
                         ? snapshot.data!.email
                         : snapshot.data!.letter,
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Odgovor je kopiran.')),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('Kopiraj odgovor'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => widget.services.exports.composeEmail(
-                  subject: 'Odgovor na: ${widget.letter.title}',
-                  body: snapshot.data!.email,
+                  ),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: Text(strings.text('savePdf')),
                 ),
-                icon: const Icon(Icons.email_outlined),
-                label: const Text('Pošalji e-mail'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => widget.services.exports.savePdf(
-                  title: 'BriefAI Germany — ${widget.letter.title}',
-                  body: _emailVersion
-                      ? snapshot.data!.email
-                      : snapshot.data!.letter,
-                ),
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                label: const Text('Sačuvaj PDF'),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class ArchiveScreen extends StatelessWidget {
@@ -1126,76 +1140,77 @@ class ArchiveScreen extends StatelessWidget {
   final AppState state;
   final AppServices services;
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Text(
-        'Arhiva',
-        style: Theme.of(
-          context,
-        ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 8),
-      const Text('Vaša pisma su organizovana po statusu i kategoriji.'),
-      const SizedBox(height: 20),
-      if (state.letters.isEmpty)
-        const _EmptyState(
-          icon: Icons.folder_off_outlined,
-          text: 'Arhiva je prazna.',
-        )
-      else
-        ...state.letters.map(
-          (letter) => LetterCard(
-            letter: letter,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ResultScreen(
-                  state: state,
-                  letter: letter,
-                  services: services,
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(
+          strings.text('archive'),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(strings.text('archiveSubtitle')),
+        const SizedBox(height: 20),
+        if (state.letters.isEmpty)
+          _EmptyState(
+            icon: Icons.folder_off_outlined,
+            text: strings.text('emptyLetters'),
+          )
+        else
+          ...state.letters.map(
+            (letter) => LetterCard(
+              letter: letter,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ResultScreen(
+                    state: state,
+                    letter: letter,
+                    services: services,
+                  ),
                 ),
               ),
-            ),
-            onStatus: (status) async {
-              state.updateStatus(letter.id, status);
-              await services.letters.updateStatus(
-                services.auth.localVaultKey,
-                letter.id,
-                status,
-              );
-            },
-            onDelete: () => showDialog<void>(
-              context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('Obrisati dokument?'),
-                content: const Text(
-                  'Original, OCR tekst i analiza biće trajno obrisani samo sa ovog uređaja.',
+              onStatus: (status) async {
+                state.updateStatus(letter.id, status);
+                await services.letters.updateStatus(
+                  services.auth.localVaultKey,
+                  letter.id,
+                  status,
+                );
+              },
+              onDelete: () => showDialog<void>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text('${strings.text('deleteDocument')}?'),
+                  content: Text(strings.text('deleteDocumentBody')),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(strings.text('cancel')),
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        await services.letters.delete(
+                          services.auth.localVaultKey,
+                          letter.id,
+                        );
+                        await services.reminders.cancel(letter.id);
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                      child: Text(strings.text('delete')),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Odustani'),
-                  ),
-                  FilledButton(
-                    onPressed: () async {
-                      await services.letters.delete(
-                        services.auth.localVaultKey,
-                        letter.id,
-                      );
-                      await services.reminders.cancel(letter.id);
-                      if (dialogContext.mounted) {
-                        Navigator.of(dialogContext).pop();
-                      }
-                    },
-                    child: const Text('Obriši'),
-                  ),
-                ],
               ),
             ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class AssistantScreen extends StatefulWidget {
@@ -1313,7 +1328,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
       if (!mounted) return;
       setState(() {
         _messages.add(
-          _ChatMessage(text: 'Odgovor nije dostupan: $error', fromUser: false),
+          _ChatMessage(
+            text: '${context.strings.text('responseUnavailable')}: $error',
+            fromUser: false,
+          ),
         );
       });
     } finally {
@@ -1365,12 +1383,14 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.badge_outlined),
-                    title: const Text('Ime'),
-                    subtitle: Text(name.isEmpty ? 'Dodajte ime' : name),
+                    title: Text(strings.text('name')),
+                    subtitle: Text(
+                      name.isEmpty ? strings.text('addName') : name,
+                    ),
                     onTap: () => _editTextProfile(
                       context,
                       services,
-                      'Ime',
+                      strings.text('name'),
                       name,
                       (value) =>
                           services.auth.updateProfile(displayName: value),
@@ -1404,7 +1424,7 @@ class ProfileScreen extends StatelessWidget {
                     onTap: () => _editTextProfile(
                       context,
                       services,
-                      'Zemlja porekla',
+                      strings.text('country'),
                       country,
                       (value) =>
                           services.auth.updateProfile(countryOfOrigin: value),
@@ -1433,9 +1453,11 @@ class ProfileScreen extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.workspace_premium),
           title: Text(
-            state.isPremium ? 'Premium je aktivan' : 'BriefAI Premium',
+            state.isPremium
+                ? strings.text('premiumActive')
+                : strings.text('premiumName'),
           ),
-          subtitle: const Text('Neograničene analize, odgovori i podsetnici'),
+          subtitle: Text(strings.text('premiumSubtitle')),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -1462,14 +1484,14 @@ class ProfileScreen extends StatelessWidget {
           ),
         ListTile(
           leading: const Icon(Icons.privacy_tip_outlined),
-          title: const Text('Privacy Policy'),
+          title: Text(strings.text('privacyPolicy')),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const LegalScreen(privacy: true)),
           ),
         ),
         ListTile(
           leading: const Icon(Icons.gavel_outlined),
-          title: const Text('Terms & Conditions'),
+          title: Text(strings.text('terms')),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const LegalScreen(privacy: false),
@@ -1478,28 +1500,24 @@ class ProfileScreen extends StatelessWidget {
         ),
         ListTile(
           leading: const Icon(Icons.download_outlined),
-          title: const Text('Preuzmi moje podatke'),
-          subtitle: const Text(
-            'Lokalni JSON izvoz profila, analiza i originalnih dokumenata',
-          ),
+          title: Text(strings.text('exportData')),
+          subtitle: Text(strings.text('exportSubtitle')),
           onTap: () => _exportAccountData(context, state, services),
         ),
         if (!services.auth.isSignedIn)
           ListTile(
             leading: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
-            title: const Text('Obriši lokalnu arhivu'),
-            subtitle: const Text('Briše dokumente samo iz anonimnog vault-a'),
+            title: Text(strings.text('deleteLocal')),
+            subtitle: Text(strings.text('deleteLocalSubtitle')),
             onTap: () => showDialog<void>(
               context: context,
               builder: (dialogContext) => AlertDialog(
-                title: const Text('Obrisati lokalnu arhivu?'),
-                content: const Text(
-                  'Originalni dokumenti, OCR tekst, analize i podsetnici biće trajno obrisani sa ovog uređaja.',
-                ),
+                title: Text('${strings.text('deleteLocal')}?'),
+                content: Text(strings.text('deleteLocalBody')),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Odustani'),
+                    child: Text(strings.text('cancel')),
                   ),
                   FilledButton(
                     onPressed: () async {
@@ -1512,7 +1530,7 @@ class ProfileScreen extends StatelessWidget {
                         Navigator.of(dialogContext).pop();
                       }
                     },
-                    child: const Text('Obriši'),
+                    child: Text(strings.text('delete')),
                   ),
                 ],
               ),
@@ -1524,18 +1542,16 @@ class ProfileScreen extends StatelessWidget {
               Icons.delete_forever_outlined,
               color: Colors.red,
             ),
-            title: const Text('Trajno obriši nalog'),
+            title: Text(strings.text('deleteAccount')),
             onTap: () => showDialog<void>(
               context: context,
               builder: (dialogContext) => AlertDialog(
-                title: const Text('Obrisati nalog?'),
-                content: const Text(
-                  'Ova radnja trajno briše lokalne dokumente, OCR tekst, analize, podsetnike i korisnički nalog. Aktivnu Store pretplatu morate posebno otkazati u prodavnici.',
-                ),
+                title: Text(strings.text('deleteAccountQuestion')),
+                content: Text(strings.text('deleteAccountBody')),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Odustani'),
+                    child: Text(strings.text('cancel')),
                   ),
                   FilledButton(
                     onPressed: () async {
@@ -1562,7 +1578,7 @@ class ProfileScreen extends StatelessWidget {
                         }
                       }
                     },
-                    child: const Text('Obriši'),
+                    child: Text(strings.text('delete')),
                   ),
                 ],
               ),
@@ -1590,7 +1606,7 @@ Future<void> _exportAccountData(
 ) async {
   try {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pripremam privatni izvoz podataka…')),
+      SnackBar(content: Text(context.strings.text('prepareExport'))),
     );
     final payload = <String, dynamic>{
       'schemaVersion': 2,
@@ -1607,7 +1623,7 @@ Future<void> _exportAccountData(
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Izvoz podataka trenutno nije dostupan.')),
+        SnackBar(content: Text(context.strings.text('exportUnavailable'))),
       );
     }
   }
@@ -1619,22 +1635,25 @@ class LegalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
     final sections = privacy ? _privacySections : _termsSections;
     return Scaffold(
       appBar: AppBar(
-        title: Text(privacy ? 'Privacy Policy' : 'Terms & Conditions'),
+        title: Text(
+          privacy ? strings.text('privacyPolicy') : strings.text('terms'),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           Text(
-            privacy ? 'Politika privatnosti' : 'Uslovi korišćenja',
+            privacy ? strings.text('privacyPolicy') : strings.text('terms'),
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          Text('Poslednja izmena: 26. jul 2026.'),
+          Text(strings.text('lastUpdated')),
           const SizedBox(height: 20),
           if (!LegalConfig.isComplete) const _LegalWarning(),
           ...sections.map(
@@ -1656,9 +1675,11 @@ class LegalScreen extends StatelessWidget {
             ),
           ),
           const Divider(),
-          Text('Vlasnik podataka: ${LegalConfig.displayedEntity}'),
-          Text('Kontakt: ${LegalConfig.displayedContact}'),
-          Text('Adresa: ${LegalConfig.displayedAddress}'),
+          Text(
+            '${strings.text('dataController')}: ${LegalConfig.displayedEntity}',
+          ),
+          Text('${strings.text('contact')}: ${LegalConfig.displayedContact}'),
+          Text('${strings.text('address')}: ${LegalConfig.displayedAddress}'),
         ],
       ),
     );
@@ -1748,14 +1769,14 @@ Future<void> _editTextProfile(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(),
-          child: const Text('Odustani'),
+          child: Text(context.strings.text('cancel')),
         ),
         FilledButton(
           onPressed: () async {
             await save(controller.text.trim());
             if (dialogContext.mounted) Navigator.of(dialogContext).pop();
           },
-          child: const Text('Sačuvaj'),
+          child: Text(context.strings.text('save')),
         ),
       ],
     ),
@@ -1811,101 +1832,104 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Izaberite plan')),
-    body:
-        FutureBuilder<
-          ({
-            ProductDetailsResponse products,
-            Map<String, String> wrapperPrices,
-            bool nativeWrapper,
-          })
-        >(
-          future: _offers,
-          builder: (context, snapshot) {
-            final productById = {
-              for (final product
-                  in snapshot.data?.products.productDetails ??
-                      <ProductDetails>[])
-                product.id: product,
-            };
-            final wrapperPrices =
-                snapshot.data?.wrapperPrices ?? const <String, String>{};
-            return ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                Text(
-                  'Više sigurnosti, manje stresa.',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('choosePlan'))),
+      body:
+          FutureBuilder<
+            ({
+              ProductDetailsResponse products,
+              Map<String, String> wrapperPrices,
+              bool nativeWrapper,
+            })
+          >(
+            future: _offers,
+            builder: (context, snapshot) {
+              final productById = {
+                for (final product
+                    in snapshot.data?.products.productDetails ??
+                        <ProductDetails>[])
+                  product.id: product,
+              };
+              final wrapperPrices =
+                  snapshot.data?.wrapperPrices ?? const <String, String>{};
+              return ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Text(
+                    strings.text('planTagline'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                _PlanCard(
-                  title: 'FREE',
-                  price: '0 €',
-                  features: const ['2 analize mesečno'],
-                  selected: !widget.state.isPremium,
-                ),
-                _PlanCard(
-                  title: 'PREMIUM',
-                  price:
-                      productById[PurchaseService.premiumId]?.price ??
-                      wrapperPrices[PurchaseService.premiumId] ??
-                      '4,99 € / mesečno',
-                  features: const [
-                    'Neograničene analize',
-                    'AI odgovori i prevodi',
-                    'Arhiva i podsetnici',
-                  ],
-                  action: kIsWeb
-                      ? () => _webCheckout('premium')
-                      : () => _buy(productById[PurchaseService.premiumId]),
-                ),
-                _PlanCard(
-                  title: 'PRO',
-                  price:
-                      productById[PurchaseService.proId]?.price ??
-                      wrapperPrices[PurchaseService.proId] ??
-                      '9,99 € / mesečno',
-                  features: const [
-                    'Za porodice i male firme',
-                    'Sve iz Premium paketa',
-                  ],
-                  action: kIsWeb
-                      ? () => _webCheckout('pro')
-                      : () => _buy(productById[PurchaseService.proId]),
-                ),
-                const SizedBox(height: 12),
-                if (!kIsWeb || snapshot.data?.nativeWrapper == true)
-                  OutlinedButton.icon(
-                    onPressed: _restorePurchases,
-                    icon: const Icon(Icons.restore),
-                    label: const Text('Vrati kupovine'),
+                  const SizedBox(height: 20),
+                  _PlanCard(
+                    title: 'FREE',
+                    price: '0 €',
+                    features: [strings.text('freeFeature')],
+                    selected: !widget.state.isPremium,
                   ),
-                if (widget.state.isPremium) ...[
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _manageSubscription,
-                    icon: const Icon(Icons.manage_accounts_outlined),
-                    label: const Text('Upravljaj ili otkaži pretplatu'),
+                  _PlanCard(
+                    title: 'PREMIUM',
+                    price:
+                        productById[PurchaseService.premiumId]?.price ??
+                        wrapperPrices[PurchaseService.premiumId] ??
+                        '4,99 € / mesečno',
+                    features: [
+                      strings.text('premiumFeature1'),
+                      strings.text('premiumFeature2'),
+                      strings.text('premiumFeature3'),
+                    ],
+                    action: kIsWeb
+                        ? () => _webCheckout('premium')
+                        : () => _buy(productById[PurchaseService.premiumId]),
+                  ),
+                  _PlanCard(
+                    title: 'PRO',
+                    price:
+                        productById[PurchaseService.proId]?.price ??
+                        wrapperPrices[PurchaseService.proId] ??
+                        '9,99 € / mesečno',
+                    features: [
+                      strings.text('proFeature1'),
+                      strings.text('proFeature2'),
+                    ],
+                    action: kIsWeb
+                        ? () => _webCheckout('pro')
+                        : () => _buy(productById[PurchaseService.proId]),
+                  ),
+                  const SizedBox(height: 12),
+                  if (!kIsWeb || snapshot.data?.nativeWrapper == true)
+                    OutlinedButton.icon(
+                      onPressed: _restorePurchases,
+                      icon: const Icon(Icons.restore),
+                      label: Text(strings.text('restorePurchases')),
+                    ),
+                  if (widget.state.isPremium) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _manageSubscription,
+                      icon: const Icon(Icons.manage_accounts_outlined),
+                      label: Text(strings.text('manageSubscription')),
+                    ),
+                  ],
+                  if (!kIsWeb || snapshot.data?.nativeWrapper == true)
+                    const SizedBox(height: 12),
+                  Text(
+                    snapshot.hasError
+                        ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
+                        : kIsWeb && snapshot.data?.nativeWrapper != true
+                        ? 'Web pretplata se obrađuje preko Stripe Checkout-a. Entitlement aktivira potpisani webhook.'
+                        : 'Plaćanje se obrađuje preko Google Play Billing / Apple In-App Purchase. Entitlement se aktivira tek nakon serverske verifikacije.',
+                    textAlign: TextAlign.center,
                   ),
                 ],
-                if (!kIsWeb || snapshot.data?.nativeWrapper == true)
-                  const SizedBox(height: 12),
-                Text(
-                  snapshot.hasError
-                      ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
-                      : kIsWeb && snapshot.data?.nativeWrapper != true
-                      ? 'Web pretplata se obrađuje preko Stripe Checkout-a. Entitlement aktivira potpisani webhook.'
-                      : 'Plaćanje se obrađuje preko Google Play Billing / Apple In-App Purchase. Entitlement se aktivira tek nakon serverske verifikacije.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            );
-          },
-        ),
-  );
+              );
+            },
+          ),
+    );
+  }
 
   Future<void> _buy(ProductDetails? product) async {
     if (product == null) {
@@ -2005,7 +2029,8 @@ class LetterCard extends StatelessWidget {
       ),
       title: Text(letter.title),
       subtitle: Text(
-        '${letter.category.label}${letter.deadline == null ? '' : ' • Rok ${letter.deadline!.day}.${letter.deadline!.month}.'}',
+        '${context.strings.category(letter.category.name)}'
+        '${letter.deadline == null ? '' : ' • ${context.strings.text('deadline')} ${letter.deadline!.day}.${letter.deadline!.month}.'}',
       ),
       trailing: onStatus == null && onDelete == null
           ? null
@@ -2014,26 +2039,26 @@ class LetterCard extends StatelessWidget {
               children: [
                 if (onDelete != null)
                   IconButton(
-                    tooltip: 'Obriši dokument',
+                    tooltip: context.strings.text('deleteDocument'),
                     onPressed: onDelete,
                     icon: const Icon(Icons.delete_outline_rounded),
                   ),
                 if (onStatus != null)
                   PopupMenuButton<LetterStatus>(
-                    tooltip: 'Promeni status',
+                    tooltip: context.strings.text('progressStatus'),
                     onSelected: onStatus,
-                    itemBuilder: (_) => const [
+                    itemBuilder: (_) => [
                       PopupMenuItem(
                         value: LetterStatus.newLetter,
-                        child: Text('Novo'),
+                        child: Text(context.strings.text('newStatus')),
                       ),
                       PopupMenuItem(
                         value: LetterStatus.inProgress,
-                        child: Text('Rešavam'),
+                        child: Text(context.strings.text('progressStatus')),
                       ),
                       PopupMenuItem(
                         value: LetterStatus.done,
-                        child: Text('Završeno'),
+                        child: Text(context.strings.text('doneStatus')),
                       ),
                     ],
                   ),
@@ -2140,7 +2165,7 @@ class _PlanCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 12),
               child: FilledButton(
                 onPressed: action,
-                child: const Text('Izaberi plan'),
+                child: Text(context.strings.text('choosePlanButton')),
               ),
             ),
         ],

@@ -17,6 +17,14 @@ void main() {
         'uploadDocument',
         'analyzeLetter',
         'assistantTitle',
+        'resultTitle',
+        'simpleExplanation',
+        'generateReply',
+        'replyTitle',
+        'archiveSubtitle',
+        'privacyPolicy',
+        'choosePlan',
+        'deleteAccount',
       ];
 
       for (final locale in AppStrings.supportedLocales) {
@@ -28,6 +36,7 @@ void main() {
             reason: '${locale.languageCode} is missing $key',
           );
         }
+        expect(strings.category('insurance'), isNot('insurance'));
       }
     },
   );
