@@ -161,6 +161,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFreeAnalysesUsed(int value) {
+    freeAnalysesUsed = value.clamp(0, 2).toInt();
+    notifyListeners();
+  }
+
   void updateStatus(String id, LetterStatus status) {
     final index = letters.indexWhere((letter) => letter.id == id);
     if (index == -1) return;

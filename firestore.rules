@@ -15,6 +15,10 @@ service cloud.firestore {
           allow read, create, update, delete: if own(uid);
         }
       }
+      match /usage/{usageId} {
+        allow read: if own(uid);
+        allow write: if false; // Only the analysis Cloud Function updates quota.
+      }
     }
     match /subscriptions/{uid} {
       allow read: if own(uid);

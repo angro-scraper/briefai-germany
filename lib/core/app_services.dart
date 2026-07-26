@@ -563,6 +563,28 @@ class EntitlementService {
               ['active', 'trialing'].contains(document.data()?['status']),
         );
   }
+
+  Stream<int> watchFreeUsage(String uid) {
+    if (!cloudEnabled) return Stream<int>.value(0);
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('usage')
+        .doc('current')
+        .snapshots()
+        .map((document) {
+          final data = document.data();
+          if (data?['monthKey'] != _berlinMonthKey()) return 0;
+          final usage = data?['analysesThisMonth'];
+          return usage is int ? usage.clamp(0, 2).toInt() : 0;
+        });
+  }
+
+  String _berlinMonthKey() {
+    final now = tz.TZDateTime.now(tz.getLocation('Europe/Berlin'));
+    final month = now.month.toString().padLeft(2, '0');
+    return '${now.year}-$month';
+  }
 }
 
 class ReminderService {

@@ -61,6 +61,26 @@ void main() {
     expect(state.onboardingComplete, isTrue);
   });
 
+  test('server quota replaces local free analysis counter', () {
+    final state = AppState();
+    state.addAnalysis(
+      LetterAnalysis(
+        id: 'local',
+        title: 'Local',
+        plainExplanation: '',
+        category: LetterCategory.other,
+        urgency: Urgency.low,
+        suggestedAction: '',
+        createdAt: DateTime(2026),
+      ),
+    );
+
+    state.setFreeAnalysesUsed(2);
+
+    expect(state.freeAnalysesUsed, 2);
+    expect(state.canAnalyse, isFalse);
+  });
+
   test('generated reply retains separate letter and email variants', () {
     const reply = GeneratedReply(
       letter: 'Sehr geehrte Damen und Herren,',

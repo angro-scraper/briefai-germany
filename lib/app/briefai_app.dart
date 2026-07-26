@@ -302,6 +302,7 @@ class _AppShellState extends State<AppShell> {
   StreamSubscription<dynamic>? _lettersSubscription;
   StreamSubscription<dynamic>? _authSubscription;
   StreamSubscription<dynamic>? _entitlementSubscription;
+  StreamSubscription<dynamic>? _usageSubscription;
 
   @override
   void initState() {
@@ -310,6 +311,7 @@ class _AppShellState extends State<AppShell> {
       _authSubscription = widget.services.auth.authChanges.listen((user) {
         _lettersSubscription?.cancel();
         _entitlementSubscription?.cancel();
+        _usageSubscription?.cancel();
         if (user != null) {
           unawaited(widget.services.auth.touchActivity());
           unawaited(widget.services.reminders.syncToken());
@@ -319,8 +321,12 @@ class _AppShellState extends State<AppShell> {
           _entitlementSubscription = widget.services.entitlements
               .watch(user.uid)
               .listen(widget.state.setPremium);
+          _usageSubscription = widget.services.entitlements
+              .watchFreeUsage(user.uid)
+              .listen(widget.state.setFreeAnalysesUsed);
         } else {
           widget.state.setPremium(false);
+          widget.state.setFreeAnalysesUsed(0);
         }
       });
     }
@@ -330,6 +336,7 @@ class _AppShellState extends State<AppShell> {
   void dispose() {
     _lettersSubscription?.cancel();
     _entitlementSubscription?.cancel();
+    _usageSubscription?.cancel();
     _authSubscription?.cancel();
     super.dispose();
   }

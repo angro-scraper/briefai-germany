@@ -53,6 +53,8 @@ U `admin-panel/app.js` popuniti svih šest Firebase web vrednosti i reCAPTCHA v3
 
 `analyzeLetter` transakcijski rezerviše besplatnu analizu pre OpenAI poziva; tako paralelni zahtevi ne mogu preći limit od dve analize mesečno. Ako AI poziv ne uspe, rezervacija se vraća. `generateReply` vraća strogo strukturisane `letter` i `email` varijante, koje klijent prikazuje odvojeno i koristi za PDF odnosno e-mail izvoz.
 
+Klijent prikazuje kvotu čitajući samo svoj `users/{uid}/usage/current` dokument. Taj dokument je read-only za klijent, upisuje ga samo Cloud Function i resetuje se po `Europe/Berlin` mesecu, pa lokalno stanje ne može otključati dodatne analize.
+
 ### GDPR izvoz podataka
 
 `exportAccountData` sastavlja JSON profila, arhive analiza/OCR teksta i statusa pretplate na serveru, pa ga upisuje samo u privatni Storage prefix pozivaoca (`users/{uid}/exports`). Klijent preuzima taj fajl, otvara sistemski share sheet za JSON i uvek briše privremeni Storage objekat. Izvorni PDF-ovi i slike ostaju privatni u postojećem `letters` prefixu; za vrlo velike arhive funkcija bezbedno odbija nepotpun direktni izvoz umesto da truncira podatke.
