@@ -467,20 +467,22 @@ class AiService {
     required String language,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
-      if (kDebugMode) return _local.analyse(text);
-      throw StateError(
-        'Za analizu pisma potrebna je prijava i povezana usluga.',
-      );
+      return _local.analyse(text, language: language, id: letterId);
     }
-    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
-        .httpsCallable('analyzeLetter')
-        .call<Map<Object?, Object?>>({
-          'letterId': letterId,
-          'ocrText': text,
-          'preferredLanguage': language,
-        });
-    final data = Map<String, dynamic>.from(result.data['analysis'] as Map);
-    return LetterAnalysis.fromMap(id: letterId, map: data, sourceText: text);
+    try {
+      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('analyzeLetter')
+          .call<Map<Object?, Object?>>({
+            'letterId': letterId,
+            'ocrText': text,
+            'preferredLanguage': language,
+          });
+      final data = Map<String, dynamic>.from(result.data['analysis'] as Map);
+      return LetterAnalysis.fromMap(id: letterId, map: data, sourceText: text);
+    } on FirebaseFunctionsException catch (error) {
+      if (!_backendUnavailable(error)) rethrow;
+      return _local.analyse(text, language: language, id: letterId);
+    }
   }
 
   Future<GeneratedReply> generateReply({
@@ -490,40 +492,34 @@ class AiService {
     required String language,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
-      if (kDebugMode) {
-        const letter =
-            'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
-        return const GeneratedReply(
-          letter: letter,
-          email:
-              'Betreff: Antwort auf Ihr Schreiben\n\nSehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Ich bestätige den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen',
-        );
+      return _localReply(facts);
+    }
+    try {
+      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('generateReply')
+          .call<Map<Object?, Object?>>({
+            'letterId': letterId,
+            'sourceText': sourceText,
+            'facts': facts,
+            'preferredLanguage': language,
+          });
+      final reply = result.data['reply'];
+      if (reply is! Map) {
+        throw StateError('AI odgovor nema očekivani format.');
       }
-      throw StateError(
-        'Za generisanje odgovora potrebna je prijava i povezana usluga.',
-      );
+      final letter = reply['letter'];
+      final email = reply['email'];
+      if (letter is! String ||
+          letter.trim().isEmpty ||
+          email is! String ||
+          email.trim().isEmpty) {
+        throw StateError('AI odgovor nema obe verzije.');
+      }
+      return GeneratedReply(letter: letter, email: email);
+    } on FirebaseFunctionsException catch (error) {
+      if (!_backendUnavailable(error)) rethrow;
+      return _localReply(facts);
     }
-    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
-        .httpsCallable('generateReply')
-        .call<Map<Object?, Object?>>({
-          'letterId': letterId,
-          'sourceText': sourceText,
-          'facts': facts,
-          'preferredLanguage': language,
-        });
-    final reply = result.data['reply'];
-    if (reply is! Map) {
-      throw StateError('AI odgovor nema očekivani format.');
-    }
-    final letter = reply['letter'];
-    final email = reply['email'];
-    if (letter is! String ||
-        letter.trim().isEmpty ||
-        email is! String ||
-        email.trim().isEmpty) {
-      throw StateError('AI odgovor nema obe verzije.');
-    }
-    return GeneratedReply(letter: letter, email: email);
   }
 
   Future<String> askLetterAssistant({
@@ -532,12 +528,7 @@ class AiService {
     LetterAnalysis? letter,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
-      if (kDebugMode) {
-        return 'Za odgovor vezan za konkretno pismo prijavite se i povežite Firebase projekat. U lokalnom režimu mogu da prikažem samo osnovne rokove iz analize.';
-      }
-      throw StateError(
-        'Za AI asistenta potrebna je prijava i povezana usluga.',
-      );
+      return _localAssistant(language, letter);
     }
     final request = <String, String>{
       'question': question,
@@ -549,14 +540,71 @@ class AiService {
         'sourceText': letter.sourceText,
       });
     }
-    final result = await FirebaseFunctions.instanceFor(
-      region: 'europe-west3',
-    ).httpsCallable('askLetterAssistant').call<Map<Object?, Object?>>(request);
-    final answer = result.data['answer'];
-    if (answer is! String || answer.trim().isEmpty) {
-      throw StateError('AI asistent nije vratio odgovor.');
+    try {
+      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('askLetterAssistant')
+          .call<Map<Object?, Object?>>(request);
+      final answer = result.data['answer'];
+      if (answer is! String || answer.trim().isEmpty) {
+        throw StateError('AI asistent nije vratio odgovor.');
+      }
+      return answer;
+    } on FirebaseFunctionsException catch (error) {
+      if (!_backendUnavailable(error)) rethrow;
+      return _localAssistant(language, letter);
     }
-    return answer;
+  }
+
+  bool _backendUnavailable(FirebaseFunctionsException error) => const {
+    'not-found',
+    'unavailable',
+    'internal',
+    'deadline-exceeded',
+  }.contains(error.code);
+
+  GeneratedReply _localReply(String facts) {
+    final detail = facts.trim().isEmpty
+        ? ''
+        : '\n\nZusätzliche Angaben:\n${facts.trim()}';
+    return GeneratedReply(
+      letter:
+          'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. '
+          'Hiermit bestätige ich den Erhalt. Ich werde Ihr Anliegen prüfen und '
+          'die angeforderten Unterlagen fristgerecht einreichen.$detail'
+          '\n\nMit freundlichen Grüßen',
+      email:
+          'Betreff: Antwort auf Ihr Schreiben\n\nSehr geehrte Damen und Herren,'
+          '\n\nvielen Dank für Ihre Nachricht. Ich bestätige den Erhalt und '
+          'werde Ihr Anliegen sowie die angeforderten Unterlagen fristgerecht '
+          'bearbeiten.$detail\n\nMit freundlichen Grüßen',
+    );
+  }
+
+  String _localAssistant(String language, LetterAnalysis? letter) {
+    final deadline = letter?.deadline?.toIso8601String().split('T').first;
+    final amount = letter?.amount;
+    final locale = language.toLowerCase().split(RegExp('[-_]')).first;
+    final details = <String>[
+      if (deadline != null) '📅 $deadline',
+      if (amount != null) '💶 $amount',
+    ].join(' · ');
+    final suffix = details.isEmpty ? '' : '\n\n$details';
+    return switch (locale) {
+      'hr' =>
+        'Prema lokalnoj analizi: ${letter?.plainExplanation ?? 'najprije analizirajte pismo.'} ${letter?.suggestedAction ?? ''}$suffix',
+      'bs' =>
+        'Prema lokalnoj analizi: ${letter?.plainExplanation ?? 'prvo analizirajte pismo.'} ${letter?.suggestedAction ?? ''}$suffix',
+      'mk' =>
+        'Според локалната анализа: ${letter?.plainExplanation ?? 'прво анализирајте го писмото.'} ${letter?.suggestedAction ?? ''}$suffix',
+      'bg' =>
+        'Според локалния анализ: ${letter?.plainExplanation ?? 'първо анализирайте писмото.'} ${letter?.suggestedAction ?? ''}$suffix',
+      'de' =>
+        'Lokale Analyse: ${letter?.plainExplanation ?? 'Analysieren Sie zuerst das Schreiben.'} ${letter?.suggestedAction ?? ''}$suffix',
+      'en' =>
+        'Local analysis: ${letter?.plainExplanation ?? 'Analyse the letter first.'} ${letter?.suggestedAction ?? ''}$suffix',
+      _ =>
+        'Prema lokalnoj analizi: ${letter?.plainExplanation ?? 'prvo analizirajte pismo.'} ${letter?.suggestedAction ?? ''}$suffix',
+    };
   }
 }
 
