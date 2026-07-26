@@ -45,6 +45,9 @@ class _BriefAiAppState extends State<BriefAiApp> {
     );
     _state.setLocale(await widget.services.auth.preferredLanguage());
     if (mounted) setState(() => _restored = true);
+    // Warm the self-hosted OCR engine in the background so it is normally
+    // ready before the user has chosen or photographed a document.
+    unawaited(widget.services.documents.prepareOcr().catchError((_) {}));
   }
 
   Future<void> _completeOnboarding() async {
@@ -434,8 +437,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final unavailable =
-        !kFreeBetaMode && !services.cloudEnabled && !kDebugMode;
+    final unavailable = !kFreeBetaMode && !services.cloudEnabled && !kDebugMode;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -744,8 +746,18 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen> {
   final _text = TextEditingController();
   bool _loading = false;
+  bool _recognizing = false;
   bool _ocrComplete = false;
   PickedDocument? _document;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start loading the local OCR engine while the user frames or chooses the
+    // document. Failure is retried and shown when OCR is actually requested.
+    unawaited(widget.services.documents.prepareOcr().catchError((_) {}));
+  }
+
   @override
   void dispose() {
     _text.dispose();
@@ -856,6 +868,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                           ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
+                            if (_recognizing) ...[
+                              const SizedBox(height: 8),
+                              const LinearProgressIndicator(minHeight: 3),
+                            ],
                           ],
                         ),
                       ),
@@ -886,7 +902,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   : const Icon(Icons.auto_awesome),
               label: Text(
                 _loading
-                    ? strings.text('processing')
+                    ? _recognizing
+                          ? strings.text('ocrReading')
+                          : strings.text('processing')
                     : strings.text('analyzeLetter'),
               ),
             ),
@@ -976,6 +994,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         _document = selected;
         _ocrComplete = false;
         _loading = true;
+        _recognizing = true;
         _text.clear();
       });
       final recognized = await widget.services.documents.ocr(selected);
@@ -1000,7 +1019,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _recognizing = false;
+        });
+      }
     }
   }
 

@@ -422,6 +422,8 @@ class DocumentService {
   final bool cloudEnabled;
   final ImagePicker _picker = ImagePicker();
 
+  Future<void> prepareOcr() => prepareLocalOcr();
+
   Future<PickedDocument?> capture() => _fromXFile(
     _picker.pickImage(source: ImageSource.camera, imageQuality: 92),
   );

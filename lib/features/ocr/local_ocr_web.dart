@@ -7,6 +7,13 @@ external JSPromise<JSString> _recognizeDocument(
   JSString mimeType,
 );
 
+@JS('briefAiPrepareOcr')
+external JSPromise<JSAny?> _prepareOcr();
+
+Future<void> prepareLocalOcr() async {
+  await _prepareOcr().toDart;
+}
+
 Future<String> recognizeLocalDocument({
   required Uint8List bytes,
   required String mimeType,

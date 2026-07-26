@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
+Future<void> prepareLocalOcr() async {}
+
 Future<String> recognizeLocalDocument({
   required Uint8List bytes,
   required String mimeType,
