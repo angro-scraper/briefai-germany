@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'domain.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
+import '../features/analysis/image_preprocessor.dart';
 import 'legal.dart';
 
 @pragma('vm:entry-point')
@@ -309,7 +310,7 @@ class DocumentService {
     if (selected == null || selected.bytes == null) return null;
     final lower = selected.name.toLowerCase();
     final isPdf = lower.endsWith('.pdf');
-    return PickedDocument(
+    final document = PickedDocument(
       name: selected.name,
       bytes: selected.bytes!,
       mimeType: isPdf
@@ -319,6 +320,7 @@ class DocumentService {
           : 'image/jpeg',
       ocrPath: isPdf ? null : selected.path,
     );
+    return isPdf ? document : _preprocess(document);
   }
 
   Future<String> ocr(PickedDocument document) async {
@@ -382,13 +384,32 @@ class DocumentService {
   Future<PickedDocument?> _fromXFile(Future<XFile?> future) async {
     final file = await future;
     if (file == null) return null;
+    return _preprocess(
+      PickedDocument(
+        name: file.name,
+        bytes: await file.readAsBytes(),
+        mimeType: file.name.toLowerCase().endsWith('.png')
+            ? 'image/png'
+            : 'image/jpeg',
+        ocrPath: file.path,
+      ),
+    );
+  }
+
+  PickedDocument _preprocess(PickedDocument document) {
+    final processed = preprocessImageForOcr(
+      name: document.name,
+      bytes: document.bytes,
+    );
+    if (processed == null) return document;
     return PickedDocument(
-      name: file.name,
-      bytes: await file.readAsBytes(),
-      mimeType: file.name.toLowerCase().endsWith('.png')
-          ? 'image/png'
-          : 'image/jpeg',
-      ocrPath: file.path,
+      name: processed.name,
+      bytes: processed.bytes,
+      mimeType: processed.mimeType,
+      // Local development OCR may keep using the original XFile path. In a
+      // signed cloud build the enhanced bytes are uploaded and sent to
+      // Document AI instead (see AnalysisScreen).
+      ocrPath: document.ocrPath,
     );
   }
 }

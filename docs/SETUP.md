@@ -40,6 +40,8 @@ U `admin-panel/app.js` popuniti svih šest Firebase web vrednosti i reCAPTCHA v3
 3. Postaviti `DOCUMENT_AI_PROCESSOR=<processor-id>` u `functions/.env`; ovo je deploy parametar, ne API tajna.
 4. PDF se čuva privatno u Storage, a `extractDocumentText` proverava da li putanja pripada prijavljenom korisniku pre slanja sadržaja OCR servisu.
 
+Slike sa kamere, galerije i ručno učitane slike se pre uploada obrađuju lokalno: EXIF orijentacija se ispravlja, širina ograničava na 2400 px, a kontrast blago povećava. Produkcioni OCR zatim čita upravo taj privatni, poboljšani JPEG; originalne fotografije se ne šalju u OCR tok.
+
 ### Stripe za web
 
 1. U Stripe-u napraviti mesečne recurring cene za Premium i Pro i njihove ID-jeve postaviti kao `STRIPE_PREMIUM_PRICE_ID` i `STRIPE_PRO_PRICE_ID` u `functions/.env`. Postaviti i `WEB_APP_ORIGIN` na jedini dozvoljeni HTTPS origin Flutter web aplikacije; Checkout ne prihvata proizvoljne povratne URL-ove.

@@ -637,7 +637,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Kamera, PDF i galerija se u produkciji povezuju kroz ML Kit OCR. Za lokalnu proveru unesite ili nalepite tekst dokumenta.',
+            'Slike se poboljšavaju na uređaju pre privatnog uploada. Produkcija koristi serverski OCR, a lokalni razvoj ML Kit OCR. Za proveru možete uneti ili nalepiti tekst dokumenta.',
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -714,13 +714,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           letterId: id,
           document: _document!,
         );
-        if (!_document!.isPdf && _document!.ocrPath != null) {
-          _text.text = await widget.services.documents.ocr(_document!);
-        } else if (storagePath != null) {
+        if (storagePath != null && widget.services.cloudEnabled) {
           _text.text = await widget.services.documents.extractUploadedText(
             storagePath: storagePath,
             mimeType: _document!.mimeType,
           );
+        } else if (!_document!.isPdf && _document!.ocrPath != null) {
+          _text.text = await widget.services.documents.ocr(_document!);
         } else {
           throw StateError(
             'PDF analiza zahteva prijavljen nalog i Firebase Storage.',
