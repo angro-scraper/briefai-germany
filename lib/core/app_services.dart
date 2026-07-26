@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -60,6 +61,19 @@ class AppServices {
   final PurchaseService purchases;
   final ReplyExportService exports;
 
+  static AppServices unavailable(String configurationError) => AppServices._(
+    cloudEnabled: false,
+    configurationError: configurationError,
+    auth: AuthService(cloudEnabled: false),
+    documents: DocumentService(cloudEnabled: false),
+    ai: AiService(cloudEnabled: false),
+    letters: LetterRepository(cloudEnabled: false),
+    entitlements: EntitlementService(cloudEnabled: false),
+    reminders: ReminderService(cloudEnabled: false),
+    purchases: PurchaseService(cloudEnabled: false),
+    exports: ReplyExportService(),
+  );
+
   static Future<AppServices> bootstrap() async {
     var cloudEnabled = false;
     String? configurationError;
@@ -99,7 +113,10 @@ class AppServices {
       }
     }
     final reminders = ReminderService(cloudEnabled: cloudEnabled);
-    await reminders.initialize();
+    // Notification plugin startup must never delay the first Flutter frame.
+    // It can be slow on a cold Android emulator or while the OS restores a
+    // notification channel; reminders initialize in the background instead.
+    unawaited(reminders.initialize().catchError((_) {}));
     return AppServices._(
       cloudEnabled: cloudEnabled,
       configurationError: configurationError,
