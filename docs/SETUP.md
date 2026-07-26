@@ -15,6 +15,11 @@ OpenAI, Stripe i Store ključevi ne smeju u repozitorijum.
 Cloud Functions zahtevaju Blaze plan. Posle eksplicitnog vlasničkog odobrenja:
 
 ```powershell
+Copy-Item functions/.env.example functions/.env.briefai-germany
+$env:OPENAI_SECRET_CONFIGURED='true'
+$env:APP_CHECK_REGISTERED='true'
+$env:FIREBASE_BLAZE_APPROVED='true'
+node scripts/production-preflight.mjs
 npx firebase-tools login
 npx firebase-tools use briefai-germany
 npx firebase-tools functions:secrets:set OPENAI_API_KEY
@@ -66,6 +71,16 @@ await getAuth().setCustomUserClaims(uid, {admin: true});
 Posle promene claim-a korisnik mora ponovo da se prijavi. `adminOverview` i
 `sendAdminNotification` proveravaju claim i App Check na svakom zahtevu.
 
+Na računaru koji ima Google Application Default Credentials:
+
+```powershell
+Set-Location functions
+npm run admin:claim -- --email=ADMIN_EMAIL --confirm-project=briefai-germany
+```
+
+Alat čuva postojeće custom claim-ove i odbija izvršenje ako cilj nije tačno
+`briefai-germany`. Za uklanjanje privilegije dodati `--revoke`.
+
 ## Stripe i Store
 
 Stripe secrets:
@@ -116,3 +131,5 @@ npm run build
 ```
 
 Za potpisane Store pakete pratiti [STORE_RELEASE.md](STORE_RELEASE.md).
+Pre potpisivanja pokrenuti `node scripts/production-preflight.mjs --store`;
+komanda mora završiti bez ijednog failure zapisa.

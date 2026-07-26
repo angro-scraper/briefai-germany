@@ -49,6 +49,8 @@ app.*.map.json
 # Firebase Functions
 /functions/node_modules/
 /functions/lib/
+/functions/.env*
+!/functions/.env.example
 
 # Distributable binaries are published as GitHub Release assets, never committed.
 /outputs/*.apk

@@ -6,7 +6,8 @@
     "build": "tsc",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "admin:claim": "node scripts/set-admin-claim.mjs"
   },
   "dependencies": {
     "google-auth-library": "^9.15.1",
