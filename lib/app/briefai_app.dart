@@ -97,6 +97,8 @@ class _BriefAiAppState extends State<BriefAiApp> {
           : _state.onboardingComplete
           ? AppShell(state: _state, services: widget.services)
           : OnboardingScreen(
+              state: _state,
+              services: widget.services,
               onComplete: () => unawaited(_completeOnboarding()),
             ),
     ),
@@ -186,7 +188,14 @@ class SplashScreen extends StatelessWidget {
 }
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, required this.onComplete});
+  const OnboardingScreen({
+    super.key,
+    required this.state,
+    required this.services,
+    required this.onComplete,
+  });
+  final AppState state;
+  final AppServices services;
   final VoidCallback onComplete;
 
   @override
@@ -223,14 +232,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: const EdgeInsets.all(28),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'BriefAI',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'BriefAI',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
+                  _LanguageMenu(state: widget.state, services: widget.services),
+                ],
               ),
               const Spacer(),
               Container(
