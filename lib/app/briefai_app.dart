@@ -6,6 +6,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../core/domain.dart';
 import '../core/app_services.dart';
+import '../core/legal.dart';
 
 class BriefAiApp extends StatefulWidget {
   const BriefAiApp({super.key, required this.services});
@@ -1168,15 +1169,16 @@ class ProfileScreen extends StatelessWidget {
         ),
       ListTile(
         leading: const Icon(Icons.privacy_tip_outlined),
-        title: const Text('Privatnost i brisanje naloga'),
-        onTap: () => showDialog<void>(
-          context: context,
-          builder: (_) => const AlertDialog(
-            title: Text('Vaša privatnost'),
-            content: Text(
-              'U produkciji se podaci čuvaju šifrovano, a nalog i dokumenti mogu se trajno obrisati iz profila.',
-            ),
-          ),
+        title: const Text('Privacy Policy'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const LegalScreen(privacy: true)),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.gavel_outlined),
+        title: const Text('Terms & Conditions'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const LegalScreen(privacy: false)),
         ),
       ),
       if (services.cloudEnabled && services.auth.isSignedIn)
@@ -1247,6 +1249,121 @@ Future<void> _exportAccountData(
     }
   }
 }
+
+class LegalScreen extends StatelessWidget {
+  const LegalScreen({super.key, required this.privacy});
+  final bool privacy;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = privacy ? _privacySections : _termsSections;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(privacy ? 'Privacy Policy' : 'Terms & Conditions'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text(
+            privacy ? 'Politika privatnosti' : 'Uslovi korišćenja',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Text('Poslednja izmena: 26. jul 2026.'),
+          const SizedBox(height: 20),
+          if (!LegalConfig.isComplete) const _LegalWarning(),
+          ...sections.map(
+            (section) => Padding(
+              padding: const EdgeInsets.only(bottom: 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    section.$1,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(section.$2),
+                ],
+              ),
+            ),
+          ),
+          const Divider(),
+          Text('Vlasnik podataka: ${LegalConfig.displayedEntity}'),
+          Text('Kontakt: ${LegalConfig.displayedContact}'),
+          Text('Adresa: ${LegalConfig.displayedAddress}'),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegalWarning extends StatelessWidget {
+  const _LegalWarning();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 22),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: const Text(
+      'Ovo je razvojna verzija. Pre javne objave vlasnik aplikacije mora uneti pravni identitet, kontakt, adresu i potvrditi dokumente sa nemačkim pravnikom.',
+    ),
+  );
+}
+
+const _privacySections = [
+  (
+    '1. Odgovorno lice i obim',
+    'BriefAI Germany obrađuje samo podatke potrebne za rad aplikacije: nalog, izabrani jezik, dokumente koje korisnik sam doda, OCR tekst, AI analize, status pretplate i uređajni token za podsetnike.',
+  ),
+  (
+    '2. Svrha i pravni osnov',
+    'Podaci se koriste radi pružanja analize pisama, generisanja odgovora, čuvanja arhive, slanja podsetnika i upravljanja pretplatom. Obrada se zasniva na izvršenju ugovora, vašem zahtevu i, gde je potrebno, vašoj saglasnosti.',
+  ),
+  (
+    '3. Primaoci podataka',
+    'Za pružanje usluge mogu se koristiti Firebase/Google Cloud za autentifikaciju, bazu, privatno skladište i obaveštenja; Google Document AI za OCR; OpenAI za AI obradu; Stripe samo za web naplatu; i Apple/Google za mobilne pretplate. Dokumenti se ne objavljuju javno.',
+  ),
+  (
+    '4. Rok čuvanja i bezbednost',
+    'Dokumenti i analize čuvaju se do brisanja od strane korisnika ili naloga. Prenos je zaštićen, pristup je ograničen na vlasnika naloga, a push obaveštenja ne sadrže tekst pisma.',
+  ),
+  (
+    '5. Vaša prava',
+    'Možete pristupiti, ispraviti, izvesti ili obrisati svoje podatke u aplikaciji. Za dodatne zahteve, ograničenje obrade ili prigovor koristite kontakt naveden na kraju ovog dokumenta.',
+  ),
+];
+
+const _termsSections = [
+  (
+    '1. Prihvatanje i namena',
+    'Korišćenjem BriefAI Germany prihvatate ove uslove. Aplikacija pomaže da se razumeju nemačka službena pisma na običnom jeziku.',
+  ),
+  (
+    '2. Nije pravni, poreski, medicinski ili finansijski savet',
+    'AI analiza može pogrešiti i ne zamenjuje advokata, poreskog savetnika, lekara, osiguranje ili nadležni organ. Korisnik je odgovoran da proveri rokove, iznose i sadržaj originalnog pisma.',
+  ),
+  (
+    '3. Pretplate i otkazivanje',
+    'Premium i Pro planovi se naplaćuju mesečno preko Google Play-a, App Store-a ili Stripe-a za web. Upravljanje i otkazivanje vrši se kroz kanal preko kog je pretplata kupljena; pristup važi do kraja već plaćenog perioda.',
+  ),
+  (
+    '4. Prihvatljivo korišćenje',
+    'Ne smete koristiti aplikaciju za nezakonite radnje, unos tuđih dokumenata bez ovlašćenja, pokušaj zaobilaženja ograničenja ili napad na uslugu.',
+  ),
+  (
+    '5. Izmene',
+    'Uslovi mogu biti izmenjeni kada je to potrebno zbog zakona, bezbednosti ili funkcionalnosti. Važne izmene biće prikazane u aplikaciji pre nastavka korišćenja kada je to zakonski potrebno.',
+  ),
+];
 
 Future<void> _editTextProfile(
   BuildContext context,

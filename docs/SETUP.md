@@ -74,6 +74,8 @@ flutterfire configure
 C:\flutter\bin\flutter.bat build appbundle --release
 ```
 
+Release build mora sadržati i pravni identitet, koji se prosleđuje kao Dart defines: `LEGAL_ENTITY_NAME`, `LEGAL_CONTACT_EMAIL`, `LEGAL_POSTAL_ADDRESS` i `LEGAL_APPROVED=true`. Aplikacija namerno blokira cloud rad u release režimu ako bilo koja od tih vrednosti nedostaje. Potvrdu `LEGAL_APPROVED=true` postaviti tek nakon pregleda Privacy Policy i Terms & Conditions od nemačkog pravnika.
+
 Nakon `flutterfire configure`, proveriti da je generisani `lib/firebase_options.dart` uključen u `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`. Pre slanja u prodavnice, uneti i verifikovati proizvode `briefai_premium_monthly` i `briefai_pro_monthly`; entitlement se na produkciji ažurira isključivo posle server-side provere store transakcije.
 
 ### Native pretplate: server-side provera

@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'domain.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
+import 'legal.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -61,33 +62,40 @@ class AppServices {
   static Future<AppServices> bootstrap() async {
     var cloudEnabled = false;
     String? configurationError;
-    try {
-      // `flutterfire configure` generates options for every supported
-      // platform.  Supplying them here is important: it prevents a native
-      // release from accidentally attaching to a differently configured
-      // default Firebase app on a build machine.
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      cloudEnabled = true;
-      await FirebaseAppCheck.instance.activate(
-        providerAndroid: kDebugMode
-            ? const AndroidDebugProvider()
-            : const AndroidPlayIntegrityProvider(),
-        providerApple: kDebugMode
-            ? const AppleDebugProvider()
-            : const AppleAppAttestProvider(),
-      );
-      FlutterError.onError =
-          FirebaseCrashlytics.instance.recordFlutterFatalError;
-      await FirebaseAnalytics.instance.logAppOpen();
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    } catch (_) {
-      // Local deterministic analysis is allowed only while developing. A release
-      // build must make a missing Firebase configuration visible to the user.
-      configurationError = kDebugMode
-          ? 'Firebase nije podešen; uključen je lokalni razvojni režim.'
-          : 'Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.';
+    if (kReleaseMode && !LegalConfig.isComplete) {
+      configurationError =
+          'Pravna konfiguracija za produkcionu verziju nije potpuna.';
+    } else {
+      try {
+        // `flutterfire configure` generates options for every supported
+        // platform.  Supplying them here is important: it prevents a native
+        // release from accidentally attaching to a differently configured
+        // default Firebase app on a build machine.
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        cloudEnabled = true;
+        await FirebaseAppCheck.instance.activate(
+          providerAndroid: kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode
+              ? const AppleDebugProvider()
+              : const AppleAppAttestProvider(),
+        );
+        FlutterError.onError =
+            FirebaseCrashlytics.instance.recordFlutterFatalError;
+        await FirebaseAnalytics.instance.logAppOpen();
+        FirebaseMessaging.onBackgroundMessage(
+          firebaseMessagingBackgroundHandler,
+        );
+      } catch (_) {
+        // Local deterministic analysis is allowed only while developing. A release
+        // build must make a missing Firebase configuration visible to the user.
+        configurationError = kDebugMode
+            ? 'Firebase nije podešen; uključen je lokalni razvojni režim.'
+            : 'Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.';
+      }
     }
     final reminders = ReminderService(cloudEnabled: cloudEnabled);
     await reminders.initialize();
