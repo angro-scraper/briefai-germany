@@ -13,7 +13,7 @@ Flutter (Android / iOS / web)
   └─ Callable Functions
         ├─ analyzeDocument → OCR → OpenAI structured output → Firestore
         ├─ generateReply → OpenAI structured output
-        ├─ scheduleDeadlineReminders → Cloud Tasks / FCM
+        ├─ sendDeadlineReminders → daily Cloud Scheduler + idempotent FCM
         ├─ askLetterAssistant → authenticated letter context + OpenAI follow-up chat
         ├─ deleteAccount → Auth + Storage + Firestore cascade
         └─ Stripe webhook → subscription entitlement
@@ -28,6 +28,7 @@ Flutter (Android / iOS / web)
 | `users/{uid}/letters/{letterId}/messages/{messageId}` | kontekst AI razgovora |
 | `subscriptions/{uid}` | server-verifikovan entitlement |
 | `adminMetrics/{period}` | agregati za admin panel |
+| `reminderDeliveries/{deliveryId}` | server-side evidencija već poslatog 7/3/1 podsetnika |
 
 ## Kritične bezbednosne odluke
 

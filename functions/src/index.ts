@@ -8,6 +8,7 @@ import {GoogleAuth} from "google-auth-library";
 import Stripe from "stripe";
 import {defineSecret, defineString} from "firebase-functions/params";
 import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 import OpenAI from "openai";
 import {createHash, createSign} from "node:crypto";
 
@@ -123,6 +124,22 @@ function appleApiToken(): string {
 function storeTransactionRef(provider: string, value: string) {
   const digest = createHash("sha256").update(`${provider}:${value}`).digest("hex");
   return db.collection("storeTransactions").doc(digest);
+}
+
+function berlinDate(value: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function addCalendarDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
 async function verifyGooglePlaySubscription(purchaseToken: string, productId: string) {
@@ -476,3 +493,59 @@ export const sendAdminNotification = onCall({region: "europe-west3", enforceAppC
   await db.collection("adminMetrics").doc("notifications").set({lastSentAt: FieldValue.serverTimestamp(), lastTitle: title, delivered}, {merge: true});
   return {delivered};
 });
+
+// Local notifications cover a device that has opened the app. This scheduled
+// job also sends FCM reminders when the app is closed or a user changed device.
+// A delivery document makes every deadline/offset idempotent across retries.
+export const sendDeadlineReminders = onSchedule(
+  {region: "europe-west3", schedule: "every day 09:00", timeZone: "Europe/Berlin"},
+  async () => {
+    const today = berlinDate(new Date());
+    for (const daysBefore of [7, 3, 1]) {
+      const deadline = addCalendarDays(today, daysBefore);
+      const letters = await db.collectionGroup("letters").where("deadline", "==", deadline).get();
+      for (const letter of letters.docs) {
+        const uid = letter.ref.parent.parent?.id;
+        if (!uid) continue;
+        const deliveryId = createHash("sha256")
+          .update(`${letter.ref.path}:${daysBefore}:${deadline}`)
+          .digest("hex");
+        const deliveryRef = db.collection("reminderDeliveries").doc(deliveryId);
+        const created = await db.runTransaction(async (transaction) => {
+          if ((await transaction.get(deliveryRef)).exists) return false;
+          transaction.create(deliveryRef, {
+            uid,
+            letterPath: letter.ref.path,
+            deadline,
+            daysBefore,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+          return true;
+        });
+        if (!created) continue;
+        try {
+          const tokens = (await db.collection("deviceTokens").where("uid", "==", uid).get())
+            .docs.map((document) => document.get("token"))
+            .filter((token): token is string => typeof token === "string");
+          for (let index = 0; index < tokens.length; index += 500) {
+            await getMessaging().sendEachForMulticast({
+              tokens: tokens.slice(index, index + 500),
+              // Push content deliberately contains no letter title or other
+              // sensitive document data, because it can appear on a lock screen.
+              notification: {
+                title: "BriefAI Germany",
+                body: `Imate rok za ${daysBefore} ${daysBefore === 1 ? "dan" : "dana"}.`,
+              },
+              data: {letterId: letter.id, deadline, daysBefore: String(daysBefore)},
+            });
+          }
+          await deliveryRef.update({sentAt: FieldValue.serverTimestamp()});
+        } catch (error) {
+          // Retrying the scheduled job is safer than permanently losing a reminder.
+          await deliveryRef.delete();
+          throw error;
+        }
+      }
+    }
+  },
+);

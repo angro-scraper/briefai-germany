@@ -1,4 +1,5 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+import {initializeAppCheck, ReCaptchaV3Provider} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js';
 import {getAuth, GoogleAuthProvider, signInWithPopup} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
 import {getFunctions, httpsCallable} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js';
 
@@ -8,12 +9,20 @@ const firebaseConfig = {
   authDomain: 'REPLACE_ME',
   projectId: 'REPLACE_ME',
   appId: 'REPLACE_ME',
+  messagingSenderId: 'REPLACE_ME',
+  // Firebase Console -> App Check -> web app -> reCAPTCHA v3 site key.
+  appCheckSiteKey: 'REPLACE_ME',
 };
 
 const status = document.querySelector('#status');
 let functions;
-if (firebaseConfig.apiKey !== 'REPLACE_ME') {
+const configured = Object.values(firebaseConfig).every((value) => value !== 'REPLACE_ME' && value.length > 0);
+if (configured) {
   const app = initializeApp(firebaseConfig);
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(firebaseConfig.appCheckSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
   const auth = getAuth(app);
   functions = getFunctions(app, 'europe-west3');
   document.querySelector('#sign-in').addEventListener('click', async () => {
@@ -27,6 +36,7 @@ if (firebaseConfig.apiKey !== 'REPLACE_ME') {
   });
 } else {
   document.querySelector('#sign-in').disabled = true;
+  status.textContent = 'Add Firebase web configuration and the App Check reCAPTCHA v3 site key in app.js.';
 }
 
 async function loadMetrics() {

@@ -25,6 +25,14 @@ C:\flutter\bin\cache\dart-sdk\bin\dart.exe C:\flutter\bin\cache\flutter_tools.sn
 
 Release build namerno ne prelazi u lokalni AI/OCR režim ako Firebase inicijalizacija ne uspe: prikazuje nedostupnost usluge i blokira novu analizu. Lokalni deterministički analizator je dostupan samo u debug buildu.
 
+### Rokovi i push podsetnici
+
+`sendDeadlineReminders` je dnevna Cloud Scheduler funkcija u `europe-west3`. Pre objave Functions omogućiti Cloud Scheduler API i proveriti da servisni nalog Functions ima dozvolu za slanje FCM poruka. Funkcija šalje 7, 3 i 1 dan pre ISO roka i upisuje idempotentni zapis u `reminderDeliveries`, pa retry ne šalje isti podsetnik ponovo. Push i lokalna notifikacija namerno ne sadrže naslov ili tekst pisma, jer mogu biti vidljivi na zaključanom ekranu.
+
+### Admin panel i App Check
+
+U `admin-panel/app.js` popuniti svih šest Firebase web vrednosti i reCAPTCHA v3 site key za App Check. Zatim dodati stvarni admin domen u Firebase App Check, omogućiti App Check za Cloud Functions i postaviti custom claim `{admin: true}` samo proveranim administratorima. Bez App Check tokena ili claima, funkcije `adminOverview` i `sendAdminNotification` odbijaju zahtev.
+
 ### Document AI OCR
 
 1. U Google Cloud projektu omogućiti **Document AI API** i napraviti OCR processor u `eu` lokaciji.

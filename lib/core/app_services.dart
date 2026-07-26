@@ -489,6 +489,7 @@ class ReminderService {
   final bool cloudEnabled;
   final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
+  String? _pendingToken;
 
   Future<void> initialize() async {
     tz_data.initializeTimeZones();
@@ -507,10 +508,25 @@ class ReminderService {
     );
     FirebaseMessaging.instance.onTokenRefresh.listen(_saveToken);
     final token = await FirebaseMessaging.instance.getToken();
-    if (token != null) await _saveToken(token);
+    if (token != null) {
+      _pendingToken = token;
+      await _saveToken(token);
+    }
+  }
+
+  /// Saves the device token after authentication becomes available. App startup
+  /// normally obtains an FCM token before an anonymous user reaches the sign-in
+  /// screen, so this second synchronization is required for server reminders.
+  Future<void> syncToken() async {
+    if (!cloudEnabled) return;
+    final token = _pendingToken ?? await FirebaseMessaging.instance.getToken();
+    if (token == null) return;
+    _pendingToken = token;
+    await _saveToken(token);
   }
 
   Future<void> _saveToken(String token) async {
+    _pendingToken = token;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     await FirebaseFirestore.instance.collection('deviceTokens').doc(token).set({
@@ -537,7 +553,8 @@ class ReminderService {
       if (target.isBefore(DateTime.now())) continue;
       await _local.zonedSchedule(
         id: '${letter.id}-$days'.hashCode,
-        title: 'Rok za: ${letter.title}',
+        // Do not expose letter content through a lock-screen notification.
+        title: 'BriefAI Germany',
         body: 'Rok je za $days ${days == 1 ? 'dan' : 'dana'}.',
         scheduledDate: tz.TZDateTime.from(target, tz.local),
         notificationDetails: details,
