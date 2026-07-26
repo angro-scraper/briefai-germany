@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Filter;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -140,6 +140,7 @@ class AuthService {
       cloudEnabled && FirebaseAuth.instance.currentUser != null;
   String? get uid =>
       cloudEnabled ? FirebaseAuth.instance.currentUser?.uid : null;
+  String get localVaultKey => uid == null ? 'anonymous' : 'user:$uid';
 
   Future<void> signInWithEmail(
     String email,
@@ -635,7 +636,12 @@ class LetterRepository {
   Stream<List<LetterAnalysis>> watch(String uid) {
     return Stream.fromFuture(_db()).asyncExpand(
       (database) => _store
-          .query(finder: Finder(sortOrders: [SortOrder('createdAt', false)]))
+          .query(
+            finder: Finder(
+              filter: _ownerFilter(uid),
+              sortOrders: [SortOrder('createdAt', false)],
+            ),
+          )
           .onSnapshots(database)
           .map(
             (records) => records
@@ -658,6 +664,7 @@ class LetterRepository {
     final database = await _db();
     await _store.record(letter.id).put(database, {
       ...letter.toMap(),
+      'ownerKey': uid,
       'createdAt': letter.createdAt.toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
       if (document != null) ...{
@@ -674,17 +681,22 @@ class LetterRepository {
     LetterStatus status,
   ) async {
     final database = await _db();
+    final existing = await _store.record(letterId).get(database);
+    if (!_ownedBy(existing, uid)) return;
     await _store.record(letterId).update(database, {
       'status': status.name,
       'updatedAt': DateTime.now().toIso8601String(),
     });
   }
 
-  Future<List<Map<String, dynamic>>> exportRecords() async {
+  Future<List<Map<String, dynamic>>> exportRecords(String uid) async {
     final database = await _db();
     final records = await _store.find(
       database,
-      finder: Finder(sortOrders: [SortOrder('createdAt', false)]),
+      finder: Finder(
+        filter: _ownerFilter(uid),
+        sortOrders: [SortOrder('createdAt', false)],
+      ),
     );
     return records
         .map((record) {
@@ -700,19 +712,22 @@ class LetterRepository {
         .toList(growable: false);
   }
 
-  Future<void> clearAll() async {
+  Future<void> clearAll(String uid) async {
     final database = await _db();
-    await _store.delete(database);
+    await _store.delete(database, finder: Finder(filter: _ownerFilter(uid)));
   }
 
-  Future<void> delete(String letterId) async {
+  Future<void> delete(String uid, String letterId) async {
     final database = await _db();
+    final existing = await _store.record(letterId).get(database);
+    if (!_ownedBy(existing, uid)) return;
     await _store.record(letterId).delete(database);
   }
 
-  Future<PickedDocument?> loadDocument(String letterId) async {
+  Future<PickedDocument?> loadDocument(String uid, String letterId) async {
     final database = await _db();
     final values = await _store.record(letterId).get(database);
+    if (!_ownedBy(values, uid)) return null;
     final bytes = values?['documentBytes'];
     final name = values?['documentName'];
     final mimeType = values?['documentMimeType'];
@@ -723,6 +738,22 @@ class LetterRepository {
       mimeType: mimeType,
       ocrPath: null,
     );
+  }
+
+  Filter _ownerFilter(String uid) => uid == 'anonymous'
+      ? Filter.or([
+          Filter.equals('ownerKey', uid),
+          // Records created by an older local-first build had no owner key.
+          // They migrate into the anonymous device vault instead of becoming
+          // globally visible to every subsequently signed-in account.
+          Filter.isNull('ownerKey'),
+        ])
+      : Filter.equals('ownerKey', uid);
+
+  bool _ownedBy(Map<String, Object?>? values, String uid) {
+    if (values == null) return false;
+    final owner = values['ownerKey'];
+    return owner == uid || (uid == 'anonymous' && owner == null);
   }
 }
 

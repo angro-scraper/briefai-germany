@@ -308,11 +308,10 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    _lettersSubscription = widget.services.letters
-        .watch('local-device')
-        .listen(widget.state.replaceLetters);
+    _bindLocalVault();
     if (widget.services.cloudEnabled) {
       _authSubscription = widget.services.auth.authChanges.listen((user) {
+        _bindLocalVault();
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
         if (user != null) {
@@ -336,6 +335,14 @@ class _AppShellState extends State<AppShell> {
           .watchFreeUsage('local-device')
           .listen(widget.state.setFreeAnalysesUsed);
     }
+  }
+
+  void _bindLocalVault() {
+    unawaited(_lettersSubscription?.cancel());
+    widget.state.replaceLetters(const []);
+    _lettersSubscription = widget.services.letters
+        .watch(widget.services.auth.localVaultKey)
+        .listen(widget.state.replaceLetters);
   }
 
   @override
@@ -733,7 +740,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         language: language,
       );
       await widget.services.letters.save(
-        'local-device',
+        widget.services.auth.localVaultKey,
         analysis,
         document: _document,
       );
@@ -833,7 +840,10 @@ class ResultScreen extends StatelessWidget {
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () async {
-            final document = await services.letters.loadDocument(letter.id);
+            final document = await services.letters.loadDocument(
+              services.auth.localVaultKey,
+              letter.id,
+            );
             if (!context.mounted) return;
             if (document == null) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -1032,7 +1042,7 @@ class ArchiveScreen extends StatelessWidget {
             onStatus: (status) async {
               state.updateStatus(letter.id, status);
               await services.letters.updateStatus(
-                'local-device',
+                services.auth.localVaultKey,
                 letter.id,
                 status,
               );
@@ -1051,7 +1061,10 @@ class ArchiveScreen extends StatelessWidget {
                   ),
                   FilledButton(
                     onPressed: () async {
-                      await services.letters.delete(letter.id);
+                      await services.letters.delete(
+                        services.auth.localVaultKey,
+                        letter.id,
+                      );
                       await services.reminders.cancel(letter.id);
                       if (dialogContext.mounted) {
                         Navigator.of(dialogContext).pop();
@@ -1331,14 +1344,47 @@ class ProfileScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const LegalScreen(privacy: false)),
         ),
       ),
-      if (services.cloudEnabled && services.auth.isSignedIn)
+      ListTile(
+        leading: const Icon(Icons.download_outlined),
+        title: const Text('Preuzmi moje podatke'),
+        subtitle: const Text(
+          'Lokalni JSON izvoz profila, analiza i originalnih dokumenata',
+        ),
+        onTap: () => _exportAccountData(context, state, services),
+      ),
+      if (!services.auth.isSignedIn)
         ListTile(
-          leading: const Icon(Icons.download_outlined),
-          title: const Text('Preuzmi moje podatke'),
-          subtitle: const Text(
-            'Lokalni JSON izvoz profila, analiza i originalnih dokumenata',
+          leading: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
+          title: const Text('Obriši lokalnu arhivu'),
+          subtitle: const Text('Briše dokumente samo iz anonimnog vault-a'),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Obrisati lokalnu arhivu?'),
+              content: const Text(
+                'Originalni dokumenti, OCR tekst, analize i podsetnici biće trajno obrisani sa ovog uređaja.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Odustani'),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    await services.letters.clearAll(
+                      services.auth.localVaultKey,
+                    );
+                    await services.reminders.cancelAll();
+                    state.replaceLetters(const []);
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                  },
+                  child: const Text('Obriši'),
+                ),
+              ],
+            ),
           ),
-          onTap: () => _exportAccountData(context, state, services),
         ),
       if (services.cloudEnabled && services.auth.isSignedIn)
         ListTile(
@@ -1359,7 +1405,9 @@ class ProfileScreen extends StatelessWidget {
                 FilledButton(
                   onPressed: () async {
                     try {
-                      await services.letters.clearAll();
+                      await services.letters.clearAll(
+                        services.auth.localVaultKey,
+                      );
                       await services.reminders.cancelAll();
                       state.replaceLetters(const []);
                       await services.auth.deleteAccount();
@@ -1415,7 +1463,9 @@ Future<void> _exportAccountData(
           'Original documents, OCR text and analyses are stored locally.',
       'account': await services.auth.localAccountData(),
       'premiumActive': state.isPremium,
-      'letters': await services.letters.exportRecords(),
+      'letters': await services.letters.exportRecords(
+        services.auth.localVaultKey,
+      ),
     };
     await services.exports.shareJsonExport(jsonEncode(payload));
   } catch (_) {
