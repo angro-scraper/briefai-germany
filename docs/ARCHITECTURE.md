@@ -20,6 +20,7 @@ PWA (izvor proizvoda)
 Android / iOS shell
   └─ bezbedni WebView → ista produkciona PWA
        ├─ kamera / galerija / PDF picker
+       ├─ JS/native most → Google Play Billing / Apple IAP
        └─ obični UI update bez novog Store binarnog fajla
 ```
 
@@ -50,6 +51,9 @@ tretiraju dokument kao nepoverljiv sadržaj. Rezultati se validiraju JSON
 - FREE: dve analize po Berlin kalendarskom mesecu.
 - PREMIUM/PRO: entitlement upisuje isključivo Stripe webhook ili funkcija koja
   proverava Google Play/App Store dokaz kod same prodavnice.
+- U omotaču PWA traži proizvod/kupovinu preko `BriefAiNative` mosta. Omotač
+  ne završava transakciju dok callable funkcija ne potvrdi dokaz kod Store-a.
+  Običan browser bez mosta koristi isključivo Stripe.
 - Klijent nikada ne može sam sebi dodeliti Premium.
 
 ## Brisanje i izvoz

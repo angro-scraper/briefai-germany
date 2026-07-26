@@ -13,7 +13,8 @@ Ovaj dokument je kontrolna lista za stvarni, potpisani store build. Ne čuvati k
    gradi `lib/wrapper_main.dart`, odnosno tanki omotač produkcione PWA.
    Preuzeti AAB artefakt, poslati ga u Play Console internal testing i proveriti
    App Check, prijavu, kameru/PDF chooser, lokalni OCR, AI analizu, podsetnik i
-   restore na stvarnom uređaju.
+   native Billing bridge, serversku verifikaciju, restore i completePurchase
+   na stvarnom uređaju.
 
 ## iOS / App Store Connect
 
