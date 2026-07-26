@@ -624,14 +624,21 @@ class AiService {
 }
 
 class LetterRepository {
-  LetterRepository({required this.cloudEnabled});
+  LetterRepository({
+    required this.cloudEnabled,
+    this.databaseFactory,
+    this.databasePath = 'briefai-local-vault.db',
+  });
   final bool cloudEnabled;
+  final DatabaseFactory? databaseFactory;
+  final String databasePath;
   final StoreRef<String, Map<String, Object?>> _store = stringMapStoreFactory
       .store('letters');
   Database? _database;
 
-  Future<Database> _db() async =>
-      _database ??= await openBriefAiLocalDatabase();
+  Future<Database> _db() async => _database ??=
+      await (databaseFactory?.openDatabase(databasePath) ??
+          openBriefAiLocalDatabase());
 
   Stream<List<LetterAnalysis>> watch(String uid) {
     return Stream.fromFuture(_db()).asyncExpand(
@@ -670,7 +677,10 @@ class LetterRepository {
       if (document != null) ...{
         'documentName': document.name,
         'documentMimeType': document.mimeType,
-        'documentBytes': Blob(document.bytes),
+        // Base64 is portable across IndexedDB, native Sembast and in-memory
+        // test databases. Older web records stored a Sembast Blob and remain
+        // readable through the migration path in loadDocument/exportRecords.
+        'documentBase64': base64Encode(document.bytes),
       },
     });
   }
@@ -728,13 +738,26 @@ class LetterRepository {
     final database = await _db();
     final values = await _store.record(letterId).get(database);
     if (!_ownedBy(values, uid)) return null;
-    final bytes = values?['documentBytes'];
+    final storedBase64 = values?['documentBase64'];
+    final legacyBlob = values?['documentBytes'];
     final name = values?['documentName'];
     final mimeType = values?['documentMimeType'];
-    if (bytes is! Blob || name is! String || mimeType is! String) return null;
+    if (name is! String || mimeType is! String) return null;
+    Uint8List bytes;
+    if (storedBase64 is String) {
+      try {
+        bytes = base64Decode(storedBase64);
+      } on FormatException {
+        return null;
+      }
+    } else if (legacyBlob is Blob) {
+      bytes = Uint8List.fromList(legacyBlob.bytes);
+    } else {
+      return null;
+    }
     return PickedDocument(
       name: name,
-      bytes: Uint8List.fromList(bytes.bytes),
+      bytes: bytes,
       mimeType: mimeType,
       ocrPath: null,
     );
