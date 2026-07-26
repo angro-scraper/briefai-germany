@@ -14,5 +14,5 @@ const bool kPaymentsEnabled = bool.fromEnvironment(
 
 const bool kCloudAiEnabled = bool.fromEnvironment(
   'BRIEFAI_CLOUD_AI_ENABLED',
-  defaultValue: false,
+  defaultValue: true,
 );

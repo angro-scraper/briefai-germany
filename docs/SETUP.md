@@ -30,6 +30,11 @@ Pre deploy-a podesiti Functions parametre:
 
 ```text
 WEB_APP_ORIGIN=https://briefai-germany-download.onrender.com
+OPENAI_MODEL=gpt-5.6-terra
+FREE_BETA_AI_ENABLED=true
+AI_MONTHLY_BUDGET_USD=30
+AI_USER_MONTHLY_BUDGET_USD=1.50
+AI_PRO_USER_MONTHLY_BUDGET_USD=4
 ANDROID_PACKAGE_NAME=com.briefai.briefai_germany
 APPLE_BUNDLE_ID=com.briefai.briefaiGermany
 STRIPE_PREMIUM_PRICE_ID=<Stripe recurring price>
@@ -44,7 +49,8 @@ Services ID, Team ID, Key ID i privatni ključ iz naloga vlasnika.
 `OPENAI_API_KEY` se postavlja samo kao Firebase Secret. Klijent nikada ne
 poziva OpenAI direktno. Funkcije koriste Responses API, strogu šemu i podršku
 za `sr`, `hr`, `bs`, `mk`, `bg`, `de` i `en`. OCR tekst se koristi samo tokom
-poziva i ne upisuje u Firestore/Storage.
+poziva, uz `store: false`, i ne upisuje u Firestore/Storage. Originalni
+dokument nikada se ne šalje Functions/OpenAI servisu.
 
 ## App Check
 

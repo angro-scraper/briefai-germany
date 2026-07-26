@@ -586,6 +586,7 @@ class AiService {
     required String question,
     required String language,
     LetterAnalysis? letter,
+    List<Map<String, String>> conversation = const [],
   }) async {
     if (!kCloudAiEnabled ||
         !cloudEnabled ||
@@ -605,6 +606,9 @@ class AiService {
         ...letter.toMap(),
         'sourceText': letter.sourceText,
       });
+    }
+    if (conversation.isNotEmpty) {
+      request['conversation'] = jsonEncode(conversation.take(8).toList());
     }
     try {
       final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')

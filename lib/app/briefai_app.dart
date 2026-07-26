@@ -909,16 +909,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Future<void> _analyse() async {
-    if (!kFreeBetaMode &&
-        widget.services.cloudEnabled &&
-        !widget.services.auth.isSignedIn) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SignInScreen(services: widget.services),
-        ),
-      );
-      if (!mounted || !widget.services.auth.isSignedIn) return;
-    }
+    if (!await _ensureCloudAiAccess(context, widget.services)) return;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _selecting = false;
@@ -1117,12 +1109,18 @@ class ResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           FilledButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    ResponseScreen(letter: letter, services: services),
-              ),
-            ),
+            onPressed: () async {
+              if (!await _ensureCloudAiAccess(context, services) ||
+                  !context.mounted) {
+                return;
+              }
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ResponseScreen(letter: letter, services: services),
+                ),
+              );
+            },
             icon: const Icon(Icons.edit_note),
             label: Text(strings.text('generateReply')),
           ),
@@ -1437,9 +1435,21 @@ class _AssistantScreenState extends State<AssistantScreen> {
   Future<void> _ask() async {
     final question = _question.text.trim();
     if (question.isEmpty || _sending) return;
+    if (!await _ensureCloudAiAccess(context, widget.services) || !mounted) {
+      return;
+    }
     final letter = widget.state.letters.isEmpty
         ? null
         : widget.state.letters.first;
+    final conversation = _messages
+        .take(8)
+        .map(
+          (message) => {
+            'role': message.fromUser ? 'user' : 'assistant',
+            'text': message.text,
+          },
+        )
+        .toList();
     setState(() {
       _messages.add(_ChatMessage(text: question, fromUser: true));
       _question.clear();
@@ -1451,6 +1461,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         question: question,
         language: language,
         letter: letter,
+        conversation: conversation,
       );
       if (!mounted) return;
       setState(
@@ -1738,6 +1749,90 @@ const _languageLabels = {
   'bg': 'Bugarski',
 };
 
+Future<bool> _ensureCloudAiAccess(
+  BuildContext context,
+  AppServices services,
+) async {
+  if (!kCloudAiEnabled || !services.cloudEnabled) return true;
+  if (!services.auth.isSignedIn) {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => SignInScreen(services: services)));
+    if (!context.mounted || !services.auth.isSignedIn) return false;
+  }
+  final preferences = await SharedPreferences.getInstance();
+  if (preferences.getBool('cloudAiConsentV1') == true) return true;
+  if (!context.mounted) return false;
+  final language = Localizations.localeOf(context).languageCode;
+  final copy = _cloudAiConsentCopy[language] ?? _cloudAiConsentCopy['sr']!;
+  final accepted = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(copy.$1),
+      content: Text(copy.$2),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(copy.$3),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(copy.$4),
+        ),
+      ],
+    ),
+  );
+  if (accepted != true) return false;
+  await preferences.setBool('cloudAiConsentV1', true);
+  return true;
+}
+
+const _cloudAiConsentCopy = <String, (String, String, String, String)>{
+  'sr': (
+    'OpenAI analiza',
+    'Radi kvalitetnije analize, prepoznati OCR tekst ovog pisma biće bezbedno poslat OpenAI-ju samo za trenutni zahtev. Originalna fotografija/PDF, analiza i arhiva ostaju lokalno na ovom uređaju i ne čuvaju se u Firebase-u. Ne nastavljajte ako ne želite slanje OCR teksta.',
+    'Odustani',
+    'Prihvatam i nastavi',
+  ),
+  'hr': (
+    'OpenAI analiza',
+    'Radi kvalitetnije analize, prepoznati OCR tekst ovog pisma sigurno će se poslati OpenAI-ju samo za trenutačni zahtjev. Izvorna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne spremaju se u Firebase.',
+    'Odustani',
+    'Prihvaćam i nastavi',
+  ),
+  'bs': (
+    'OpenAI analiza',
+    'Radi kvalitetnije analize, prepoznati OCR tekst ovog pisma sigurno će se poslati OpenAI-ju samo za trenutni zahtjev. Originalna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne čuvaju se u Firebase-u.',
+    'Odustani',
+    'Prihvatam i nastavi',
+  ),
+  'mk': (
+    'OpenAI анализа',
+    'За поквалитетна анализа, препознаениот OCR текст ќе биде безбедно испратен до OpenAI само за тековното барање. Оригиналната фотографија/PDF, анализата и архивата остануваат локално на уредот.',
+    'Откажи',
+    'Прифаќам и продолжи',
+  ),
+  'bg': (
+    'OpenAI анализ',
+    'За по-качествен анализ разпознатият OCR текст ще бъде изпратен сигурно до OpenAI само за текущата заявка. Оригиналната снимка/PDF, анализът и архивът остават локално на устройството.',
+    'Отказ',
+    'Приемам и продължи',
+  ),
+  'de': (
+    'OpenAI-Analyse',
+    'Für eine bessere Analyse wird der erkannte OCR-Text nur für diese Anfrage sicher an OpenAI gesendet. Originalfoto/PDF, Analyse und Archiv bleiben lokal auf diesem Gerät und werden nicht in Firebase gespeichert.',
+    'Abbrechen',
+    'Zustimmen und fortfahren',
+  ),
+  'en': (
+    'OpenAI analysis',
+    'For a higher-quality analysis, the recognized OCR text will be sent securely to OpenAI for this request only. The original photo/PDF, analysis, and archive remain local on this device and are not stored in Firebase.',
+    'Cancel',
+    'Agree and continue',
+  ),
+};
+
 Future<void> _exportAccountData(
   BuildContext context,
   AppState state,
@@ -1751,7 +1846,7 @@ Future<void> _exportAccountData(
       'schemaVersion': 2,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'privacyModel':
-          'Original documents, OCR text and analyses are stored locally.',
+          'Original documents and the archive are stored locally. With consent, OCR text is sent transiently to OpenAI for the requested analysis and is not stored in the Firebase archive.',
       'account': await services.auth.localAccountData(),
       'premiumActive': state.isPremium,
       'letters': await services.letters.exportRecords(

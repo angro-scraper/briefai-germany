@@ -5,13 +5,14 @@ Referentne cene su proverene 26. jula 2026. na zvaničnoj OpenAI stranici:
 
 ## Produkcioni model
 
-Podrazumevani model je `gpt-5.6-luna`:
+Podrazumevani model je `gpt-5.6-terra`, zvanično preporučen za balans
+kvaliteta i troška:
 
-- ulaz: 1 USD / 1.000.000 tokena;
-- izlaz: 6 USD / 1.000.000 tokena.
+- ulaz: 2,50 USD / 1.000.000 tokena;
+- izlaz: 15 USD / 1.000.000 tokena.
 
 Tipična analiza sa približno 3.500 ulaznih i 700 izlaznih tokena košta oko
-0,0077 USD. Konzervativna procena, koja uključuje duži OCR i maksimalni
+0,0193 USD. Konzervativna procena, koja uključuje duži OCR i maksimalni
 odgovor, rezerviše više sredstava pre svakog poziva i posle odgovora se
 usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 
@@ -23,13 +24,16 @@ usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 - globalni AI budžet: 30 USD mesečno;
 - odgovorna upotreba Premium naloga: 1,50 USD mesečno;
 - odgovorna upotreba Pro naloga: 4 USD mesečno;
-- besplatni nalog: dve analize mesečno;
-- odgovor i AI asistent: samo aktivni Premium/Pro nalog.
+- tokom besplatne bete analiza, odgovor i asistent dostupni su prijavljenim
+  korisnicima uz korisnički i globalni dolarski limit;
+- posle bete vraća se komercijalna kontrola od dve besplatne analize mesečno,
+  dok su odgovor i asistent Premium/Pro funkcije.
 
 Budžeti su Firebase Functions parametri:
 
 ```text
-OPENAI_MODEL=gpt-5.6-luna
+OPENAI_MODEL=gpt-5.6-terra
+FREE_BETA_AI_ENABLED=true
 AI_MONTHLY_BUDGET_USD=30
 AI_USER_MONTHLY_BUDGET_USD=1.50
 AI_PRO_USER_MONTHLY_BUDGET_USD=4
@@ -37,6 +41,10 @@ AI_PRO_USER_MONTHLY_BUDGET_USD=4
 
 API ključ je isključivo Secret Manager tajna `OPENAI_API_KEY`. Parametri i
 ključ nikada se ne ugrađuju u Flutter ili JavaScript paket.
+
+Responses API pozivi koriste `store: false`; samo OCR tekst i kontekst koji su
+potrebni za trenutni zahtev napuštaju uređaj. Originalna slika/PDF i arhiva se
+ne šalju OpenAI-ju niti čuvaju u Firebase-u.
 
 ## Predlog komercijalnih planova
 

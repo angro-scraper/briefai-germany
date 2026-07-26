@@ -270,7 +270,7 @@ class AppStrings {
       'signOut': 'Odjavi se',
       'uploadDocument': 'Učitajte dokument',
       'localProcessing':
-          'Slika ili PDF obrađuju se lokalno. Original i arhiva se ne šalju u Firebase.',
+          'Slika/PDF i arhiva ostaju lokalno. Uz vašu saglasnost samo OCR tekst se šalje OpenAI-ju za trenutnu analizu.',
       'camera': 'Kamera',
       'gallery': 'Galerija',
       'pdfImage': 'PDF ili slika',
@@ -325,10 +325,10 @@ class AppStrings {
       'premiumActive': 'Premium je aktivan',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Analize, odgovori i podsetnici uz odgovornu upotrebu',
-      'freeBetaActive': 'Besplatna beta: neograničene lokalne analize.',
+      'freeBetaActive': 'Besplatna beta: OpenAI analiza uz zaštitne limite.',
       'freeBetaTitle': 'BriefAI besplatna beta',
       'freeBetaBody':
-          'Plaćanje je isključeno dok testiramo kvalitet. Svi dokumenti ostaju lokalno na vašem uređaju.',
+          'Plaćanje je isključeno dok testiramo kvalitet. Originalni dokumenti ostaju lokalno; uz saglasnost se šalje samo OCR tekst za trenutni OpenAI zahtev.',
       'privacyPolicy': 'Politika privatnosti',
       'terms': 'Uslovi korišćenja',
       'exportData': 'Preuzmi moje podatke',
@@ -402,7 +402,7 @@ class AppStrings {
       'signOut': 'Odjava',
       'uploadDocument': 'Učitajte dokument',
       'localProcessing':
-          'Slika ili PDF obrađuju se lokalno. Original i arhiva ne šalju se u Firebase.',
+          'Slika/PDF i arhiva ostaju lokalno. Uz vašu privolu samo OCR tekst šalje se OpenAI-ju za trenutačnu analizu.',
       'camera': 'Kamera',
       'gallery': 'Galerija',
       'pdfImage': 'PDF ili slika',
@@ -457,10 +457,10 @@ class AppStrings {
       'premiumActive': 'Premium je aktivan',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Analize, odgovori i podsjetnici uz odgovornu uporabu',
-      'freeBetaActive': 'Besplatna beta: neograničene lokalne analize.',
+      'freeBetaActive': 'Besplatna beta: OpenAI analiza uz zaštitne limite.',
       'freeBetaTitle': 'BriefAI besplatna beta',
       'freeBetaBody':
-          'Plaćanje je isključeno dok testiramo kvalitetu. Svi dokumenti ostaju lokalno na vašem uređaju.',
+          'Plaćanje je isključeno tijekom testiranja kvalitete. Izvorni dokumenti ostaju lokalno; uz privolu se šalje samo OCR tekst za trenutačni OpenAI zahtjev.',
       'privacyPolicy': 'Pravila privatnosti',
       'terms': 'Uvjeti korištenja',
       'exportData': 'Preuzmi moje podatke',
@@ -533,7 +533,7 @@ class AppStrings {
       'signOut': 'Odjavi se',
       'uploadDocument': 'Učitajte dokument',
       'localProcessing':
-          'Slika ili PDF obrađuju se lokalno. Original i arhiva ne šalju se u Firebase.',
+          'Slika/PDF i arhiva ostaju lokalno. Uz vašu saglasnost samo OCR tekst se šalje OpenAI-ju za trenutnu analizu.',
       'camera': 'Kamera',
       'gallery': 'Galerija',
       'pdfImage': 'PDF ili slika',
@@ -589,10 +589,10 @@ class AppStrings {
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle':
           'Analize, odgovori i podsjetnici uz odgovornu upotrebu',
-      'freeBetaActive': 'Besplatna beta: neograničene lokalne analize.',
+      'freeBetaActive': 'Besplatna beta: OpenAI analiza uz zaštitne limite.',
       'freeBetaTitle': 'BriefAI besplatna beta',
       'freeBetaBody':
-          'Plaćanje je isključeno dok testiramo kvalitet. Svi dokumenti ostaju lokalno na vašem uređaju.',
+          'Plaćanje je isključeno dok testiramo kvalitet. Originalni dokumenti ostaju lokalno; uz saglasnost se šalje samo OCR tekst za trenutni OpenAI zahtjev.',
       'privacyPolicy': 'Politika privatnosti',
       'terms': 'Uslovi korištenja',
       'exportData': 'Preuzmi moje podatke',
@@ -665,7 +665,7 @@ class AppStrings {
       'signOut': 'Одјави се',
       'uploadDocument': 'Вчитајте документ',
       'localProcessing':
-          'Сликата или PDF се обработуваат локално. Оригиналот и архивата не се праќаат во Firebase.',
+          'Сликата/PDF и архивата остануваат локално. Со ваша согласност само OCR текстот се испраќа до OpenAI за тековната анализа.',
       'camera': 'Камера',
       'gallery': 'Галерија',
       'pdfImage': 'PDF или слика',
@@ -720,10 +720,10 @@ class AppStrings {
       'premiumActive': 'Premium е активен',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Анализи, одговори и потсетници со одговорна употреба',
-      'freeBetaActive': 'Бесплатна бета: неограничени локални анализи.',
+      'freeBetaActive': 'Бесплатна бета: OpenAI анализа со заштитни лимити.',
       'freeBetaTitle': 'BriefAI бесплатна бета',
       'freeBetaBody':
-          'Плаќањето е исклучено додека го тестираме квалитетот. Сите документи остануваат локално на вашиот уред.',
+          'Плаќањето е исклучено додека го тестираме квалитетот. Оригиналите остануваат локално; со согласност се испраќа само OCR текстот.',
       'privacyPolicy': 'Политика за приватност',
       'terms': 'Услови за користење',
       'exportData': 'Преземи ги моите податоци',
@@ -797,7 +797,7 @@ class AppStrings {
       'signOut': 'Abmelden',
       'uploadDocument': 'Dokument hochladen',
       'localProcessing':
-          'Bild oder PDF werden lokal verarbeitet. Original und Archiv werden nicht an Firebase gesendet.',
+          'Bild/PDF und Archiv bleiben lokal. Mit Ihrer Einwilligung wird nur der OCR-Text für die aktuelle Analyse an OpenAI gesendet.',
       'camera': 'Kamera',
       'gallery': 'Galerie',
       'pdfImage': 'PDF oder Bild',
@@ -854,10 +854,10 @@ class AppStrings {
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle':
           'Analysen, Antworten und Erinnerungen bei fairer Nutzung',
-      'freeBetaActive': 'Kostenlose Beta: unbegrenzte lokale Analysen.',
+      'freeBetaActive': 'Kostenlose Beta: OpenAI-Analyse mit Schutzlimits.',
       'freeBetaTitle': 'Kostenlose BriefAI-Beta',
       'freeBetaBody':
-          'Zahlungen sind während des Qualitätstests deaktiviert. Alle Dokumente bleiben lokal auf Ihrem Gerät.',
+          'Zahlungen sind während des Qualitätstests deaktiviert. Originale bleiben lokal; mit Einwilligung wird nur OCR-Text für die aktuelle OpenAI-Anfrage gesendet.',
       'privacyPolicy': 'Datenschutzerklärung',
       'terms': 'Nutzungsbedingungen',
       'exportData': 'Meine Daten herunterladen',
@@ -932,7 +932,7 @@ class AppStrings {
       'signOut': 'Sign out',
       'uploadDocument': 'Upload document',
       'localProcessing':
-          'Images and PDFs are processed locally. Originals and the archive are not sent to Firebase.',
+          'Images/PDFs and the archive stay local. With your consent, only OCR text is sent to OpenAI for the current analysis.',
       'camera': 'Camera',
       'gallery': 'Gallery',
       'pdfImage': 'PDF or image',
@@ -988,10 +988,10 @@ class AppStrings {
       'premiumActive': 'Premium is active',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Analyses, replies and reminders with responsible use',
-      'freeBetaActive': 'Free beta: unlimited local analyses.',
+      'freeBetaActive': 'Free beta: OpenAI analysis with safety limits.',
       'freeBetaTitle': 'BriefAI free beta',
       'freeBetaBody':
-          'Payments are disabled while we test quality. All documents remain locally on your device.',
+          'Payments are disabled while we test quality. Originals remain local; with consent, only OCR text is sent for the current OpenAI request.',
       'privacyPolicy': 'Privacy Policy',
       'terms': 'Terms & Conditions',
       'exportData': 'Download my data',
@@ -1065,7 +1065,7 @@ class AppStrings {
       'signOut': 'Изход',
       'uploadDocument': 'Качете документ',
       'localProcessing':
-          'Изображението или PDF се обработват локално. Оригиналът и архивът не се изпращат към Firebase.',
+          'Изображението/PDF и архивът остават локално. С ваше съгласие само OCR текстът се изпраща до OpenAI за текущия анализ.',
       'camera': 'Камера',
       'gallery': 'Галерия',
       'pdfImage': 'PDF или изображение',
@@ -1121,10 +1121,10 @@ class AppStrings {
       'premiumActive': 'Premium е активен',
       'premiumName': 'BriefAI Premium',
       'premiumSubtitle': 'Анализи, отговори и напомняния с отговорна употреба',
-      'freeBetaActive': 'Безплатна бета: неограничени локални анализи.',
+      'freeBetaActive': 'Безплатна бета: OpenAI анализ със защитни лимити.',
       'freeBetaTitle': 'Безплатна бета на BriefAI',
       'freeBetaBody':
-          'Плащанията са изключени, докато тестваме качеството. Всички документи остават локално на вашето устройство.',
+          'Плащанията са изключени, докато тестваме качеството. Оригиналите остават локално; със съгласие се изпраща само OCR текстът.',
       'privacyPolicy': 'Политика за поверителност',
       'terms': 'Условия за ползване',
       'exportData': 'Изтегли моите данни',
