@@ -279,6 +279,8 @@ class AppStrings {
       'loadingImage': 'Učitavam fotografiju…',
       'ocrReady': 'Dokument je učitan i tekst je prepoznat.',
       'ocrNotReady': 'Tekst još nije prepoznat.',
+      'photoReadyForAnalysis':
+          'Fotografija je učitana. Pritisnite „Analiziraj pismo“.',
       'ocrFailed': 'Dokument nije prepoznat',
       'enterTextFirst': 'Fotografišite dokument ili unesite tekst pisma.',
       'analyzeLetter': 'Analiziraj pismo',
@@ -409,6 +411,8 @@ class AppStrings {
       'loadingImage': 'Učitavam fotografiju…',
       'ocrReady': 'Dokument je učitan i tekst je prepoznat.',
       'ocrNotReady': 'Tekst još nije prepoznat.',
+      'photoReadyForAnalysis':
+          'Fotografija je učitana. Pritisnite „Analiziraj pismo“.',
       'ocrFailed': 'Dokument nije prepoznat',
       'enterTextFirst': 'Fotografirajte dokument ili unesite tekst pisma.',
       'analyzeLetter': 'Analiziraj pismo',
@@ -538,6 +542,8 @@ class AppStrings {
       'loadingImage': 'Učitavam fotografiju…',
       'ocrReady': 'Dokument je učitan i tekst je prepoznat.',
       'ocrNotReady': 'Tekst još nije prepoznat.',
+      'photoReadyForAnalysis':
+          'Fotografija je učitana. Pritisnite „Analiziraj pismo“.',
       'ocrFailed': 'Dokument nije prepoznat',
       'enterTextFirst': 'Fotografišite dokument ili unesite tekst pisma.',
       'analyzeLetter': 'Analiziraj pismo',
@@ -668,6 +674,8 @@ class AppStrings {
       'loadingImage': 'Ја вчитувам фотографијата…',
       'ocrReady': 'Документот е вчитан и текстот е препознаен.',
       'ocrNotReady': 'Текстот сè уште не е препознаен.',
+      'photoReadyForAnalysis':
+          'Фотографијата е вчитана. Притиснете „Анализирај писмо“.',
       'ocrFailed': 'Документот не е препознаен',
       'enterTextFirst': 'Фотографирајте документ или внесете текст.',
       'analyzeLetter': 'Анализирај писмо',
@@ -798,6 +806,8 @@ class AppStrings {
       'loadingImage': 'Foto wird geladen…',
       'ocrReady': 'Dokument geladen und Text erkannt.',
       'ocrNotReady': 'Text wurde noch nicht erkannt.',
+      'photoReadyForAnalysis':
+          'Das Foto ist geladen. Tippen Sie auf „Schreiben analysieren“.',
       'ocrFailed': 'Dokument wurde nicht erkannt',
       'enterTextFirst': 'Dokument fotografieren oder Brieftext eingeben.',
       'analyzeLetter': 'Brief analysieren',
@@ -931,6 +941,7 @@ class AppStrings {
       'loadingImage': 'Loading photo…',
       'ocrReady': 'Document loaded and text recognized.',
       'ocrNotReady': 'Text has not been recognized yet.',
+      'photoReadyForAnalysis': 'The photo is loaded. Tap “Analyse letter”.',
       'ocrFailed': 'Document was not recognized',
       'enterTextFirst': 'Photograph a document or enter the letter text.',
       'analyzeLetter': 'Analyze letter',
@@ -1063,6 +1074,8 @@ class AppStrings {
       'loadingImage': 'Зареждам снимката…',
       'ocrReady': 'Документът е зареден и текстът е разпознат.',
       'ocrNotReady': 'Текстът все още не е разпознат.',
+      'photoReadyForAnalysis':
+          'Снимката е заредена. Натиснете „Анализирай писмото“.',
       'ocrFailed': 'Документът не е разпознат',
       'enterTextFirst': 'Снимайте документ или въведете текста.',
       'analyzeLetter': 'Анализирай писмо',

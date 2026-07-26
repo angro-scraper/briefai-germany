@@ -743,6 +743,7 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen> {
   final _text = TextEditingController();
   bool _loading = false;
+  bool _selecting = false;
   bool _recognizing = false;
   bool _ocrComplete = false;
   PickedDocument? _document;
@@ -845,11 +846,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _loading
+                              _recognizing
                                   ? strings.text('ocrReading')
                                   : _ocrComplete
                                   ? strings.text('ocrReady')
-                                  : strings.text('ocrNotReady'),
+                                  : strings.text('photoReadyForAnalysis'),
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: _ocrComplete
@@ -895,7 +896,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 _loading
                     ? _recognizing
                           ? strings.text('ocrReading')
-                          : strings.text('loadingImage')
+                          : _selecting
+                          ? strings.text('loadingImage')
+                          : strings.text('processing')
                     : strings.text('analyzeLetter'),
               ),
             ),
@@ -916,13 +919,25 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       );
       if (!mounted || !widget.services.auth.isSignedIn) return;
     }
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _selecting = false;
+    });
     final enterTextFirst = context.strings.text('enterTextFirst');
     try {
       final id = newLetterId();
       final language = await widget.services.auth.preferredLanguage();
       if (_document != null && _text.text.trim().isEmpty) {
-        _text.text = await widget.services.documents.ocr(_document!);
+        setState(() => _recognizing = true);
+        await WidgetsBinding.instance.endOfFrame;
+        final recognized = await widget.services.documents.ocr(_document!);
+        if (!mounted) return;
+        setState(() {
+          _text.text = recognized;
+          _text.selection = TextSelection.collapsed(offset: recognized.length);
+          _ocrComplete = true;
+          _recognizing = false;
+        });
       }
       if (_text.text.trim().isEmpty) {
         throw StateError(enterTextFirst);
@@ -971,7 +986,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() {
+          _loading = false;
+          _recognizing = false;
+        });
       }
     }
   }
@@ -980,6 +998,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     if (_loading) return;
     setState(() {
       _loading = true;
+      _selecting = true;
       _recognizing = false;
     });
     try {
@@ -988,22 +1007,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       setState(() {
         _document = selected;
         _ocrComplete = false;
-        _recognizing = true;
         _text.clear();
       });
-      // Let Flutter paint the thumbnail and OCR status before starting the
-      // CPU-intensive WASM recognition job.
-      await WidgetsBinding.instance.endOfFrame;
-      final recognized = await widget.services.documents.ocr(selected);
-      if (!mounted) return;
-      setState(() {
-        _text.text = recognized;
-        _text.selection = TextSelection.collapsed(offset: recognized.length);
-        _ocrComplete = true;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.strings.text('ocrReady'))));
     } on Object catch (error) {
       if (!mounted) return;
       setState(() => _ocrComplete = false);
@@ -1019,6 +1024,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
+          _selecting = false;
           _recognizing = false;
         });
       }

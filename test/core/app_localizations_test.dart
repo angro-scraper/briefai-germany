@@ -20,6 +20,7 @@ void main() {
         'loadingImage',
         'ocrReady',
         'ocrNotReady',
+        'photoReadyForAnalysis',
         'ocrFailed',
         'enterTextFirst',
         'analyzeLetter',
