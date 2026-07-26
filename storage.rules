@@ -2,13 +2,9 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null; }
-    match /users/{uid}/letters/{letterId}/{fileName} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.size < 15 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*|application/pdf');
-      allow delete: if signedIn() && request.auth.uid == uid;
-      allow update: if false;
+    // Original documents are deliberately never accepted by Cloud Storage.
+    match /users/{uid}/letters/{path=**} {
+      allow read, write: if false;
     }
     // Exports are generated only by the trusted Cloud Function. The owner can
     // read and remove the short-lived JSON file, but cannot forge an export in

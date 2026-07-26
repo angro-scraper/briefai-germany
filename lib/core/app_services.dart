@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -14,11 +13,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:sembast/sembast.dart' hide FieldValue;
 import 'package:share_plus/share_plus.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -29,7 +28,9 @@ import 'domain.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
 import '../features/analysis/image_preprocessor.dart';
+import '../features/ocr/local_ocr.dart';
 import 'legal.dart';
+import 'local_database_factory.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -91,6 +92,9 @@ class AppServices {
         );
         cloudEnabled = true;
         await FirebaseAppCheck.instance.activate(
+          providerWeb: ReCaptchaV3Provider(
+            '6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg',
+          ),
           providerAndroid: kDebugMode
               ? const AndroidDebugProvider()
               : const AndroidPlayIntegrityProvider(),
@@ -100,7 +104,8 @@ class AppServices {
         );
         FlutterError.onError =
             FirebaseCrashlytics.instance.recordFlutterFatalError;
-        await FirebaseAnalytics.instance.logAppOpen();
+        // Analytics is opt-in. Never start behavioral tracking before the
+        // user has explicitly accepted it in the privacy settings.
         FirebaseMessaging.onBackgroundMessage(
           firebaseMessagingBackgroundHandler,
         );
@@ -341,61 +346,17 @@ class DocumentService {
   }
 
   Future<String> ocr(PickedDocument document) async {
-    if (document.isPdf) {
-      throw StateError('PDF OCR se izvršava kroz serverski OCR nakon uploada.');
-    }
-    if (document.ocrPath == null) {
+    final text = await recognizeLocalDocument(
+      bytes: document.bytes,
+      mimeType: document.mimeType,
+      path: document.ocrPath,
+    );
+    if (text.isEmpty) {
       throw StateError(
-        'OCR za ovaj izvor nije dostupan na trenutnoj platformi.',
+        'Tekst nije prepoznat. Fotografiju uslikajte ravno i pri dobrom svetlu.',
       );
-    }
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
-    try {
-      final result = await recognizer.processImage(
-        InputImage.fromFilePath(document.ocrPath!),
-      );
-      return result.text;
-    } finally {
-      recognizer.close();
-    }
-  }
-
-  Future<String> extractUploadedText({
-    required String storagePath,
-    required String mimeType,
-  }) async {
-    if (!cloudEnabled) {
-      throw StateError(
-        'Za PDF je potrebno prijaviti se i povezati Firebase projekat.',
-      );
-    }
-    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
-        .httpsCallable('extractDocumentText')
-        .call<Map<Object?, Object?>>({
-          'storagePath': storagePath,
-          'mimeType': mimeType,
-        });
-    final text = result.data['text'];
-    if (text is! String || text.trim().isEmpty) {
-      throw StateError('OCR nije vratio tekst dokumenta.');
     }
     return text;
-  }
-
-  Future<String?> upload({
-    required String uid,
-    required String letterId,
-    required PickedDocument document,
-  }) async {
-    if (!cloudEnabled) return null;
-    final ref = FirebaseStorage.instance.ref(
-      'users/$uid/letters/$letterId/original-${document.name}',
-    );
-    await ref.putData(
-      document.bytes,
-      SettableMetadata(contentType: document.mimeType),
-    );
-    return ref.fullPath;
   }
 
   Future<PickedDocument?> _fromXFile(Future<XFile?> future) async {
@@ -423,9 +384,6 @@ class DocumentService {
       name: processed.name,
       bytes: processed.bytes,
       mimeType: processed.mimeType,
-      // Local development OCR may keep using the original XFile path. In a
-      // signed cloud build the enhanced bytes are uploaded and sent to
-      // Document AI instead (see AnalysisScreen).
       ocrPath: document.ocrPath,
     );
   }
@@ -440,7 +398,6 @@ class AiService {
     required String letterId,
     required String text,
     required String language,
-    String? storagePath,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
       if (kDebugMode) return _local.analyse(text);
@@ -454,7 +411,6 @@ class AiService {
           'letterId': letterId,
           'ocrText': text,
           'preferredLanguage': language,
-          'storagePath': storagePath,
         });
     final data = Map<String, dynamic>.from(result.data['analysis'] as Map);
     return LetterAnalysis.fromMap(id: letterId, map: data, sourceText: text);
@@ -462,6 +418,7 @@ class AiService {
 
   Future<GeneratedReply> generateReply({
     required String letterId,
+    required String sourceText,
     required String facts,
     required String language,
   }) async {
@@ -483,6 +440,7 @@ class AiService {
         .httpsCallable('generateReply')
         .call<Map<Object?, Object?>>({
           'letterId': letterId,
+          'sourceText': sourceText,
           'facts': facts,
           'preferredLanguage': language,
         });
@@ -504,7 +462,7 @@ class AiService {
   Future<String> askLetterAssistant({
     required String question,
     required String language,
-    String? letterId,
+    LetterAnalysis? letter,
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
       if (kDebugMode) {
@@ -518,7 +476,12 @@ class AiService {
       'question': question,
       'preferredLanguage': language,
     };
-    if (letterId != null) request['letterId'] = letterId;
+    if (letter != null) {
+      request['letterContext'] = jsonEncode({
+        ...letter.toMap(),
+        'sourceText': letter.sourceText,
+      });
+    }
     final result = await FirebaseFunctions.instanceFor(
       region: 'europe-west3',
     ).httpsCallable('askLetterAssistant').call<Map<Object?, Object?>>(request);
@@ -533,39 +496,51 @@ class AiService {
 class LetterRepository {
   LetterRepository({required this.cloudEnabled});
   final bool cloudEnabled;
+  final StoreRef<String, Map<String, Object?>> _store =
+      stringMapStoreFactory.store('letters');
+  Database? _database;
+
+  Future<Database> _db() async =>
+      _database ??= await openBriefAiLocalDatabase();
 
   Stream<List<LetterAnalysis>> watch(String uid) {
-    if (!cloudEnabled) return const Stream.empty();
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('letters')
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => LetterAnalysis.fromMap(id: doc.id, map: doc.data()))
-              .toList(),
-        );
+    return Stream.fromFuture(_db()).asyncExpand(
+      (database) => _store
+          .query(
+            finder: Finder(
+              sortOrders: [SortOrder('createdAt', false)],
+            ),
+          )
+          .onSnapshots(database)
+          .map(
+            (records) => records
+                .map(
+                  (record) => LetterAnalysis.fromMap(
+                    id: record.key,
+                    map: Map<String, dynamic>.from(record.value),
+                  ),
+                )
+                .toList(),
+          ),
+    );
   }
 
   Future<void> save(
     String uid,
     LetterAnalysis letter, {
-    String? storagePath,
+    PickedDocument? document,
   }) async {
-    if (!cloudEnabled) return;
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('letters')
-        .doc(letter.id)
-        .set({
-          ...letter.toMap(),
-          'storagePath': storagePath,
-          'updatedAt': FieldValue.serverTimestamp(),
-          'createdAt': Timestamp.fromDate(letter.createdAt),
-        }, SetOptions(merge: true));
+    final database = await _db();
+    await _store.record(letter.id).put(database, {
+      ...letter.toMap(),
+      'createdAt': letter.createdAt.toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+      if (document != null) ...{
+        'documentName': document.name,
+        'documentMimeType': document.mimeType,
+        'documentBytes': Blob(document.bytes),
+      },
+    });
   }
 
   Future<void> updateStatus(
@@ -573,16 +548,11 @@ class LetterRepository {
     String letterId,
     LetterStatus status,
   ) async {
-    if (!cloudEnabled) return;
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('letters')
-        .doc(letterId)
-        .update({
-          'status': status.name,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+    final database = await _db();
+    await _store.record(letterId).update(database, {
+      'status': status.name,
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
   }
 }
 
@@ -699,7 +669,10 @@ class ReminderService {
         body: 'Rok je za $days ${days == 1 ? 'dan' : 'dana'}.',
         scheduledDate: tz.TZDateTime.from(target, tz.local),
         notificationDetails: details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        // A day-level deadline reminder does not need Android's privileged
+        // exact-alarm permission. Using an inexact alarm keeps analysis
+        // functional on Android 12+ even when the user denies that permission.
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dateAndTime,
       );
     }

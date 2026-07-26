@@ -307,17 +307,16 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    _lettersSubscription = widget.services.letters
+        .watch('local-device')
+        .listen(widget.state.replaceLetters);
     if (widget.services.cloudEnabled) {
       _authSubscription = widget.services.auth.authChanges.listen((user) {
-        _lettersSubscription?.cancel();
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
         if (user != null) {
           unawaited(widget.services.auth.touchActivity());
           unawaited(widget.services.reminders.syncToken());
-          _lettersSubscription = widget.services.letters
-              .watch(user.uid)
-              .listen(widget.state.replaceLetters);
           _entitlementSubscription = widget.services.entitlements
               .watch(user.uid)
               .listen(widget.state.setPremium);
@@ -705,36 +704,29 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     setState(() => _loading = true);
     try {
       final id = newLetterId();
-      final userId = widget.services.auth.uid ?? 'local-user';
       final language = await widget.services.auth.preferredLanguage();
-      String? storagePath;
       if (_document != null) {
-        storagePath = await widget.services.documents.upload(
-          uid: userId,
-          letterId: id,
-          document: _document!,
-        );
-        if (storagePath != null && widget.services.cloudEnabled) {
-          _text.text = await widget.services.documents.extractUploadedText(
-            storagePath: storagePath,
-            mimeType: _document!.mimeType,
-          );
-        } else if (!_document!.isPdf && _document!.ocrPath != null) {
-          _text.text = await widget.services.documents.ocr(_document!);
-        } else {
-          throw StateError(
-            'PDF analiza zahteva prijavljen nalog i Firebase Storage.',
-          );
-        }
+        _text.text = await widget.services.documents.ocr(_document!);
       }
       final analysis = await widget.services.ai.analyse(
         letterId: id,
         text: _text.text,
         language: language,
-        storagePath: storagePath,
+      );
+      await widget.services.letters.save(
+        'local-device',
+        analysis,
+        document: _document,
       );
       widget.state.addAnalysis(analysis);
-      await widget.services.reminders.schedule(analysis);
+      // A notification permission or OEM scheduler failure must never hide a
+      // completed AI result. The analysis remains available even if reminders
+      // cannot be registered on this device.
+      try {
+        await widget.services.reminders.schedule(analysis);
+      } on Object {
+        // The user can still add a reminder manually from the result screen.
+      }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -853,7 +845,8 @@ class _ResponseScreenState extends State<ResponseScreen> {
     final language = await widget.services.auth.preferredLanguage();
     return widget.services.ai.generateReply(
       letterId: widget.letter.id,
-      facts: widget.letter.sourceText,
+      sourceText: widget.letter.sourceText,
+      facts: 'No additional user-supplied facts.',
       language: language,
     );
   }();
@@ -1102,7 +1095,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       final answer = await widget.services.ai.askLetterAssistant(
         question: question,
         language: language,
-        letterId: letter?.id,
+        letter: letter,
       );
       if (!mounted) return;
       setState(

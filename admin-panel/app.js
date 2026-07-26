@@ -5,13 +5,13 @@ import {getFunctions, httpsCallable} from 'https://www.gstatic.com/firebasejs/11
 
 // Replace values from Firebase Console. This public web configuration is not a secret.
 const firebaseConfig = {
-  apiKey: 'REPLACE_ME',
-  authDomain: 'REPLACE_ME',
-  projectId: 'REPLACE_ME',
-  appId: 'REPLACE_ME',
-  messagingSenderId: 'REPLACE_ME',
+  apiKey: 'AIzaSyDmINDRHAwFYipLUys_Y7OYMEfPud8-FeI',
+  authDomain: 'briefai-germany.firebaseapp.com',
+  projectId: 'briefai-germany',
+  appId: '1:891432357321:web:6d3baed44fa3bb77dbac18',
+  messagingSenderId: '891432357321',
   // Firebase Console -> App Check -> web app -> reCAPTCHA v3 site key.
-  appCheckSiteKey: 'REPLACE_ME',
+  appCheckSiteKey: '6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg',
 };
 
 const status = document.querySelector('#status');

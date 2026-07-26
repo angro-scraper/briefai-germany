@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#071a3d" />
-    <meta name="description" content="Preuzmi BriefAI Germany za Android." />
-    <title>BriefAI Germany — Preuzmi aplikaciju</title>
+    <meta name="description" content="Otvori BriefAI Germany kao privatnu web aplikaciju ili preuzmi Android omot." />
+    <title>BriefAI Germany — Web aplikacija</title>
     <style>
       :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: radial-gradient(circle at 20% 0%, #1e5bd8 0, transparent 38%), #071126; color: #f8fbff; }
@@ -14,7 +14,9 @@
       h1 { font-size: clamp(2.5rem, 9vw, 4.8rem); letter-spacing: -.06em; margin: 14px 0; line-height: .98; }
       p { color: #c9d6ec; max-width: 57ch; line-height: 1.6; font-size: 1.05rem; }
       .card { margin-top: 34px; padding: 28px; background: #0e2148cc; border: 1px solid #3765ab; border-radius: 22px; box-shadow: 0 22px 80px #0007; }
-      a.button { display: inline-block; margin-top: 8px; padding: 15px 20px; border-radius: 12px; background: #ffffff; color: #08204b; font-weight: 800; text-decoration: none; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+      a.button { display: inline-block; padding: 15px 20px; border-radius: 12px; background: #ffffff; color: #08204b; font-weight: 800; text-decoration: none; }
+      a.secondary { background: transparent; color: #dceaff; border: 1px solid #668bc8; }
       small { display: block; margin-top: 18px; color: #9bb0d2; line-height: 1.5; }
     </style>
   </head>
@@ -23,11 +25,14 @@
       <span class="badge">BriefAI Germany</span>
       <h1>Razumi nemačko pismo.</h1>
       <p>Fotografiši službeno pismo, dobij jednostavno objašnjenje i ne propusti rokove.</p>
-      <section class="card" aria-label="Android preuzimanje">
-        <h2>Android instalacija</h2>
-        <p>Preuzmi i instaliraj najnoviji Android paket direktno sa BriefAI stranice.</p>
-        <a class="button" href="/download/app-debug.apk" download>Preuzmi APK</a>
-        <small>Ovo je provereni test paket v1.0.8+9. Android može zatražiti dozvolu za instaliranje aplikacija iz ovog izvora. iOS izdanje se distribuira putem Apple App Store-a.</small>
+      <section class="card" aria-label="Pokretanje aplikacije">
+        <h2>Web aplikacija i instalacija</h2>
+        <p>Koristi najnoviju verziju direktno u pregledaču. Možeš je dodati na početni ekran kao PWA, a dokumenti i arhiva ostaju lokalno na uređaju.</p>
+        <div class="actions">
+          <a class="button" href="/app/">Otvori BriefAI</a>
+          <a class="button secondary" href="/download/app-debug.apk" download>Preuzmi Android test APK</a>
+        </div>
+        <small>Android APK je prethodni test omot v1.0.8+9. Novi web/PWA tok dobija izmene odmah, bez ponovne instalacije. Store omoti za Android i iOS biće potpisani pre objave.</small>
       </section>
     </main>
   </body>

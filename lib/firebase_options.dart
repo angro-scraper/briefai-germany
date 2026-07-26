@@ -1,6 +1,3 @@
-// This placeholder keeps the public repository buildable before a Firebase
-// project is selected. Run `flutterfire configure` before any production build;
-// it replaces this file with generated, project-specific options.
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
@@ -12,15 +9,12 @@ class DefaultFirebaseOptions {
     );
   }
 
-  // Public web configuration is supplied by `flutterfire configure` in a real
-  // deployment. Empty placeholder values deliberately make initialization fail
-  // closed until that configuration exists.
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_WEB_API_KEY'),
-    appId: String.fromEnvironment('FIREBASE_WEB_APP_ID'),
-    messagingSenderId: String.fromEnvironment('FIREBASE_WEB_MESSAGING_SENDER_ID'),
-    projectId: String.fromEnvironment('FIREBASE_WEB_PROJECT_ID'),
-    authDomain: String.fromEnvironment('FIREBASE_WEB_AUTH_DOMAIN'),
-    storageBucket: String.fromEnvironment('FIREBASE_WEB_STORAGE_BUCKET'),
+    apiKey: 'AIzaSyDmINDRHAwFYipLUys_Y7OYMEfPud8-FeI',
+    appId: '1:891432357321:web:6d3baed44fa3bb77dbac18',
+    messagingSenderId: '891432357321',
+    projectId: 'briefai-germany',
+    authDomain: 'briefai-germany.firebaseapp.com',
+    storageBucket: 'briefai-germany.firebasestorage.app',
   );
 }

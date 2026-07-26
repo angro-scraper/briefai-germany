@@ -8,16 +8,14 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, create, update: if own(uid);
       allow delete: if false; // Deletion only via the authenticated Cloud Function.
-      match /letters/{letterId} {
-        allow read, create, update: if own(uid);
-        allow delete: if own(uid);
-        match /messages/{messageId} {
-          allow read, create, update, delete: if own(uid);
-        }
-      }
       match /usage/{usageId} {
         allow read: if own(uid);
         allow write: if false; // Only the analysis Cloud Function updates quota.
+      }
+      // Documents, OCR text, analyses, replies and chat stay in the local
+      // device vault. No client-accessible cloud archive exists.
+      match /{document=**} {
+        allow read, write: if false;
       }
     }
     match /subscriptions/{uid} {
