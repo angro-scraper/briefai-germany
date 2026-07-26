@@ -10,7 +10,7 @@ import {defineSecret, defineString} from "firebase-functions/params";
 import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import OpenAI from "openai";
-import {createHash, createSign} from "node:crypto";
+import {createHash, createSign, randomUUID} from "node:crypto";
 
 initializeApp();
 
@@ -545,6 +545,43 @@ export const deleteAccount = onCall({region: "europe-west3", enforceAppCheck: tr
   await getAuth().deleteUser(uid);
   return {deleted: true};
 });
+
+// A data-subject export is written to the user's private Storage namespace,
+// never returned inline from the callable. This avoids putting OCR text into
+// function logs or hitting callable response limits for ordinary archives.
+export const exportAccountData = onCall(
+  {region: "europe-west3", enforceAppCheck: true, timeoutSeconds: 120, memory: "512MiB"},
+  async (request) => {
+    const uid = requireUser(request.auth?.uid);
+    const [profile, letters, subscription] = await Promise.all([
+      db.collection("users").doc(uid).get(),
+      db.collection("users").doc(uid).collection("letters").orderBy("createdAt", "desc").get(),
+      db.collection("subscriptions").doc(uid).get(),
+    ]);
+    const payload = {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      profile: profile.data() ?? {},
+      subscription: subscription.data() ?? null,
+      letters: letters.docs.map((letter) => ({id: letter.id, ...letter.data()})),
+    };
+    const bytes = Buffer.from(JSON.stringify(payload), "utf8");
+    // Firebase Storage's client getData limit below intentionally matches this
+    // server guard. Larger exports need a paginated DSR flow, not a truncated
+    // or silently incomplete JSON file.
+    if (bytes.length > 9 * 1024 * 1024) {
+      throw new HttpsError("resource-exhausted", "Izvoz je prevelik za direktno preuzimanje. Obratite se podršci za kompletan izvoz.");
+    }
+    const storagePath = `users/${uid}/exports/briefai-export-${randomUUID()}.json`;
+    await getStorage().bucket().file(storagePath).save(bytes, {
+      metadata: {
+        contentType: "application/json; charset=utf-8",
+        cacheControl: "no-store",
+      },
+    });
+    return {storagePath, byteLength: bytes.length};
+  },
+);
 
 export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: true}, async (request) => {
   const uid = requireUser(request.auth?.uid);

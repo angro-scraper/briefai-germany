@@ -10,5 +10,12 @@ service firebase.storage {
       allow delete: if signedIn() && request.auth.uid == uid;
       allow update: if false;
     }
+    // Exports are generated only by the trusted Cloud Function. The owner can
+    // read and remove the short-lived JSON file, but cannot forge an export in
+    // another user's namespace.
+    match /users/{uid}/exports/{fileName} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if false;
+    }
   }
 }

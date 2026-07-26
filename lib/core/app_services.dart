@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -16,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:uuid/uuid.dart';
@@ -156,6 +159,37 @@ class AuthService {
     await FirebaseFunctions.instanceFor(
       region: 'europe-west3',
     ).httpsCallable('deleteAccount').call<void>();
+  }
+
+  /// Requests a server-generated JSON export, downloads it from the caller's
+  /// private Storage path, and removes that temporary object immediately.
+  Future<String> exportAccountData() async {
+    final userId = uid;
+    if (!cloudEnabled || userId == null) {
+      throw StateError('Prijava je obavezna za izvoz podataka.');
+    }
+    final result = await FirebaseFunctions.instanceFor(
+      region: 'europe-west3',
+    ).httpsCallable('exportAccountData').call<Map<Object?, Object?>>();
+    final storagePath = result.data['storagePath'];
+    final byteLength = result.data['byteLength'];
+    if (storagePath is! String ||
+        !storagePath.startsWith('users/$userId/exports/') ||
+        byteLength is! int ||
+        byteLength <= 0 ||
+        byteLength > 9 * 1024 * 1024) {
+      throw StateError('Server nije vratio važeći izvoz podataka.');
+    }
+    final ref = FirebaseStorage.instance.ref(storagePath);
+    try {
+      final bytes = await ref.getData(byteLength + 1024);
+      if (bytes == null) throw StateError('Izvoz podataka nije dostupan.');
+      return utf8.decode(bytes, allowMalformed: false);
+    } finally {
+      // A private export is only an implementation bridge to the device share
+      // sheet; it must not remain in Storage after it has been retrieved.
+      await ref.delete().catchError((_) {});
+    }
   }
 
   Stream<Map<String, dynamic>?> profileChanges() {
@@ -364,7 +398,9 @@ class AiService {
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
       if (kDebugMode) return _local.analyse(text);
-      throw StateError('Za analizu pisma potrebna je prijava i povezana usluga.');
+      throw StateError(
+        'Za analizu pisma potrebna je prijava i povezana usluga.',
+      );
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('analyzeLetter')
@@ -385,13 +421,17 @@ class AiService {
   }) async {
     if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
       if (kDebugMode) {
-        const letter = 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
+        const letter =
+            'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Hiermit bestätige ich den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen';
         return const GeneratedReply(
           letter: letter,
-          email: 'Betreff: Antwort auf Ihr Schreiben\n\nSehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Ich bestätige den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen',
+          email:
+              'Betreff: Antwort auf Ihr Schreiben\n\nSehr geehrte Damen und Herren,\n\nvielen Dank für Ihr Schreiben. Ich bestätige den Erhalt und werde die angeforderten Unterlagen fristgerecht einreichen.\n\nMit freundlichen Grüßen',
         );
       }
-      throw StateError('Za generisanje odgovora potrebna je prijava i povezana usluga.');
+      throw StateError(
+        'Za generisanje odgovora potrebna je prijava i povezana usluga.',
+      );
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('generateReply')
@@ -406,8 +446,10 @@ class AiService {
     }
     final letter = reply['letter'];
     final email = reply['email'];
-    if (letter is! String || letter.trim().isEmpty ||
-        email is! String || email.trim().isEmpty) {
+    if (letter is! String ||
+        letter.trim().isEmpty ||
+        email is! String ||
+        email.trim().isEmpty) {
       throw StateError('AI odgovor nema obe verzije.');
     }
     return GeneratedReply(letter: letter, email: email);
@@ -422,16 +464,18 @@ class AiService {
       if (kDebugMode) {
         return 'Za odgovor vezan za konkretno pismo prijavite se i povežite Firebase projekat. U lokalnom režimu mogu da prikažem samo osnovne rokove iz analize.';
       }
-      throw StateError('Za AI asistenta potrebna je prijava i povezana usluga.');
+      throw StateError(
+        'Za AI asistenta potrebna je prijava i povezana usluga.',
+      );
     }
     final request = <String, String>{
       'question': question,
       'preferredLanguage': language,
     };
     if (letterId != null) request['letterId'] = letterId;
-    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
-        .httpsCallable('askLetterAssistant')
-        .call<Map<Object?, Object?>>(request);
+    final result = await FirebaseFunctions.instanceFor(
+      region: 'europe-west3',
+    ).httpsCallable('askLetterAssistant').call<Map<Object?, Object?>>(request);
     final answer = result.data['answer'];
     if (answer is! String || answer.trim().isEmpty) {
       throw StateError('AI asistent nije vratio odgovor.');
@@ -669,9 +713,13 @@ class PurchaseService {
 }
 
 class ReplyExportService {
-  Future<void> copy(String reply) => Clipboard.setData(ClipboardData(text: reply));
+  Future<void> copy(String reply) =>
+      Clipboard.setData(ClipboardData(text: reply));
 
-  Future<void> composeEmail({required String subject, required String body}) async {
+  Future<void> composeEmail({
+    required String subject,
+    required String body,
+  }) async {
     final mailto = Uri(
       scheme: 'mailto',
       queryParameters: {'subject': subject, 'body': body},
@@ -695,6 +743,23 @@ class ReplyExportService {
     await Printing.sharePdf(
       bytes: await document.save(),
       filename: 'briefai-odgovor.pdf',
+    );
+  }
+
+  Future<void> shareJsonExport(String json) async {
+    await SharePlus.instance.share(
+      ShareParams(
+        subject: 'BriefAI Germany — izvoz podataka',
+        text: 'Vaš JSON izvoz podataka iz BriefAI Germany.',
+        files: [
+          XFile.fromData(
+            utf8.encode(json),
+            mimeType: 'application/json',
+            name: 'briefai-izvoz-podataka.json',
+          ),
+        ],
+        fileNameOverrides: const ['briefai-izvoz-podataka.json'],
+      ),
     );
   }
 }

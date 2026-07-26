@@ -308,101 +308,102 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final unavailable = !services.cloudEnabled && !kDebugMode;
     return ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Text(
-        'Dobro došli',
-        style: Theme.of(
-          context,
-        ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 8),
-      const Text('Razumite nemačka pisma, na jeziku koji vam odgovara.'),
-      const SizedBox(height: 24),
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0B1533),
-          borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(
+          'Dobro došli',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.auto_awesome, color: Color(0xFF9DB5FF)),
-            const SizedBox(height: 16),
-            const Text(
-              'Analiziraj novo pismo',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
+        const SizedBox(height: 8),
+        const Text('Razumite nemačka pisma, na jeziku koji vam odgovara.'),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1533),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.auto_awesome, color: Color(0xFF9DB5FF)),
+              const SizedBox(height: 16),
+              const Text(
+                'Analiziraj novo pismo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              state.isPremium
-                  ? 'Neograničene analize su aktivne.'
-                  : 'Preostalo: ${2 - state.freeAnalysesUsed} od 2 besplatne analize.',
-              style: const TextStyle(color: Color(0xFFD7E0FF)),
-            ),
-            if (unavailable) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
-                services.configurationError ?? 'Usluga nije dostupna.',
-                style: const TextStyle(color: Color(0xFFFFC2C2)),
+                state.isPremium
+                    ? 'Neograničene analize su aktivne.'
+                    : 'Preostalo: ${2 - state.freeAnalysesUsed} od 2 besplatne analize.',
+                style: const TextStyle(color: Color(0xFFD7E0FF)),
               ),
-            ],
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: unavailable
-                  ? null
-                  : state.canAnalyse
-                  ? () => !services.cloudEnabled || services.auth.isSignedIn
-                        ? Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => AnalysisScreen(
-                                state: state,
-                                services: services,
+              if (unavailable) ...[
+                const SizedBox(height: 10),
+                Text(
+                  services.configurationError ?? 'Usluga nije dostupna.',
+                  style: const TextStyle(color: Color(0xFFFFC2C2)),
+                ),
+              ],
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: unavailable
+                    ? null
+                    : state.canAnalyse
+                    ? () => !services.cloudEnabled || services.auth.isSignedIn
+                          ? Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AnalysisScreen(
+                                  state: state,
+                                  services: services,
+                                ),
                               ),
-                            ),
-                          )
-                        : Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => SignInScreen(services: services),
-                            ),
-                          )
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SubscriptionScreen(
-                          state: state,
-                          services: services,
+                            )
+                          : Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    SignInScreen(services: services),
+                              ),
+                            )
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SubscriptionScreen(
+                            state: state,
+                            services: services,
+                          ),
                         ),
                       ),
-                    ),
-              icon: const Icon(Icons.add_a_photo_outlined),
-              label: Text(
-                state.canAnalyse ? 'Dodaj dokument' : 'Aktiviraj Premium',
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: Text(
+                  state.canAnalyse ? 'Dodaj dokument' : 'Aktiviraj Premium',
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      const SizedBox(height: 28),
-      Text(
-        'Poslednja pisma',
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 8),
-      if (state.letters.isEmpty)
-        const _EmptyState(
-          icon: Icons.inbox_outlined,
-          text: 'Još nemate sačuvanih pisama.',
-        )
-      else
-        ...state.letters.take(3).map((letter) => LetterCard(letter: letter)),
-    ],
+        const SizedBox(height: 28),
+        Text(
+          'Poslednja pisma',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        if (state.letters.isEmpty)
+          const _EmptyState(
+            icon: Icons.inbox_outlined,
+            text: 'Još nemate sačuvanih pisama.',
+          )
+        else
+          ...state.letters.take(3).map((letter) => LetterCard(letter: letter)),
+      ],
     );
   }
 }
@@ -917,7 +918,11 @@ class ArchiveScreen extends StatelessWidget {
 }
 
 class AssistantScreen extends StatefulWidget {
-  const AssistantScreen({super.key, required this.state, required this.services});
+  const AssistantScreen({
+    super.key,
+    required this.state,
+    required this.services,
+  });
   final AppState state;
   final AppServices services;
   @override
@@ -1019,14 +1024,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
         letterId: letter?.id,
       );
       if (!mounted) return;
-      setState(() => _messages.add(_ChatMessage(text: answer, fromUser: false)));
+      setState(
+        () => _messages.add(_ChatMessage(text: answer, fromUser: false)),
+      );
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _messages.add(_ChatMessage(
-          text: 'Odgovor nije dostupan: $error',
-          fromUser: false,
-        ));
+        _messages.add(
+          _ChatMessage(text: 'Odgovor nije dostupan: $error', fromUser: false),
+        );
       });
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -1175,6 +1181,13 @@ class ProfileScreen extends StatelessWidget {
       ),
       if (services.cloudEnabled && services.auth.isSignedIn)
         ListTile(
+          leading: const Icon(Icons.download_outlined),
+          title: const Text('Preuzmi moje podatke'),
+          subtitle: const Text('JSON izvoz profila, arhive i pretplate'),
+          onTap: () => _exportAccountData(context, services),
+        ),
+      if (services.cloudEnabled && services.auth.isSignedIn)
+        ListTile(
           leading: const Icon(Icons.delete_forever_outlined, color: Colors.red),
           title: const Text('Trajno obriši nalog'),
           onTap: () => showDialog<void>(
@@ -1215,6 +1228,25 @@ const _languageLabels = {
   'en': 'Engleski',
   'bg': 'Bugarski',
 };
+
+Future<void> _exportAccountData(
+  BuildContext context,
+  AppServices services,
+) async {
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pripremam privatni izvoz podataka…')),
+    );
+    final json = await services.auth.exportAccountData();
+    await services.exports.shareJsonExport(json);
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Izvoz podataka trenutno nije dostupan.')),
+      );
+    }
+  }
+}
 
 Future<void> _editTextProfile(
   BuildContext context,
@@ -1272,7 +1304,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     super.initState();
     _products = kIsWeb
         ? Future.value(
-            ProductDetailsResponse(productDetails: const [], notFoundIDs: const []),
+            ProductDetailsResponse(
+              productDetails: const [],
+              notFoundIDs: const [],
+            ),
           )
         : widget.services.purchases.products();
   }
