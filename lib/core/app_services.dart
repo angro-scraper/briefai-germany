@@ -90,8 +90,8 @@ class AppServices {
       );
       cloudEnabled = true;
       await FirebaseAppCheck.instance.activate(
-        providerWeb: ReCaptchaV3Provider(
-          '6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg',
+        providerWeb: ReCaptchaEnterpriseProvider(
+          '6LcSEWctAAAAACxE9d6yObjEogL8mhkh74kSbFc2',
         ),
         providerAndroid: kDebugMode
             ? const AndroidDebugProvider()

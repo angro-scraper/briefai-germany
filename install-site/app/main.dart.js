@@ -9362,7 +9362,7 @@ $.ci().l(0,j,k)
 $.aUG=j
 k=j}l=l.d=k.oS(l.c).R7()}else l=k
 s=8
-return A.h(l.oE(B.tM,B.tO,B.UF,B.TR,B.VG,new A.yJ("6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg")),$async$Pi)
+return A.h(l.oE(B.tM,B.tO,B.UF,B.TR,B.VG,new A.yJ("6LcSEWctAAAAACxE9d6yObjEogL8mhkh74kSbFc2")),$async$Pi)
 case 8:l=$.b03
 if(l==null){l=$.ay
 m=(l==null?$.ay=$.bR():l).bS("[DEFAULT]")
@@ -10517,8 +10517,8 @@ aLH:function aLH(){},
 To:function To(a){this.b=a},
 akl:function akl(){},
 aEE:function aEE(){},
-yJ:function yJ(a){this.a=a},
 GC:function GC(a){this.a=a},
+yJ:function yJ(a){this.a=a},
 Jn:function Jn(a,b){this.b=a
 this.a=b},
 Jq:function Jq(a){this.a=a},
@@ -56000,8 +56000,8 @@ var $async$m=A.k(function(a,b){if(a===1)return A.l(b,r)
 for(;;)switch(s){case 0:return A.m(null,r)}})
 return A.n($async$m,r)}}
 A.aEE.prototype={}
-A.yJ.prototype={}
 A.GC.prototype={}
+A.yJ.prototype={}
 A.Jn.prototype={}
 A.Jq.prototype={}
 A.aEM.prototype={}
@@ -56019,8 +56019,8 @@ atw(a,b,c,d,e,f){var s=0,r=A.o(t.H),q,p=this,o,n,m,l
 var $async$oE=A.k(function(g,h){if(g===1)return A.l(h,r)
 for(;;)switch(s){case 0:if(f!=null){o=f instanceof A.Jn
 if(o)n="debug"
-else if(f instanceof A.yJ)n="recaptcha-v3"
-else if(f instanceof A.GC)n="enterprise"
+else if(f instanceof A.GC)n="recaptcha-v3"
+else if(f instanceof A.yJ)n="enterprise"
 else{if(!(f instanceof A.Jq))throw A.e(A.d5("Invalid web provider: "+f.j(0)))
 n="web-recaptcha"}m=v.G
 m.window.localStorage.setItem("FlutterFire-"+p.gd0().a.a+"-recaptchaType",n)
@@ -56058,8 +56058,8 @@ n=k.window.sessionStorage.getItem("FlutterFire-"+l.name+"-recaptchaSiteKey")}s=o
 break
 case 3:if(o==="debug"){l=n==null?null:n.length!==0
 m=new A.Jn(l===!0?n:null,"")}else if(o==="web-recaptcha")m=B.b8z
-else if(n!=null)if(o==="recaptcha-v3")m=new A.yJ(n)
-else if(o==="enterprise")m=new A.GC(n)
+else if(n!=null)if(o==="recaptcha-v3")m=new A.GC(n)
+else if(o==="enterprise")m=new A.yJ(n)
 else throw A.e(A.d5("Invalid recaptcha type: "+o))
 else{s=1
 break}s=5
@@ -56078,8 +56078,8 @@ if(!(o==null||o instanceof A.Jq))if(o instanceof A.Jn){o=o.b
 m=v.G
 if(o!=null)m.FIREBASE_APPCHECK_DEBUG_TOKEN=o
 else m.FIREBASE_APPCHECK_DEBUG_TOKEN=!0
-n=new m.firebase_app_check.ReCaptchaV3Provider("debug")}else if(o instanceof A.yJ)n=new v.G.firebase_app_check.ReCaptchaV3Provider(o.a)
-else if(o instanceof A.GC)n=new v.G.firebase_app_check.ReCaptchaEnterpriseProvider(o.a)
+n=new m.firebase_app_check.ReCaptchaV3Provider("debug")}else if(o instanceof A.GC)n=new v.G.firebase_app_check.ReCaptchaV3Provider(o.a)
+else if(o instanceof A.yJ)n=new v.G.firebase_app_check.ReCaptchaEnterpriseProvider(o.a)
 else A.V(A.bM("A `WebProvider` is required for `activate()` to initialise App Check on the web platform",null))
 l=t.SF.a({provider:n})
 o=v.G.firebase_app_check
@@ -115415,7 +115415,7 @@ q(A.akk,A.akj)
 q(A.ae2,A.adZ)
 q(A.aem,A.aen)
 p(A.akl,[A.u_,A.Tp])
-p(A.aEE,[A.yJ,A.GC,A.Jn,A.Jq])
+p(A.aEE,[A.GC,A.yJ,A.Jn,A.Jq])
 q(A.aEN,A.aEM)
 p(A.DR,[A.Ts,A.xi])
 p(A.akw,[A.u0,A.Tt])
