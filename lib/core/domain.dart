@@ -150,6 +150,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void restoreOnboarding(bool completed) {
+    onboardingComplete = completed;
+    notifyListeners();
+  }
+
   void addAnalysis(LetterAnalysis analysis) {
     letters.insert(0, analysis);
     if (!isPremium) freeAnalysesUsed++;

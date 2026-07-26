@@ -53,6 +53,14 @@ void main() {
     expect(state.letters.single.id, 'cloud');
   });
 
+  test('app state restores completed onboarding', () {
+    final state = AppState();
+
+    state.restoreOnboarding(true);
+
+    expect(state.onboardingComplete, isTrue);
+  });
+
   test('generated reply retains separate letter and email variants', () {
     const reply = GeneratedReply(
       letter: 'Sehr geehrte Damen und Herren,',

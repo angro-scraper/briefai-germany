@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/domain.dart';
 import '../core/app_services.dart';
@@ -19,16 +20,32 @@ class BriefAiApp extends StatefulWidget {
 class _BriefAiAppState extends State<BriefAiApp> {
   final AppState _state = AppState();
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+  bool _restored = false;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_restoreAppState());
     if (!kIsWeb) {
       _purchaseSubscription = widget.services.purchases.updates.listen(
         _handlePurchaseUpdates,
         onError: (_) {},
       );
     }
+  }
+
+  Future<void> _restoreAppState() async {
+    final preferences = await SharedPreferences.getInstance();
+    _state.restoreOnboarding(
+      preferences.getBool('briefai.onboarding-complete') ?? false,
+    );
+    if (mounted) setState(() => _restored = true);
+  }
+
+  Future<void> _completeOnboarding() async {
+    _state.completeOnboarding();
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('briefai.onboarding-complete', true);
   }
 
   Future<void> _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
@@ -63,9 +80,13 @@ class _BriefAiAppState extends State<BriefAiApp> {
       title: 'BriefAI Germany',
       debugShowCheckedModeBanner: false,
       theme: _theme(),
-      home: _state.onboardingComplete
+      home: !_restored
+          ? const SplashScreen()
+          : _state.onboardingComplete
           ? AppShell(state: _state, services: widget.services)
-          : OnboardingScreen(onComplete: _state.completeOnboarding),
+          : OnboardingScreen(
+              onComplete: () => unawaited(_completeOnboarding()),
+            ),
     ),
   );
 
@@ -98,6 +119,58 @@ class _BriefAiAppState extends State<BriefAiApp> {
       ),
     );
   }
+}
+
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    backgroundColor: Color(0xFF0B1533),
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFF315CFF), Color(0xFF9C76FF)],
+              ),
+            ),
+            child: SizedBox(
+              width: 94,
+              height: 94,
+              child: Icon(Icons.auto_awesome, color: Colors.white, size: 44),
+            ),
+          ),
+          SizedBox(height: 18),
+          Text(
+            'BriefAI Germany',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Razumi nemačko pismo.',
+            style: TextStyle(color: Color(0xFFC7D5FF)),
+          ),
+          SizedBox(height: 28),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Color(0xFFC7D5FF),
+              strokeWidth: 2.5,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class OnboardingScreen extends StatefulWidget {
