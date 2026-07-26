@@ -794,17 +794,38 @@ class _ResponseScreenState extends State<ResponseScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: snapshot.hasData
-                  ? () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Odgovor je spreman za kopiranje.'),
-                      ),
-                    )
-                  : null,
-              icon: const Icon(Icons.copy),
-              label: const Text('Kopiraj odgovor'),
-            ),
+            if (snapshot.hasData) ...[
+              FilledButton.icon(
+                onPressed: () async {
+                  await widget.services.exports.copy(snapshot.data!);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Odgovor je kopiran.')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.copy),
+                label: const Text('Kopiraj odgovor'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => widget.services.exports.composeEmail(
+                  subject: 'Odgovor na: ${widget.letter.title}',
+                  body: snapshot.data!,
+                ),
+                icon: const Icon(Icons.email_outlined),
+                label: const Text('Pošalji e-mail'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => widget.services.exports.savePdf(
+                  title: 'BriefAI Germany — ${widget.letter.title}',
+                  body: snapshot.data!,
+                ),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Sačuvaj PDF'),
+              ),
+            ],
           ],
         ),
       ),

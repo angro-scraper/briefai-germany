@@ -10,9 +10,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:uuid/uuid.dart';
@@ -36,6 +39,7 @@ class AppServices {
     required this.entitlements,
     required this.reminders,
     required this.purchases,
+    required this.exports,
   });
 
   final bool cloudEnabled;
@@ -46,6 +50,7 @@ class AppServices {
   final EntitlementService entitlements;
   final ReminderService reminders;
   final PurchaseService purchases;
+  final ReplyExportService exports;
 
   static Future<AppServices> bootstrap() async {
     var cloudEnabled = false;
@@ -78,6 +83,7 @@ class AppServices {
       entitlements: EntitlementService(cloudEnabled: cloudEnabled),
       reminders: reminders,
       purchases: PurchaseService(cloudEnabled: cloudEnabled),
+      exports: ReplyExportService(),
     );
   }
 }
@@ -595,6 +601,37 @@ class PurchaseService {
         )) {
       throw StateError('Stripe Checkout nije moguće otvoriti.');
     }
+  }
+}
+
+class ReplyExportService {
+  Future<void> copy(String reply) => Clipboard.setData(ClipboardData(text: reply));
+
+  Future<void> composeEmail({required String subject, required String body}) async {
+    final mailto = Uri(
+      scheme: 'mailto',
+      queryParameters: {'subject': subject, 'body': body},
+    );
+    if (!await launchUrl(mailto)) {
+      throw StateError('Aplikacija za e-mail nije dostupna na ovom uređaju.');
+    }
+  }
+
+  Future<void> savePdf({required String title, required String body}) async {
+    final document = pw.Document();
+    document.addPage(
+      pw.MultiPage(
+        build: (_) => [
+          pw.Header(level: 0, child: pw.Text(title)),
+          pw.SizedBox(height: 16),
+          pw.Paragraph(text: body),
+        ],
+      ),
+    );
+    await Printing.sharePdf(
+      bytes: await document.save(),
+      filename: 'briefai-odgovor.pdf',
+    );
   }
 }
 
