@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -325,9 +326,15 @@ class _AppShellState extends State<AppShell> {
               .listen(widget.state.setFreeAnalysesUsed);
         } else {
           widget.state.setPremium(false);
-          widget.state.setFreeAnalysesUsed(0);
+          _usageSubscription = widget.services.entitlements
+              .watchFreeUsage('local-device')
+              .listen(widget.state.setFreeAnalysesUsed);
         }
       });
+    } else {
+      _usageSubscription = widget.services.entitlements
+          .watchFreeUsage('local-device')
+          .listen(widget.state.setFreeAnalysesUsed);
     }
   }
 
@@ -482,7 +489,22 @@ class HomeScreen extends StatelessWidget {
             text: 'Još nemate sačuvanih pisama.',
           )
         else
-          ...state.letters.take(3).map((letter) => LetterCard(letter: letter)),
+          ...state.letters
+              .take(3)
+              .map(
+                (letter) => LetterCard(
+                  letter: letter,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ResultScreen(
+                        state: state,
+                        letter: letter,
+                        services: services,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
       ],
     );
   }
@@ -608,10 +630,7 @@ class AnalysisScreen extends StatefulWidget {
 }
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
-  final _text = TextEditingController(
-    text:
-        'Finanzamt\nBitte reichen Sie die Unterlagen bis zum 05.08.2026 ein. Betrag: 120,00 EUR.',
-  );
+  final _text = TextEditingController();
   bool _loading = false;
   PickedDocument? _document;
   @override
@@ -636,7 +655,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Slike se poboljšavaju na uređaju pre privatnog uploada. Produkcija koristi serverski OCR, a lokalni razvoj ML Kit OCR. Za proveru možete uneti ili nalepiti tekst dokumenta.',
+            'Slika ili PDF obrađuju se lokalno na ovom uređaju. Original, OCR tekst i analiza ne šalju se u cloud arhivu. Tekst možete uneti i ručno.',
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -718,6 +737,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         analysis,
         document: _document,
       );
+      if (!widget.state.isPremium) {
+        await widget.services.entitlements.recordAnalysis(
+          widget.services.auth.uid ?? 'local-device',
+        );
+      }
       widget.state.addAnalysis(analysis);
       // A notification permission or OEM scheduler failure must never hide a
       // completed AI result. The analysis remains available even if reminders
@@ -807,6 +831,24 @@ class ResultScreen extends StatelessWidget {
           content: letter.suggestedAction,
         ),
         const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final document = await services.letters.loadDocument(letter.id);
+            if (!context.mounted) return;
+            if (document == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Originalni dokument nije sačuvan uz analizu.'),
+                ),
+              );
+              return;
+            }
+            await services.exports.shareDocument(document);
+          },
+          icon: const Icon(Icons.attach_file_rounded),
+          label: const Text('Otvori ili preuzmi original'),
+        ),
+        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -978,13 +1020,48 @@ class ArchiveScreen extends StatelessWidget {
         ...state.letters.map(
           (letter) => LetterCard(
             letter: letter,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ResultScreen(
+                  state: state,
+                  letter: letter,
+                  services: services,
+                ),
+              ),
+            ),
             onStatus: (status) async {
               state.updateStatus(letter.id, status);
-              final uid = services.auth.uid;
-              if (uid != null) {
-                await services.letters.updateStatus(uid, letter.id, status);
-              }
+              await services.letters.updateStatus(
+                'local-device',
+                letter.id,
+                status,
+              );
             },
+            onDelete: () => showDialog<void>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Obrisati dokument?'),
+                content: const Text(
+                  'Original, OCR tekst i analiza biće trajno obrisani samo sa ovog uređaja.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Odustani'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      await services.letters.delete(letter.id);
+                      await services.reminders.cancel(letter.id);
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
+                    },
+                    child: const Text('Obriši'),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
     ],
@@ -1258,8 +1335,10 @@ class ProfileScreen extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.download_outlined),
           title: const Text('Preuzmi moje podatke'),
-          subtitle: const Text('JSON izvoz profila, arhive i pretplate'),
-          onTap: () => _exportAccountData(context, services),
+          subtitle: const Text(
+            'Lokalni JSON izvoz profila, analiza i originalnih dokumenata',
+          ),
+          onTap: () => _exportAccountData(context, state, services),
         ),
       if (services.cloudEnabled && services.auth.isSignedIn)
         ListTile(
@@ -1270,7 +1349,7 @@ class ProfileScreen extends StatelessWidget {
             builder: (dialogContext) => AlertDialog(
               title: const Text('Obrisati nalog?'),
               content: const Text(
-                'Ova radnja trajno briše dokumente, analize i korisnički nalog.',
+                'Ova radnja trajno briše lokalne dokumente, OCR tekst, analize, podsetnike i korisnički nalog. Aktivnu Store pretplatu morate posebno otkazati u prodavnici.',
               ),
               actions: [
                 TextButton(
@@ -1279,9 +1358,25 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 FilledButton(
                   onPressed: () async {
-                    await services.auth.deleteAccount();
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop();
+                    try {
+                      await services.letters.clearAll();
+                      await services.reminders.cancelAll();
+                      state.replaceLetters(const []);
+                      await services.auth.deleteAccount();
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
+                    } on Object catch (error) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Lokalni podaci su obrisani, ali brisanje naloga '
+                              'nije završeno: $error',
+                            ),
+                          ),
+                        );
+                      }
                     }
                   },
                   child: const Text('Obriši'),
@@ -1306,14 +1401,23 @@ const _languageLabels = {
 
 Future<void> _exportAccountData(
   BuildContext context,
+  AppState state,
   AppServices services,
 ) async {
   try {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pripremam privatni izvoz podataka…')),
     );
-    final json = await services.auth.exportAccountData();
-    await services.exports.shareJsonExport(json);
+    final payload = <String, dynamic>{
+      'schemaVersion': 2,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'privacyModel':
+          'Original documents, OCR text and analyses are stored locally.',
+      'account': await services.auth.localAccountData(),
+      'premiumActive': state.isPremium,
+      'letters': await services.letters.exportRecords(),
+    };
+    await services.exports.shareJsonExport(jsonEncode(payload));
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1395,23 +1499,23 @@ class _LegalWarning extends StatelessWidget {
 const _privacySections = [
   (
     '1. Odgovorno lice i obim',
-    'BriefAI Germany obrađuje samo podatke potrebne za rad aplikacije: nalog, izabrani jezik, dokumente koje korisnik sam doda, OCR tekst, AI analize, status pretplate i uređajni token za podsetnike.',
+    'BriefAI Germany koristi podatke potrebne za rad aplikacije: nalog, lokalni profil i jezik, dokumente koje korisnik doda, OCR tekst, analize, status pretplate i, ako korisnik dozvoli, uređajni token za obaveštenja.',
   ),
   (
-    '2. Svrha i pravni osnov',
-    'Podaci se koriste radi pružanja analize pisama, generisanja odgovora, čuvanja arhive, slanja podsetnika i upravljanja pretplatom. Obrada se zasniva na izvršenju ugovora, vašem zahtevu i, gde je potrebno, vašoj saglasnosti.',
+    '2. Lokalno čuvanje dokumenata',
+    'Originalni dokument, lokalno prepoznati OCR tekst, analiza, odgovor i razgovor o pismu čuvaju se u lokalnom skladištu uređaja. BriefAI ih ne otprema u Firebase Storage niti u Firestore arhivu. Brisanje podataka pregledača ili aplikacije može nepovratno ukloniti ovu lokalnu arhivu.',
   ),
   (
-    '3. Primaoci podataka',
-    'Za pružanje usluge mogu se koristiti Firebase/Google Cloud za autentifikaciju, bazu, privatno skladište i obaveštenja; Google Document AI za OCR; OpenAI za AI obradu; Stripe samo za web naplatu; i Apple/Google za mobilne pretplate. Dokumenti se ne objavljuju javno.',
+    '3. Obrada i primaoci',
+    'Firebase se koristi za autentifikaciju, status pretplate, ograničenje korišćenja i opcionalne push tokene. Kada je cloud AI uključen, samo OCR tekst potreban za trenutni zahtev šalje se OpenAI-ju radi analize ili odgovora i ne upisuje se u cloud arhivu. Stripe obrađuje web naplatu, a Apple ili Google mobilne pretplate.',
   ),
   (
     '4. Rok čuvanja i bezbednost',
-    'Dokumenti i analize čuvaju se do brisanja od strane korisnika ili naloga. Prenos je zaštićen, pristup je ograničen na vlasnika naloga, a push obaveštenja ne sadrže tekst pisma.',
+    'Lokalni dokumenti i analize ostaju na uređaju do pojedinačnog brisanja, brisanja naloga ili podataka aplikacije. Prenos naloga i kratkotrajnog AI zahteva je zaštićen, a podsetnici na zaključanom ekranu ne sadrže tekst pisma.',
   ),
   (
     '5. Vaša prava',
-    'Možete pristupiti, ispraviti, izvesti ili obrisati svoje podatke u aplikaciji. Za dodatne zahteve, ograničenje obrade ili prigovor koristite kontakt naveden na kraju ovog dokumenta.',
+    'U aplikaciji možete ispraviti profil, napraviti lokalni JSON izvoz koji uključuje analize i originalne dokumente u Base64 obliku ili trajno obrisati lokalne podatke i nalog. Za dodatne zahteve koristite kontakt na kraju dokumenta.',
   ),
 ];
 
@@ -1638,12 +1742,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 }
 
 class LetterCard extends StatelessWidget {
-  const LetterCard({super.key, required this.letter, this.onStatus});
+  const LetterCard({
+    super.key,
+    required this.letter,
+    this.onStatus,
+    this.onDelete,
+    this.onTap,
+  });
   final LetterAnalysis letter;
   final ValueChanged<LetterStatus>? onStatus;
+  final VoidCallback? onDelete;
+  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => Card(
     child: ListTile(
+      onTap: onTap,
       leading: CircleAvatar(
         child: Icon(
           letter.urgency == Urgency.high
@@ -1655,23 +1768,36 @@ class LetterCard extends StatelessWidget {
       subtitle: Text(
         '${letter.category.label}${letter.deadline == null ? '' : ' • Rok ${letter.deadline!.day}.${letter.deadline!.month}.'}',
       ),
-      trailing: onStatus == null
+      trailing: onStatus == null && onDelete == null
           ? null
-          : PopupMenuButton<LetterStatus>(
-              onSelected: onStatus,
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: LetterStatus.newLetter,
-                  child: Text('Novo'),
-                ),
-                PopupMenuItem(
-                  value: LetterStatus.inProgress,
-                  child: Text('Rešavam'),
-                ),
-                PopupMenuItem(
-                  value: LetterStatus.done,
-                  child: Text('Završeno'),
-                ),
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onDelete != null)
+                  IconButton(
+                    tooltip: 'Obriši dokument',
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                if (onStatus != null)
+                  PopupMenuButton<LetterStatus>(
+                    tooltip: 'Promeni status',
+                    onSelected: onStatus,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: LetterStatus.newLetter,
+                        child: Text('Novo'),
+                      ),
+                      PopupMenuItem(
+                        value: LetterStatus.inProgress,
+                        child: Text('Rešavam'),
+                      ),
+                      PopupMenuItem(
+                        value: LetterStatus.done,
+                        child: Text('Završeno'),
+                      ),
+                    ],
+                  ),
               ],
             ),
     ),

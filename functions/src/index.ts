@@ -482,17 +482,16 @@ export const exportAccountData = onCall(
   {region: "europe-west3", enforceAppCheck: true, timeoutSeconds: 120, memory: "512MiB"},
   async (request) => {
     const uid = requireUser(request.auth?.uid);
-    const [profile, letters, subscription] = await Promise.all([
+    const [profile, subscription] = await Promise.all([
       db.collection("users").doc(uid).get(),
-      db.collection("users").doc(uid).collection("letters").orderBy("createdAt", "desc").get(),
       db.collection("subscriptions").doc(uid).get(),
     ]);
     const payload = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: new Date().toISOString(),
       profile: profile.data() ?? {},
       subscription: subscription.data() ?? null,
-      letters: letters.docs.map((letter) => ({id: letter.id, ...letter.data()})),
+      localDataNotice: "Original documents, OCR text, analyses and chat are stored only on the user's device and are exported by the client application.",
     };
     const bytes = Buffer.from(JSON.stringify(payload), "utf8");
     // Firebase Storage's client getData limit below intentionally matches this

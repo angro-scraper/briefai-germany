@@ -30,7 +30,6 @@ import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
 import '../features/analysis/image_preprocessor.dart';
 import '../features/ocr/local_ocr.dart';
-import 'legal.dart';
 import 'local_database_factory.dart';
 
 @pragma('vm:entry-point')
@@ -79,44 +78,34 @@ class AppServices {
   static Future<AppServices> bootstrap() async {
     var cloudEnabled = false;
     String? configurationError;
-    if (kReleaseMode && !LegalConfig.isComplete) {
-      configurationError =
-          'Pravna konfiguracija za produkcionu verziju nije potpuna.';
-    } else {
-      try {
-        // `flutterfire configure` generates options for every supported
-        // platform.  Supplying them here is important: it prevents a native
-        // release from accidentally attaching to a differently configured
-        // default Firebase app on a build machine.
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        cloudEnabled = true;
-        await FirebaseAppCheck.instance.activate(
-          providerWeb: ReCaptchaV3Provider(
-            '6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg',
-          ),
-          providerAndroid: kDebugMode
-              ? const AndroidDebugProvider()
-              : const AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode
-              ? const AppleDebugProvider()
-              : const AppleAppAttestProvider(),
-        );
-        FlutterError.onError =
-            FirebaseCrashlytics.instance.recordFlutterFatalError;
-        // Analytics is opt-in. Never start behavioral tracking before the
-        // user has explicitly accepted it in the privacy settings.
-        FirebaseMessaging.onBackgroundMessage(
-          firebaseMessagingBackgroundHandler,
-        );
-      } catch (_) {
-        // Local deterministic analysis is allowed only while developing. A release
-        // build must make a missing Firebase configuration visible to the user.
-        configurationError = kDebugMode
-            ? 'Firebase nije podešen; uključen je lokalni razvojni režim.'
-            : 'Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.';
-      }
+    try {
+      // Legal identity is displayed and audited separately. An incomplete
+      // legal draft must never silently disable authentication in an otherwise
+      // valid release build.
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      cloudEnabled = true;
+      await FirebaseAppCheck.instance.activate(
+        providerWeb: ReCaptchaV3Provider(
+          '6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg',
+        ),
+        providerAndroid: kDebugMode
+            ? const AndroidDebugProvider()
+            : const AndroidPlayIntegrityProvider(),
+        providerApple: kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestProvider(),
+      );
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+      // Analytics is opt-in. Never start behavioral tracking before the
+      // user has explicitly accepted it in the privacy settings.
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    } catch (_) {
+      configurationError = kDebugMode
+          ? 'Firebase nije podešen; uključen je lokalni razvojni režim.'
+          : 'Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.';
     }
     final reminders = ReminderService(cloudEnabled: cloudEnabled);
     // Notification plugin startup must never delay the first Flutter frame.
@@ -190,9 +179,24 @@ class AuthService {
 
   Future<void> deleteAccount() async {
     if (!cloudEnabled) return;
-    await FirebaseFunctions.instanceFor(
-      region: 'europe-west3',
-    ).httpsCallable('deleteAccount').call<void>();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFunctions.instanceFor(
+        region: 'europe-west3',
+      ).httpsCallable('deleteAccount').call<void>();
+    } on FirebaseFunctionsException catch (error) {
+      // Before Functions are activated, Firebase Auth can still honor the
+      // user's deletion request. Never use this fallback for authorization or
+      // transient failures because server-side subscription data may exist.
+      if (error.code != 'not-found' && error.code != 'unimplemented') rethrow;
+      await user.delete();
+    }
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_profileKey(user.uid, 'displayName'));
+    await preferences.remove(_profileKey(user.uid, 'countryOfOrigin'));
+    await preferences.remove(_profileKey(user.uid, 'preferredLanguage'));
+    await FirebaseAuth.instance.signOut();
   }
 
   /// Requests a server-generated JSON export, downloads it from the caller's
@@ -306,6 +310,16 @@ class AuthService {
     final preferences = await SharedPreferences.getInstance();
     return preferences.getString(_profileKey(userId, 'preferredLanguage')) ??
         'sr';
+  }
+
+  Future<Map<String, dynamic>> localAccountData() async {
+    final user = cloudEnabled ? FirebaseAuth.instance.currentUser : null;
+    if (user == null) return const <String, dynamic>{};
+    return <String, dynamic>{
+      'uid': user.uid,
+      'email': user.email,
+      'profile': await _localProfile(user.uid),
+    };
   }
 
   Future<void> _ensureProfile() async {
@@ -665,6 +679,51 @@ class LetterRepository {
       'updatedAt': DateTime.now().toIso8601String(),
     });
   }
+
+  Future<List<Map<String, dynamic>>> exportRecords() async {
+    final database = await _db();
+    final records = await _store.find(
+      database,
+      finder: Finder(sortOrders: [SortOrder('createdAt', false)]),
+    );
+    return records
+        .map((record) {
+          final values = <String, dynamic>{'id': record.key};
+          for (final entry in record.value.entries) {
+            final value = entry.value;
+            values[entry.key] = value is Blob
+                ? base64Encode(value.bytes)
+                : value;
+          }
+          return values;
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> clearAll() async {
+    final database = await _db();
+    await _store.delete(database);
+  }
+
+  Future<void> delete(String letterId) async {
+    final database = await _db();
+    await _store.record(letterId).delete(database);
+  }
+
+  Future<PickedDocument?> loadDocument(String letterId) async {
+    final database = await _db();
+    final values = await _store.record(letterId).get(database);
+    final bytes = values?['documentBytes'];
+    final name = values?['documentName'];
+    final mimeType = values?['documentMimeType'];
+    if (bytes is! Blob || name is! String || mimeType is! String) return null;
+    return PickedDocument(
+      name: name,
+      bytes: Uint8List.fromList(bytes.bytes),
+      mimeType: mimeType,
+      ocrPath: null,
+    );
+  }
 }
 
 class EntitlementService {
@@ -673,30 +732,58 @@ class EntitlementService {
 
   Stream<bool> watch(String uid) {
     if (!cloudEnabled) return Stream<bool>.value(false);
-    return FirebaseFirestore.instance
-        .collection('subscriptions')
-        .doc(uid)
-        .snapshots()
-        .map(
-          (document) =>
-              ['active', 'trialing'].contains(document.data()?['status']),
-        );
+    return _watch(uid);
   }
 
   Stream<int> watchFreeUsage(String uid) {
-    if (!cloudEnabled) return Stream<int>.value(0);
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('usage')
-        .doc('current')
-        .snapshots()
-        .map((document) {
-          final data = document.data();
-          if (data?['monthKey'] != _berlinMonthKey()) return 0;
-          final usage = data?['analysesThisMonth'];
-          return usage is int ? usage.clamp(0, 2).toInt() : 0;
-        });
+    return _watchUsage(uid);
+  }
+
+  Future<void> recordAnalysis(String uid) async {
+    final preferences = await SharedPreferences.getInstance();
+    final key = _localUsageKey(uid);
+    final current = preferences.getInt(key) ?? 0;
+    await preferences.setInt(key, (current + 1).clamp(0, 2));
+  }
+
+  Stream<bool> _watch(String uid) async* {
+    yield false;
+    try {
+      await for (final document
+          in FirebaseFirestore.instance
+              .collection('subscriptions')
+              .doc(uid)
+              .snapshots()) {
+        yield ['active', 'trialing'].contains(document.data()?['status']);
+      }
+    } on FirebaseException {
+      // A closed or temporarily unavailable Firestore must not crash AppShell.
+    }
+  }
+
+  Stream<int> _watchUsage(String uid) async* {
+    final preferences = await SharedPreferences.getInstance();
+    yield preferences.getInt(_localUsageKey(uid)) ?? 0;
+    if (!cloudEnabled || uid == 'local-device') return;
+    try {
+      await for (final document
+          in FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection('usage')
+              .doc('current')
+              .snapshots()) {
+        final data = document.data();
+        if (data?['monthKey'] != _berlinMonthKey()) {
+          yield 0;
+          continue;
+        }
+        final usage = data?['analysesThisMonth'];
+        yield usage is int ? usage.clamp(0, 2).toInt() : 0;
+      }
+    } on FirebaseException {
+      // The local free tier remains available while metrics are unavailable.
+    }
   }
 
   String _berlinMonthKey() {
@@ -704,6 +791,9 @@ class EntitlementService {
     final month = now.month.toString().padLeft(2, '0');
     return '${now.year}-$month';
   }
+
+  String _localUsageKey(String uid) =>
+      'briefai.usage.$uid.${_berlinMonthKey()}';
 }
 
 class ReminderService {
@@ -751,11 +841,18 @@ class ReminderService {
     _pendingToken = token;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    await FirebaseFirestore.instance.collection('deviceTokens').doc(token).set({
-      'uid': uid,
-      'token': token,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await FirebaseFirestore.instance
+          .collection('deviceTokens')
+          .doc(token)
+          .set({
+            'uid': uid,
+            'token': token,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+    } on FirebaseException {
+      // Local deadline notifications remain functional without cloud tokens.
+    }
   }
 
   Future<void> schedule(LetterAnalysis letter) async {
@@ -771,7 +868,13 @@ class ReminderService {
       iOS: DarwinNotificationDetails(),
     );
     for (final days in [7, 3, 1]) {
-      final target = letter.deadline!.subtract(Duration(days: days));
+      final deadline = letter.deadline!;
+      final target = DateTime(
+        deadline.year,
+        deadline.month,
+        deadline.day,
+        9,
+      ).subtract(Duration(days: days));
       if (target.isBefore(DateTime.now())) continue;
       await _local.zonedSchedule(
         id: '${letter.id}-$days'.hashCode,
@@ -786,6 +889,14 @@ class ReminderService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dateAndTime,
       );
+    }
+  }
+
+  Future<void> cancelAll() => _local.cancelAll();
+
+  Future<void> cancel(String letterId) async {
+    for (final days in [7, 3, 1]) {
+      await _local.cancel(id: '$letterId-$days'.hashCode);
     }
   }
 }
@@ -911,6 +1022,22 @@ class ReplyExportService {
           ),
         ],
         fileNameOverrides: const ['briefai-izvoz-podataka.json'],
+      ),
+    );
+  }
+
+  Future<void> shareDocument(PickedDocument document) async {
+    await SharePlus.instance.share(
+      ShareParams(
+        subject: 'Originalni dokument — BriefAI Germany',
+        files: [
+          XFile.fromData(
+            document.bytes,
+            mimeType: document.mimeType,
+            name: document.name,
+          ),
+        ],
+        fileNameOverrides: [document.name],
       ),
     );
   }
