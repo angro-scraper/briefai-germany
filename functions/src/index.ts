@@ -4,10 +4,12 @@ import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {getMessaging} from "firebase-admin/messaging";
 import {DocumentProcessorServiceClient} from "@google-cloud/documentai";
+import {GoogleAuth} from "google-auth-library";
 import Stripe from "stripe";
 import {defineSecret, defineString} from "firebase-functions/params";
 import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
 import OpenAI from "openai";
+import {createHash, createSign} from "node:crypto";
 
 initializeApp();
 
@@ -18,6 +20,15 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const stripePremiumPriceId = defineString("STRIPE_PREMIUM_PRICE_ID");
 const stripeProPriceId = defineString("STRIPE_PRO_PRICE_ID");
+const webAppOrigin = defineString("WEB_APP_ORIGIN");
+const androidPackageName = defineString("ANDROID_PACKAGE_NAME");
+const appleBundleId = defineString("APPLE_BUNDLE_ID");
+const appleIssuerId = defineString("APPLE_APP_STORE_ISSUER_ID");
+const appleKeyId = defineString("APPLE_APP_STORE_KEY_ID");
+const appleEnvironment = defineString("APPLE_APP_STORE_ENV");
+const googlePlayServiceAccountJson = defineSecret("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON");
+const appleAppStorePrivateKey = defineSecret("APPLE_APP_STORE_PRIVATE_KEY");
+const storeProductIds = new Set(["briefai_premium_monthly", "briefai_pro_monthly"]);
 const allowedCategories = [
   "Finanzamt", "Krankenkasse", "Jobcenter", "Banka", "Osiguranje",
   "Telekom", "Poslodavac", "Stanodavac", "Škola", "Vrtić", "Sud", "Ostalo",
@@ -70,10 +81,103 @@ function isAllowedReturnUrl(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || (process.env.FUNCTIONS_EMULATOR === "true" && url.protocol === "http:");
+    const configuredOrigin = new URL(webAppOrigin.value());
+    return url.origin === configuredOrigin.origin &&
+      (url.protocol === "https:" || (process.env.FUNCTIONS_EMULATOR === "true" && url.protocol === "http:"));
   } catch {
     return false;
   }
+}
+
+function base64UrlJson(value: Record<string, unknown>): string {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function decodeJwsPayload(value: string): Record<string, unknown> {
+  const payload = value.split(".")[1];
+  if (!payload) throw new HttpsError("failed-precondition", "Apple nije vratio validan potpisani odgovor.");
+  try {
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
+  } catch {
+    throw new HttpsError("failed-precondition", "Apple odgovor nije moguće pročitati.");
+  }
+}
+
+function appleApiToken(): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64UrlJson({alg: "ES256", kid: appleKeyId.value(), typ: "JWT"});
+  const payload = base64UrlJson({
+    iss: appleIssuerId.value(),
+    iat: now,
+    exp: now + 300,
+    aud: "appstoreconnect-v1",
+    bid: appleBundleId.value(),
+  });
+  const signer = createSign("SHA256");
+  signer.update(`${header}.${payload}`);
+  signer.end();
+  const signature = signer.sign({key: appleAppStorePrivateKey.value(), dsaEncoding: "ieee-p1363"});
+  return `${header}.${payload}.${signature.toString("base64url")}`;
+}
+
+function storeTransactionRef(provider: string, value: string) {
+  const digest = createHash("sha256").update(`${provider}:${value}`).digest("hex");
+  return db.collection("storeTransactions").doc(digest);
+}
+
+async function verifyGooglePlaySubscription(purchaseToken: string, productId: string) {
+  let credentials: Record<string, unknown>;
+  try {
+    credentials = JSON.parse(googlePlayServiceAccountJson.value()) as Record<string, unknown>;
+  } catch {
+    throw new HttpsError("failed-precondition", "Google Play servisni nalog nije konfigurisan.");
+  }
+  const auth = new GoogleAuth({
+    credentials,
+    scopes: ["https://www.googleapis.com/auth/androidpublisher"],
+  });
+  const client = await auth.getClient();
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(androidPackageName.value())}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
+  try {
+    const response = await client.request<Record<string, unknown>>({url});
+    const data = response.data;
+    const lineItems = Array.isArray(data.lineItems) ? data.lineItems : [];
+    const productMatches = lineItems.some((item) =>
+      typeof item === "object" && item !== null && (item as Record<string, unknown>).productId === productId,
+    );
+    const state = data.subscriptionState;
+    const active = state === "SUBSCRIPTION_STATE_ACTIVE" ||
+      state === "SUBSCRIPTION_STATE_IN_GRACE_PERIOD" ||
+      state === "SUBSCRIPTION_STATE_CANCELED";
+    const expiry = lineItems
+      .map((item) => typeof item === "object" && item !== null ? (item as Record<string, unknown>).expiryTime : null)
+      .find((value): value is string => typeof value === "string");
+    return {active: productMatches && active, status: String(state ?? "unknown"), expiresAt: expiry ?? null};
+  } catch {
+    throw new HttpsError("failed-precondition", "Google Play nije potvrdio pretplatu.");
+  }
+}
+
+async function verifyAppleSubscription(transactionId: string, productId: string) {
+  const sandbox = appleEnvironment.value().toLowerCase() === "sandbox";
+  const host = sandbox ? "https://api.storekit-sandbox.apple.com" : "https://api.storekit.apple.com";
+  const response = await fetch(`${host}/inApps/v1/subscriptions/${encodeURIComponent(transactionId)}`, {
+    headers: {Authorization: `Bearer ${appleApiToken()}`},
+  });
+  if (!response.ok) throw new HttpsError("failed-precondition", "App Store nije potvrdio pretplatu.");
+  const data = await response.json() as {data?: Array<{lastTransactions?: Array<{status?: number; signedTransactionInfo?: string}>}>};
+  const transactions = data.data?.flatMap((group) => group.lastTransactions ?? []) ?? [];
+  for (const transaction of transactions) {
+    if (!transaction.signedTransactionInfo) continue;
+    const payload = decodeJwsPayload(transaction.signedTransactionInfo);
+    const expiresDate = typeof payload.expiresDate === "number" ? payload.expiresDate : 0;
+    const matchingProduct = payload.productId === productId && payload.bundleId === appleBundleId.value();
+    const activeStatus = transaction.status === 1 || transaction.status === 4;
+    if (matchingProduct && activeStatus && expiresDate > Date.now()) {
+      return {active: true, status: transaction.status === 4 ? "grace_period" : "active", expiresAt: new Date(expiresDate).toISOString()};
+    }
+  }
+  return {active: false, status: "inactive", expiresAt: null};
 }
 
 // Accepts only OCR text. Binary documents stay private in Storage and are not
@@ -201,6 +305,53 @@ export const createStripeCheckout = onCall(
     });
     if (!session.url) throw new HttpsError("internal", "Stripe nije vratio Checkout URL.");
     return {url: session.url};
+  },
+);
+
+// Native stores provide only a proof of purchase to the client. This callable
+// verifies that proof with the store and is the sole path that writes the
+// entitlement; the client can never grant itself Premium access.
+export const verifyStorePurchase = onCall(
+  {
+    region: "europe-west3",
+    enforceAppCheck: true,
+    secrets: [googlePlayServiceAccountJson, appleAppStorePrivateKey],
+  },
+  async (request) => {
+    const uid = requireUser(request.auth?.uid);
+    const provider = requireString(request.data?.provider, "provider", 32);
+    const productId = requireString(request.data?.productId, "productId", 128);
+    const verificationData = requireString(request.data?.verificationData, "verificationData", 30000);
+    const purchaseId = typeof request.data?.purchaseId === "string" ? request.data.purchaseId : verificationData;
+    if (!storeProductIds.has(productId)) throw new HttpsError("invalid-argument", "Nepoznat store proizvod.");
+    const verification = provider === "google_play"
+      ? await verifyGooglePlaySubscription(verificationData, productId)
+      : provider === "app_store"
+      ? await verifyAppleSubscription(purchaseId, productId)
+      : null;
+    if (!verification) throw new HttpsError("invalid-argument", "Nepoznat store provajder.");
+    const transactionRef = storeTransactionRef(provider, verificationData);
+    await db.runTransaction(async (transaction) => {
+      const prior = await transaction.get(transactionRef);
+      if (prior.exists && prior.data()?.uid !== uid) {
+        throw new HttpsError("permission-denied", "Ova store transakcija je već povezana sa drugim nalogom.");
+      }
+      transaction.set(transactionRef, {
+        uid,
+        provider,
+        productId,
+        status: verification.status,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, {merge: true});
+      transaction.set(db.collection("subscriptions").doc(uid), {
+        provider,
+        plan: productId === "briefai_pro_monthly" ? "pro" : "premium",
+        status: verification.active ? "active" : "inactive",
+        expiresAt: verification.expiresAt,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, {merge: true});
+    });
+    return {isActive: verification.active};
   },
 );
 

@@ -238,7 +238,11 @@ class DocumentService {
     return PickedDocument(
       name: selected.name,
       bytes: selected.bytes!,
-      mimeType: isPdf ? 'application/pdf' : 'image/jpeg',
+      mimeType: isPdf
+          ? 'application/pdf'
+          : lower.endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg',
       ocrPath: isPdf ? null : selected.path,
     );
   }
@@ -307,7 +311,9 @@ class DocumentService {
     return PickedDocument(
       name: file.name,
       bytes: await file.readAsBytes(),
-      mimeType: 'image/jpeg',
+      mimeType: file.name.toLowerCase().endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg',
       ocrPath: file.path,
     );
   }
@@ -510,8 +516,36 @@ class PurchaseService {
 
   Stream<List<PurchaseDetails>> get updates =>
       InAppPurchase.instance.purchaseStream;
-  Future<void> buy(ProductDetails product) => InAppPurchase.instance
-      .buyNonConsumable(purchaseParam: PurchaseParam(productDetails: product));
+  Future<void> buy(ProductDetails product) {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (!cloudEnabled || userId == null) {
+      throw StateError('Prijavite se pre kupovine pretplate.');
+    }
+    return InAppPurchase.instance.buyNonConsumable(
+      purchaseParam: PurchaseParam(
+        productDetails: product,
+        applicationUserName: userId,
+      ),
+    );
+  }
+
+  Future<bool> verifyPurchase(PurchaseDetails purchase) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (!cloudEnabled || userId == null) return false;
+    final provider = purchase.verificationData.source;
+    if (provider != 'google_play' && provider != 'app_store') return false;
+    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('verifyStorePurchase')
+        .call<Map<Object?, Object?>>({
+          'provider': provider,
+          'productId': purchase.productID,
+          'purchaseId': purchase.purchaseID,
+          'verificationData': purchase.verificationData.serverVerificationData,
+        });
+    return result.data['isActive'] == true;
+  }
+
+  Future<void> restore() => InAppPurchase.instance.restorePurchases();
   Future<void> complete(PurchaseDetails purchase) =>
       InAppPurchase.instance.completePurchase(purchase);
 

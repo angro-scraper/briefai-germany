@@ -17,6 +17,43 @@ class BriefAiApp extends StatefulWidget {
 
 class _BriefAiAppState extends State<BriefAiApp> {
   final AppState _state = AppState();
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      _purchaseSubscription = widget.services.purchases.updates.listen(
+        _handlePurchaseUpdates,
+        onError: (_) {},
+      );
+    }
+  }
+
+  Future<void> _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
+    for (final purchase in purchases) {
+      if (purchase.status == PurchaseStatus.purchased ||
+          purchase.status == PurchaseStatus.restored) {
+        try {
+          if (await widget.services.purchases.verifyPurchase(purchase)) {
+            _state.setPremium(true);
+          }
+        } catch (_) {
+          // The server is authoritative. A failed verification never unlocks
+          // Premium, and the next store restore can retry it.
+        }
+      }
+      if (purchase.pendingCompletePurchase) {
+        await widget.services.purchases.complete(purchase);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _purchaseSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -1125,10 +1162,17 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  late final Future<ProductDetailsResponse> _products = widget
-      .services
-      .purchases
-      .products();
+  late final Future<ProductDetailsResponse> _products;
+
+  @override
+  void initState() {
+    super.initState();
+    _products = kIsWeb
+        ? Future.value(
+            ProductDetailsResponse(productDetails: const [], notFoundIDs: const []),
+          )
+        : widget.services.purchases.products();
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -1185,6 +1229,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   : () => _buy(productById[PurchaseService.proId]),
             ),
             const SizedBox(height: 12),
+            if (!kIsWeb)
+              OutlinedButton.icon(
+                onPressed: _restorePurchases,
+                icon: const Icon(Icons.restore),
+                label: const Text('Vrati kupovine'),
+              ),
+            if (!kIsWeb) const SizedBox(height: 12),
             Text(
               snapshot.hasError
                   ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
@@ -1235,6 +1286,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Stripe Checkout nije pokrenut: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    try {
+      await widget.services.purchases.restore();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Proveravamo ranije kupovine…')),
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Kupovine nije moguće vratiti: $error')),
         );
       }
     }

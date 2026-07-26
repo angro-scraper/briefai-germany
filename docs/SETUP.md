@@ -32,7 +32,7 @@ C:\flutter\bin\cache\dart-sdk\bin\dart.exe C:\flutter\bin\cache\flutter_tools.sn
 
 ### Stripe za web
 
-1. U Stripe-u napraviti mesečne recurring cene za Premium i Pro i njihove ID-jeve postaviti kao `STRIPE_PREMIUM_PRICE_ID` i `STRIPE_PRO_PRICE_ID` u `functions/.env`.
+1. U Stripe-u napraviti mesečne recurring cene za Premium i Pro i njihove ID-jeve postaviti kao `STRIPE_PREMIUM_PRICE_ID` i `STRIPE_PRO_PRICE_ID` u `functions/.env`. Postaviti i `WEB_APP_ORIGIN` na jedini dozvoljeni HTTPS origin Flutter web aplikacije; Checkout ne prihvata proizvoljne povratne URL-ove.
 2. Postaviti `STRIPE_SECRET_KEY` i `STRIPE_WEBHOOK_SECRET` pomoću `firebase functions:secrets:set`.
 3. U Stripe Dashboard-u dodati webhook endpoint `https://europe-west3-<project-id>.cloudfunctions.net/stripeWebhook` i uključiti najmanje `customer.subscription.created`, `customer.subscription.updated` i `customer.subscription.deleted` događaje.
 4. Flutter/web klijent poziva `createStripeCheckout`; Stripe webhook, a ne klijent, upisuje `subscriptions/{uid}` entitlement.
@@ -55,3 +55,11 @@ C:\flutter\bin\flutter.bat build appbundle --release
 ```
 
 Nakon `flutterfire configure`, proveriti da je generisani `lib/firebase_options.dart` uključen u `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`. Pre slanja u prodavnice, uneti i verifikovati proizvode `briefai_premium_monthly` i `briefai_pro_monthly`; entitlement se na produkciji ažurira isključivo posle server-side provere store transakcije.
+
+### Native pretplate: server-side provera
+
+Klijent nikada ne dodeljuje Premium lokalno. Posle kupovine ili restore-a šalje store dokaz funkciji `verifyStorePurchase`; funkcija proverava status kod prodavnice, veže hash dokaza za jedan korisnički nalog i tek tada upisuje `subscriptions/{uid}`.
+
+1. Dodati Firebase Secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` sa kompletnim JSON-om servisnog naloga kome je u Play Console dodeljen pristup aplikaciji i Google Play Developer API-ju. U `functions/.env` postaviti `ANDROID_PACKAGE_NAME`.
+2. Za App Store Server API dodati Firebase Secret `APPLE_APP_STORE_PRIVATE_KEY` (p8 ključ), a u `functions/.env` postaviti `APPLE_APP_STORE_ISSUER_ID`, `APPLE_APP_STORE_KEY_ID`, `APPLE_BUNDLE_ID` i `APPLE_APP_STORE_ENV` (`sandbox` za test, `production` za objavu).
+3. U Play Console i App Store Connect napraviti auto-renewable proizvode sa identifikatorima `briefai_premium_monthly` i `briefai_pro_monthly`. Testirati kupovinu i restore na stvarnom sandbox uređaju pre objave.
