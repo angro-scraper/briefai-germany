@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -712,6 +713,29 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) {
         Navigator.of(context).pop();
       }
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      if (error.code == 'unauthenticated') {
+        await widget.services.auth.signOut();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.text('sessionExpired'))),
+        );
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SignInScreen(services: widget.services),
+          ),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${context.strings.text('analysisFailed')}: '
+            '${error.message ?? context.strings.text('tryAgain')}',
+          ),
+        ),
+      );
     } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1754,11 +1778,15 @@ Future<bool> _ensureCloudAiAccess(
   AppServices services,
 ) async {
   if (!kCloudAiEnabled || !services.cloudEnabled) return true;
-  if (!services.auth.isSignedIn) {
+  final hasFreshSession = await services.auth.ensureFreshSession();
+  if (!context.mounted) return false;
+  if (!hasFreshSession) {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => SignInScreen(services: services)));
-    if (!context.mounted || !services.auth.isSignedIn) return false;
+    if (!context.mounted || !await services.auth.ensureFreshSession()) {
+      return false;
+    }
   }
   final preferences = await SharedPreferences.getInstance();
   if (preferences.getBool('cloudAiConsentV1') == true) return true;

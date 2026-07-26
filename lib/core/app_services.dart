@@ -145,6 +145,19 @@ class AuthService {
       cloudEnabled ? FirebaseAuth.instance.currentUser?.uid : null;
   String get localVaultKey => uid == null ? 'anonymous' : 'user:$uid';
 
+  Future<bool> ensureFreshSession() async {
+    if (!cloudEnabled) return false;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    try {
+      final token = await user.getIdToken(true);
+      return token != null && token.isNotEmpty;
+    } on FirebaseAuthException {
+      await FirebaseAuth.instance.signOut();
+      return false;
+    }
+  }
+
   Future<void> signInWithEmail(
     String email,
     String password, {
