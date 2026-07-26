@@ -195,6 +195,17 @@ class AuthService {
         .set(values, SetOptions(merge: true));
   }
 
+  /// Records a returning authenticated user without changing profile fields.
+  /// This keeps the admin panel's 30-day active-user metric accurate even
+  /// when the user stays signed in between app launches.
+  Future<void> touchActivity() async {
+    final userId = uid;
+    if (!cloudEnabled || userId == null) return;
+    await FirebaseFirestore.instance.collection('users').doc(userId).set({
+      'lastActiveAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<String> preferredLanguage() async {
     final userId = uid;
     if (!cloudEnabled || userId == null) return 'sr';

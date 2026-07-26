@@ -237,6 +237,7 @@ class _AppShellState extends State<AppShell> {
         _lettersSubscription?.cancel();
         _entitlementSubscription?.cancel();
         if (user != null) {
+          unawaited(widget.services.auth.touchActivity());
           unawaited(widget.services.reminders.syncToken());
           _lettersSubscription = widget.services.letters
               .watch(user.uid)
