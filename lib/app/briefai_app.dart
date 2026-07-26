@@ -1641,93 +1641,134 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  late final Future<ProductDetailsResponse> _products;
+  late final Future<
+    ({
+      ProductDetailsResponse products,
+      Map<String, String> wrapperPrices,
+      bool nativeWrapper,
+    })
+  >
+  _offers;
 
   @override
   void initState() {
     super.initState();
-    _products = kIsWeb
-        ? Future.value(
-            ProductDetailsResponse(
-              productDetails: const [],
-              notFoundIDs: const [],
-            ),
-          )
-        : widget.services.purchases.products();
+    _offers = () async {
+      if (kIsWeb) {
+        final nativeWrapper = await widget.services.purchases
+            .isNativeStoreWrapper();
+        return (
+          products: ProductDetailsResponse(
+            productDetails: const [],
+            notFoundIDs: const [],
+          ),
+          wrapperPrices: await widget.services.purchases.wrapperProductPrices(),
+          nativeWrapper: nativeWrapper,
+        );
+      }
+      return (
+        products: await widget.services.purchases.products(),
+        wrapperPrices: const <String, String>{},
+        nativeWrapper: false,
+      );
+    }();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Izaberite plan')),
-    body: FutureBuilder<ProductDetailsResponse>(
-      future: _products,
-      builder: (context, snapshot) {
-        final productById = {
-          for (final product
-              in snapshot.data?.productDetails ?? <ProductDetails>[])
-            product.id: product,
-        };
-        return ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              'Više sigurnosti, manje stresa.',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            _PlanCard(
-              title: 'FREE',
-              price: '0 €',
-              features: const ['2 analize mesečno'],
-              selected: !widget.state.isPremium,
-            ),
-            _PlanCard(
-              title: 'PREMIUM',
-              price:
-                  productById[PurchaseService.premiumId]?.price ??
-                  '4,99 € / mesečno',
-              features: const [
-                'Neograničene analize',
-                'AI odgovori i prevodi',
-                'Arhiva i podsetnici',
+    body:
+        FutureBuilder<
+          ({
+            ProductDetailsResponse products,
+            Map<String, String> wrapperPrices,
+            bool nativeWrapper,
+          })
+        >(
+          future: _offers,
+          builder: (context, snapshot) {
+            final productById = {
+              for (final product
+                  in snapshot.data?.products.productDetails ??
+                      <ProductDetails>[])
+                product.id: product,
+            };
+            final wrapperPrices =
+                snapshot.data?.wrapperPrices ?? const <String, String>{};
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text(
+                  'Više sigurnosti, manje stresa.',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _PlanCard(
+                  title: 'FREE',
+                  price: '0 €',
+                  features: const ['2 analize mesečno'],
+                  selected: !widget.state.isPremium,
+                ),
+                _PlanCard(
+                  title: 'PREMIUM',
+                  price:
+                      productById[PurchaseService.premiumId]?.price ??
+                      wrapperPrices[PurchaseService.premiumId] ??
+                      '4,99 € / mesečno',
+                  features: const [
+                    'Neograničene analize',
+                    'AI odgovori i prevodi',
+                    'Arhiva i podsetnici',
+                  ],
+                  action: kIsWeb
+                      ? () => _webCheckout('premium')
+                      : () => _buy(productById[PurchaseService.premiumId]),
+                ),
+                _PlanCard(
+                  title: 'PRO',
+                  price:
+                      productById[PurchaseService.proId]?.price ??
+                      wrapperPrices[PurchaseService.proId] ??
+                      '9,99 € / mesečno',
+                  features: const [
+                    'Za porodice i male firme',
+                    'Sve iz Premium paketa',
+                  ],
+                  action: kIsWeb
+                      ? () => _webCheckout('pro')
+                      : () => _buy(productById[PurchaseService.proId]),
+                ),
+                const SizedBox(height: 12),
+                if (!kIsWeb || snapshot.data?.nativeWrapper == true)
+                  OutlinedButton.icon(
+                    onPressed: _restorePurchases,
+                    icon: const Icon(Icons.restore),
+                    label: const Text('Vrati kupovine'),
+                  ),
+                if (widget.state.isPremium) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _manageSubscription,
+                    icon: const Icon(Icons.manage_accounts_outlined),
+                    label: const Text('Upravljaj ili otkaži pretplatu'),
+                  ),
+                ],
+                if (!kIsWeb || snapshot.data?.nativeWrapper == true)
+                  const SizedBox(height: 12),
+                Text(
+                  snapshot.hasError
+                      ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
+                      : kIsWeb && snapshot.data?.nativeWrapper != true
+                      ? 'Web pretplata se obrađuje preko Stripe Checkout-a. Entitlement aktivira potpisani webhook.'
+                      : 'Plaćanje se obrađuje preko Google Play Billing / Apple In-App Purchase. Entitlement se aktivira tek nakon serverske verifikacije.',
+                  textAlign: TextAlign.center,
+                ),
               ],
-              action: kIsWeb
-                  ? () => _webCheckout('premium')
-                  : () => _buy(productById[PurchaseService.premiumId]),
-            ),
-            _PlanCard(
-              title: 'PRO',
-              price:
-                  productById[PurchaseService.proId]?.price ??
-                  '9,99 € / mesečno',
-              features: const [
-                'Za porodice i male firme',
-                'Sve iz Premium paketa',
-              ],
-              action: kIsWeb
-                  ? () => _webCheckout('pro')
-                  : () => _buy(productById[PurchaseService.proId]),
-            ),
-            const SizedBox(height: 12),
-            if (!kIsWeb)
-              OutlinedButton.icon(
-                onPressed: _restorePurchases,
-                icon: const Icon(Icons.restore),
-                label: const Text('Vrati kupovine'),
-              ),
-            if (!kIsWeb) const SizedBox(height: 12),
-            Text(
-              snapshot.hasError
-                  ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
-                  : 'Plaćanje se obrađuje preko Google Play Billing / Apple In-App Purchase. Entitlement se aktivira tek nakon serverske verifikacije.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        );
-      },
-    ),
+            );
+          },
+        ),
   );
 
   Future<void> _buy(ProductDetails? product) async {
@@ -1785,6 +1826,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Kupovine nije moguće vratiti: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _manageSubscription() async {
+    try {
+      await widget.services.purchases.openSubscriptionManagement();
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pretplatu nije moguće otvoriti: $error')),
         );
       }
     }

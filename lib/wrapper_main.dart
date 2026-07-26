@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -44,15 +48,29 @@ class _WrapperScreen extends StatefulWidget {
 
 class _WrapperScreenState extends State<_WrapperScreen> {
   late final WebViewController _controller;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+  final List<Map<String, dynamic>> _purchaseQueue = [];
+  final Map<String, PurchaseDetails> _pendingCompletion = {};
+  String? _purchaseWaiter;
+  Timer? _purchaseWaiterTimer;
   var _progress = 0;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    if (kDebugMode && Platform.isAndroid) {
+      unawaited(AndroidWebViewController.enableDebugging(true));
+    }
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xfff5f7ff))
+      ..addJavaScriptChannel(
+        'BriefAiNative',
+        onMessageReceived: (message) {
+          unawaited(_handleNativeMessage(message.message));
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (progress) => setState(() => _progress = progress),
@@ -78,7 +96,171 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         ),
       )
       ..loadRequest(Uri.parse(_appUrl));
+    _purchaseSubscription = InAppPurchase.instance.purchaseStream.listen(
+      _handlePurchaseUpdates,
+      onError: (Object error) => _enqueuePurchase({
+        'ok': false,
+        'error': 'Store tok je prekinut: $error',
+      }),
+    );
     _configureAndroidFileChooser();
+  }
+
+  @override
+  void dispose() {
+    _purchaseWaiterTimer?.cancel();
+    _purchaseSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _handleNativeMessage(String rawMessage) async {
+    String? requestId;
+    try {
+      final decoded = jsonDecode(rawMessage);
+      if (decoded is! Map) throw const FormatException();
+      requestId = decoded['requestId'] as String?;
+      final action = decoded['action'] as String?;
+      final payload = decoded['payload'] is Map
+          ? Map<String, dynamic>.from(decoded['payload'] as Map)
+          : const <String, dynamic>{};
+      if (requestId == null || action == null) throw const FormatException();
+      switch (action) {
+        case 'products':
+          final response = await InAppPurchase.instance.queryProductDetails({
+            'briefai_premium_monthly',
+            'briefai_pro_monthly',
+          });
+          await _resolveNative(requestId, {
+            'ok': true,
+            'products': [
+              for (final product in response.productDetails)
+                {
+                  'id': product.id,
+                  'title': product.title,
+                  'description': product.description,
+                  'price': product.price,
+                },
+            ],
+          });
+        case 'buy':
+          final productId = payload['productId'];
+          if (productId is! String) throw StateError('Nedostaje proizvod.');
+          final response = await InAppPurchase.instance.queryProductDetails({
+            productId,
+          });
+          if (response.productDetails.isEmpty) {
+            throw StateError('Store proizvod nije pronađen.');
+          }
+          final started = await InAppPurchase.instance.buyNonConsumable(
+            purchaseParam: PurchaseParam(
+              productDetails: response.productDetails.single,
+              applicationUserName: payload['applicationUserName'] as String?,
+            ),
+          );
+          await _resolveNative(requestId, {'ok': started});
+        case 'waitPurchase':
+          if (_purchaseQueue.isNotEmpty) {
+            await _resolveNative(requestId, _purchaseQueue.removeAt(0));
+          } else {
+            if (_purchaseWaiter != null) {
+              throw StateError('Store zahtev je već u toku.');
+            }
+            _purchaseWaiter = requestId;
+            _purchaseWaiterTimer = Timer(const Duration(seconds: 115), () {
+              if (_purchaseWaiter != requestId) return;
+              _purchaseWaiter = null;
+              unawaited(
+                _resolveNative(requestId!, {
+                  'ok': false,
+                  'error': 'Store odgovor je istekao.',
+                }),
+              );
+            });
+          }
+        case 'complete':
+          final transactionKey = payload['transactionKey'];
+          if (transactionKey is! String) {
+            throw StateError('Nedostaje Store transakcija.');
+          }
+          final purchase = _pendingCompletion.remove(transactionKey);
+          if (purchase == null) {
+            throw StateError('Store transakcija nije pronađena.');
+          }
+          if (purchase.pendingCompletePurchase) {
+            await InAppPurchase.instance.completePurchase(purchase);
+          }
+          await _resolveNative(requestId, {'ok': true});
+        case 'restore':
+          await InAppPurchase.instance.restorePurchases();
+          await _resolveNative(requestId, {'ok': true});
+        case 'manage':
+          final uri = Platform.isAndroid
+              ? Uri.parse(
+                  'https://play.google.com/store/account/subscriptions'
+                  '?package=com.briefai.briefai_germany',
+                )
+              : Uri.parse('https://apps.apple.com/account/subscriptions');
+          final opened = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          await _resolveNative(requestId, {'ok': opened});
+        default:
+          throw StateError('Nepoznata native akcija.');
+      }
+    } on Object catch (error) {
+      if (requestId != null) {
+        await _resolveNative(requestId, {
+          'ok': false,
+          'error': error.toString(),
+        });
+      }
+    }
+  }
+
+  void _handlePurchaseUpdates(List<PurchaseDetails> purchases) {
+    for (final purchase in purchases) {
+      if (purchase.status == PurchaseStatus.pending) continue;
+      if (purchase.status == PurchaseStatus.error ||
+          purchase.status == PurchaseStatus.canceled) {
+        _enqueuePurchase({
+          'ok': false,
+          'error': purchase.error?.message ?? 'Kupovina je otkazana.',
+        });
+        continue;
+      }
+      final transactionKey =
+          purchase.purchaseID ??
+          '${purchase.productID}:${DateTime.now().microsecondsSinceEpoch}';
+      _pendingCompletion[transactionKey] = purchase;
+      _enqueuePurchase({
+        'ok': true,
+        'transactionKey': transactionKey,
+        'provider': purchase.verificationData.source,
+        'productId': purchase.productID,
+        'purchaseId': purchase.purchaseID,
+        'verificationData': purchase.verificationData.serverVerificationData,
+      });
+    }
+  }
+
+  void _enqueuePurchase(Map<String, dynamic> payload) {
+    final waiter = _purchaseWaiter;
+    if (waiter == null) {
+      _purchaseQueue.add(payload);
+      return;
+    }
+    _purchaseWaiter = null;
+    _purchaseWaiterTimer?.cancel();
+    _purchaseWaiterTimer = null;
+    unawaited(_resolveNative(waiter, payload));
+  }
+
+  Future<void> _resolveNative(String requestId, Map<String, dynamic> payload) {
+    return _controller.runJavaScript(
+      'window.briefAiNativeResolve('
+      '${jsonEncode(requestId)},${jsonEncode(payload)});',
+    );
   }
 
   void _configureAndroidFileChooser() {

@@ -372,6 +372,27 @@ export const createStripeCheckout = onCall(
   },
 );
 
+export const createStripePortal = onCall(
+  {region: "europe-west3", secrets: [stripeSecretKey], enforceAppCheck: true},
+  async (request) => {
+    const uid = requireUser(request.auth?.uid);
+    const returnUrl = request.data?.returnUrl;
+    if (!isAllowedReturnUrl(returnUrl)) {
+      throw new HttpsError("invalid-argument", "Povratni URL mora koristiti odobreni HTTPS origin.");
+    }
+    const subscription = await db.collection("subscriptions").doc(uid).get();
+    const customerId = subscription.data()?.stripeCustomerId;
+    if (subscription.data()?.provider !== "stripe" || typeof customerId !== "string" || !customerId) {
+      throw new HttpsError("failed-precondition", "Stripe pretplata nije pronađena za ovaj nalog.");
+    }
+    const session = await stripeClient().billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+    return {url: session.url};
+  },
+);
+
 // Native stores provide only a proof of purchase to the client. This callable
 // verifies that proof with the store and is the sole path that writes the
 // entitlement; the client can never grant itself Premium access.

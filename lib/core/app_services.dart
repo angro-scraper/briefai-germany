@@ -31,6 +31,7 @@ import '../features/analysis/analysis_engine.dart';
 import '../features/analysis/image_preprocessor.dart';
 import '../features/ocr/local_ocr.dart';
 import 'local_database_factory.dart';
+import 'native_store_bridge.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -999,7 +1000,16 @@ class PurchaseService {
     return result.data['isActive'] == true;
   }
 
-  Future<void> restore() => InAppPurchase.instance.restorePurchases();
+  Future<void> restore() async {
+    if (kIsWeb && await nativeStoreAvailable()) {
+      await nativeStoreRequest('restore');
+      final purchase = await nativeStoreRequest('waitPurchase');
+      await _verifyNativeBridgePurchase(purchase);
+      return;
+    }
+    await InAppPurchase.instance.restorePurchases();
+  }
+
   Future<void> complete(PurchaseDetails purchase) =>
       InAppPurchase.instance.completePurchase(purchase);
 
@@ -1010,6 +1020,20 @@ class PurchaseService {
   }) async {
     if (!cloudEnabled) {
       throw StateError('Web naplata zahteva povezani Firebase projekat.');
+    }
+    if (kIsWeb && await nativeStoreAvailable()) {
+      final productId = plan == 'pro' ? proId : premiumId;
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        throw StateError('Prijavite se pre kupovine pretplate.');
+      }
+      await nativeStoreRequest('buy', {
+        'productId': productId,
+        'applicationUserName': userId,
+      });
+      final purchase = await nativeStoreRequest('waitPurchase');
+      await _verifyNativeBridgePurchase(purchase);
+      return;
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('createStripeCheckout')
@@ -1026,6 +1050,74 @@ class PurchaseService {
         )) {
       throw StateError('Stripe Checkout nije moguće otvoriti.');
     }
+  }
+
+  Future<void> openSubscriptionManagement() async {
+    Uri target;
+    if (kIsWeb) {
+      if (await nativeStoreAvailable()) {
+        await nativeStoreRequest('manage');
+        return;
+      }
+      if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) {
+        throw StateError('Prijavite se da biste upravljali pretplatom.');
+      }
+      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('createStripePortal')
+          .call<Map<Object?, Object?>>({'returnUrl': Uri.base.toString()});
+      final url = result.data['url'];
+      if (url is! String) {
+        throw StateError('Stripe portal nije vratio važeću adresu.');
+      }
+      target = Uri.parse(url);
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      target = Uri.parse(
+        'https://play.google.com/store/account/subscriptions'
+        '?package=com.briefai.briefai_germany',
+      );
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      target = Uri.parse('https://apps.apple.com/account/subscriptions');
+    } else {
+      throw UnsupportedError('Upravljanje pretplatom nije dostupno.');
+    }
+    if (!await launchUrl(target, mode: LaunchMode.externalApplication)) {
+      throw StateError('Upravljanje pretplatom nije moguće otvoriti.');
+    }
+  }
+
+  Future<Map<String, String>> wrapperProductPrices() async {
+    if (!kIsWeb || !await nativeStoreAvailable()) return const {};
+    final result = await nativeStoreRequest('products');
+    final products = result['products'];
+    if (products is! List) return const {};
+    return <String, String>{
+      for (final product in products)
+        if (product is Map &&
+            product['id'] is String &&
+            product['price'] is String)
+          product['id'] as String: product['price'] as String,
+    };
+  }
+
+  Future<bool> isNativeStoreWrapper() => nativeStoreAvailable();
+
+  Future<void> _verifyNativeBridgePurchase(
+    Map<String, dynamic> purchase,
+  ) async {
+    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('verifyStorePurchase')
+        .call<Map<Object?, Object?>>({
+          'provider': purchase['provider'],
+          'productId': purchase['productId'],
+          'purchaseId': purchase['purchaseId'],
+          'verificationData': purchase['verificationData'],
+        });
+    if (result.data['isActive'] != true) {
+      throw StateError('Prodavnica nije potvrdila aktivnu pretplatu.');
+    }
+    await nativeStoreRequest('complete', {
+      'transactionKey': purchase['transactionKey'],
+    });
   }
 }
 
