@@ -1,49 +1,61 @@
-# BriefAI Germany — arhitektura
+# BriefAI Germany — produkciona arhitektura
 
-## Princip
+## Privacy boundary
 
-Mobilni klijent nikada ne poziva OpenAI direktno i nikada ne čuva API ključ. Sva obrada poverljivih pisama prolazi kroz autentifikovanu Firebase Cloud Function. Dokumenti se čuvaju privatno u Firebase Storage, sa pravilima zasnovanim na `uid` korisnika.
+Originalni dokument, OCR tekst, analiza, generisani odgovor i chat istorija
+ostaju u lokalnom vault-u uređaja. Klijent nema Firestore ili Storage putanju
+na koju može da otpremi pismo. Firestore i Storage pravila tu zabranu sprovode
+i na serverskoj granici.
 
 ```text
-Flutter (Android / iOS / web)
-  ├─ Firebase Auth: Email, Google, Apple
-  ├─ Storage: original + obrađena slika/PDF
-  ├─ Firestore: korisnik, dokument, analiza, pretplata, podsetnici
-  ├─ FCM: podsetnici i servisna obaveštenja
-  └─ Callable Functions
-        ├─ analyzeDocument → OCR → OpenAI structured output → Firestore
-        ├─ generateReply → OpenAI structured output
-        ├─ sendDeadlineReminders → daily Cloud Scheduler + idempotent FCM
-        ├─ askLetterAssistant → authenticated letter context + OpenAI follow-up chat
-        ├─ deleteAccount → Auth + Storage + Firestore cascade
-        └─ Stripe webhook → subscription entitlement
+PWA (izvor proizvoda)
+  ├─ lokalni OCR: Tesseract.js / PDF.js
+  ├─ lokalni vault: IndexedDB (Sembast)
+  ├─ Auth: Firebase Email, Google, Apple
+  ├─ lokalni rokovi: 7 / 3 / 1 dan u 09:00 Europe/Berlin
+  └─ callable request sa OCR tekstom
+       └─ Firebase Function → OpenAI Responses API
+            └─ strukturisan rezultat se vraća klijentu, bez cloud arhive
+
+Android / iOS shell
+  └─ bezbedni WebView → ista produkciona PWA
+       ├─ kamera / galerija / PDF picker
+       └─ obični UI update bez novog Store binarnog fajla
 ```
 
-## Kolekcije u Firestore
+## Dozvoljeni cloud podaci
 
 | Putanja | Namena |
 |---|---|
-| `users/{uid}` | profil, jezik, plan, GDPR dozvole |
-| `users/{uid}/letters/{letterId}` | metapodaci pisma, rezultat analize, status, rok |
-| `users/{uid}/letters/{letterId}/messages/{messageId}` | kontekst AI razgovora |
+| `users/{uid}` | nalog, aktivnost i minimalni profil |
+| `users/{uid}/usage/current` | serverska FREE kvota |
 | `subscriptions/{uid}` | server-verifikovan entitlement |
-| `adminMetrics/{period}` | agregati za admin panel |
-| `reminderDeliveries/{deliveryId}` | server-side evidencija već poslatog 7/3/1 podsetnika |
+| `deviceTokens/{token}` | opcionalna servisna obaveštenja |
+| `adminMetrics/current` | agregati bez sadržaja pisama |
 
-## Kritične bezbednosne odluke
+Ne postoje cloud `letters`, `messages` ili OCR kolekcije. Storage dozvoljava
+samo kratkotrajni server-generisani izvoz naloga; `/letters/**` je eksplicitno
+zabranjen.
 
-1. OpenAI ključ postoji samo kao Firebase Secret.
-2. Dokumenti nemaju javne URL-ove; generišu se kratkotrajni signed URL-ovi samo gde je potrebno.
-3. Firestore i Storage pravila dozvoljavaju isključivo vlasniku dokumenta pristup.
-4. AI izlaz je JSON validiran šemom, sa upozorenjem da nije pravni savet.
-5. Zadatak za brisanje naloga trajno briše Auth profil, dokumente, analize, chat i token uređaja.
+## AI granica
 
-## Faze razvoja
+API ključ je Firebase Secret i nikad nije deo Flutter/JavaScript builda.
+`analyzeLetter`, `generateReply` i `askLetterAssistant` primaju samo sadržaj
+potreban za taj poziv, ograničavaju veličinu, zahtevaju Auth i App Check i
+tretiraju dokument kao nepoverljiv sadržaj. Rezultati se validiraju JSON
+šemom gde je primenljivo.
 
-1. Auth, profil, onboarding i lokalizacija.
-2. Upload/kamera, optimizacija slike i ML Kit OCR.
-3. Cloud Function za AI analizu i rezultat.
-4. Arhiva, statusi, rokovi i FCM podsetnici.
-5. AI odgovori, deljenje emailom i PDF izvoz.
-6. Pretplate i server-side validacija kupovina.
-7. Admin web, monitoring, GDPR procesi, QA i store materijali.
+## Pretplate
+
+- FREE: dve analize po Berlin kalendarskom mesecu.
+- PREMIUM/PRO: entitlement upisuje isključivo Stripe webhook ili funkcija koja
+  proverava Google Play/App Store dokaz kod same prodavnice.
+- Klijent nikada ne može sam sebi dodeliti Premium.
+
+## Brisanje i izvoz
+
+Pojedinačno brisanje uklanja lokalni original, OCR, analizu i njegove
+notifikacije. Brisanje naloga prvo čisti ceo lokalni vault i podsetnike, zatim
+poziva server cascade za Auth, tokene, profil, entitlement i privremeni
+Storage. Lokalni JSON izvoz uključuje originalne bajtove kao Base64 jer oni
+nikada nisu dostupni serveru.
