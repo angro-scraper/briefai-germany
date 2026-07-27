@@ -117,6 +117,31 @@ async function hasPremiumAccess(uid: string, accessOverride: boolean): Promise<b
   return ["active", "trialing"].includes(subscription.data()?.status);
 }
 
+async function hasTrialAiAccess(uid: string): Promise<boolean> {
+  const usage = await db
+    .collection("users")
+    .doc(uid)
+    .collection("usage")
+    .doc("current")
+    .get();
+  const analysesLifetime = Number(
+    usage.data()?.analysesLifetime ??
+    usage.data()?.analysesThisMonth ??
+    0,
+  );
+  return Number.isFinite(analysesLifetime) &&
+    analysesLifetime > 0 &&
+    analysesLifetime <= freeAnalysisLimit;
+}
+
+async function hasAiFeatureAccess(
+  uid: string,
+  accessOverride: boolean,
+): Promise<boolean> {
+  return await hasPremiumAccess(uid, accessOverride) ||
+    await hasTrialAiAccess(uid);
+}
+
 function safetyIdentifier(uid: string): string {
   return createHash("sha256").update(`briefai:${uid}`).digest("hex");
 }
@@ -550,8 +575,11 @@ export const generateReply = onCall(
     const sourceText = requireString(request.data?.sourceText, "sourceText", 20000);
     const facts = requireString(request.data?.facts, "facts", 10000);
     const language = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
-    if (!await hasPremiumAccess(uid, accessOverride)) {
-      throw new HttpsError("permission-denied", "AI odgovori su dostupni uz Premium pretplatu.");
+    if (!await hasAiFeatureAccess(uid, accessOverride)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Analizirajte prvo probno pismo ili aktivirajte Premium.",
+      );
     }
     const input = `Source letter text:\n${sourceText}\n\nUser-supplied facts:\n${facts}\n\nPreferred explanation language: ${language}`;
     const maxOutputTokens = 1400;
@@ -611,10 +639,10 @@ export const askLetterAssistant = onCall(
       ? requireString(request.data.conversation, "conversation", 6000)
       : "[]";
 
-    if (!await hasPremiumAccess(uid, accessOverride)) {
+    if (!await hasAiFeatureAccess(uid, accessOverride)) {
       throw new HttpsError(
         "permission-denied",
-        "AI asistent je dostupan uz Premium pretplatu.",
+        "Analizirajte prvo probno pismo ili aktivirajte Premium.",
       );
     }
     const input = `Letter context:\n${context}\n\nRecent conversation (JSON):\n${conversation}\n\nCurrent user question:\n${question}`;

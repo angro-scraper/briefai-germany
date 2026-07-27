@@ -105,6 +105,9 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         NavigationDelegate(
           onProgress: (progress) => setState(() => _progress = progress),
           onPageStarted: (_) => setState(() => _error = null),
+          onPageFinished: (_) {
+            unawaited(_removeStaleWebAppCache());
+          },
           onWebResourceError: (error) {
             if (error.isForMainFrame ?? true) {
               setState(() => _error = error.description);
@@ -124,8 +127,8 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             return NavigationDecision.prevent;
           },
         ),
-      )
-      ..loadRequest(Uri.parse(_appUrl));
+      );
+    unawaited(_loadLiveWebApp());
     _purchaseSubscription = InAppPurchase.instance.purchaseStream.listen(
       _handlePurchaseUpdates,
       onError: (Object error) => _enqueuePurchase({
@@ -134,6 +137,50 @@ class _WrapperScreenState extends State<_WrapperScreen> {
       }),
     );
     _configureAndroidFileChooser();
+  }
+
+  Future<void> _loadLiveWebApp() async {
+    try {
+      // The wrapper must always display the current hosted application. This
+      // clears only HTTP resources; user authentication, preferences and the
+      // local document vault remain untouched.
+      await _controller.clearCache();
+    } on Object {
+      // A cache cleanup failure must not prevent the hosted app from opening.
+    }
+    await _controller.loadRequest(Uri.parse(_appUrl));
+  }
+
+  Future<void> _removeStaleWebAppCache() async {
+    try {
+      await _controller.runJavaScript(r'''
+        (() => {
+          const marker = 'briefai-wrapper-web-cache-v1';
+          if (window.sessionStorage.getItem(marker) === 'done') return;
+          window.sessionStorage.setItem(marker, 'done');
+          Promise.all([
+            ('serviceWorker' in navigator)
+              ? navigator.serviceWorker.getRegistrations().then(
+                  registrations => Promise.all(
+                    registrations.map(registration => registration.unregister())
+                  )
+                )
+              : Promise.resolve(),
+            ('caches' in window)
+              ? caches.keys().then(
+                  keys => Promise.all(keys.map(key => caches.delete(key)))
+                )
+              : Promise.resolve(),
+          ]).then(() => {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              window.location.reload();
+            }
+          });
+        })();
+      ''');
+    } on Object {
+      // The live app is still usable when a WebView vendor blocks this API.
+    }
   }
 
   @override

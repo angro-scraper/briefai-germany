@@ -195,7 +195,6 @@ class AppState extends ChangeNotifier {
 
   void addAnalysis(LetterAnalysis analysis) {
     letters.insert(0, analysis);
-    if (!kFreeBetaMode && !isPremium) freeAnalysesUsed++;
     notifyListeners();
   }
 

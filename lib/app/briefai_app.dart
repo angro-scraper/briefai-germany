@@ -970,10 +970,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         analysis,
         document: _document,
       );
-      if (!kFreeBetaMode && !widget.state.isPremium) {
+      if (!kFreeBetaMode &&
+          !widget.state.isPremium &&
+          widget.services.auth.uid == null) {
         await widget.services.entitlements.recordAnalysis(
-          widget.services.auth.uid ?? 'local-device',
+          'local-device',
         );
+        widget.state.setFreeAnalysesUsed(widget.state.freeAnalysesUsed + 1);
       }
       widget.state.addAnalysis(analysis);
       // A notification permission or OEM scheduler failure must never hide a
