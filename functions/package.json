@@ -4,6 +4,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "test": "node --test test/*.test.mjs",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "lint": "tsc --noEmit",
