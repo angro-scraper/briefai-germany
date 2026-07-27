@@ -23,20 +23,17 @@ usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 - pitanje AI asistentu: najviše 700 izlaznih tokena;
 - globalni AI budžet: 30 USD mesečno;
 - odgovorna upotreba Premium naloga: 1,50 USD mesečno;
-- odgovorna upotreba Pro naloga: 4 USD mesečno;
-- tokom besplatne bete analiza, odgovor i asistent dostupni su prijavljenim
-  korisnicima uz korisnički i globalni dolarski limit;
-- posle bete vraća se komercijalna kontrola od dve besplatne analize mesečno,
-  dok su odgovor i asistent Premium/Pro funkcije.
+- svaki prijavljeni nalog dobija tri probne analize ukupno;
+- nakon treće analize nova pisma, AI odgovor i asistent zahtevaju Premium;
+- founder claim za vlasnika zaobilazi probni i korisnički limit, dok globalni
+  sigurnosni budžet ostaje aktivan kao zaštita od zloupotrebe i greške.
 
 Budžeti su Firebase Functions parametri:
 
 ```text
 OPENAI_MODEL=gpt-5.6-terra
-FREE_BETA_AI_ENABLED=true
 AI_MONTHLY_BUDGET_USD=30
 AI_USER_MONTHLY_BUDGET_USD=1.50
-AI_PRO_USER_MONTHLY_BUDGET_USD=4
 ```
 
 API ključ je isključivo Secret Manager tajna `OPENAI_API_KEY`. Parametri i
@@ -50,9 +47,9 @@ ne šalju OpenAI-ju niti čuvaju u Firebase-u.
 
 | Plan | Cena | AI funkcije |
 |---|---:|---|
-| Free | 0 € | 2 analize mesečno |
-| Premium | 4,99 €/mesec | analize, odgovori, asistent, arhiva i podsetnici uz zaštitu odgovorne upotrebe |
-| Pro | 9,99 €/mesec | viši operativni prag za porodice i male firme, kada se zasebno uvede organizacioni nalog |
+| Probni | 0 € | 3 analize ukupno |
+| Premium | 9,90 €/mesec | analize, odgovori, asistent, arhiva i podsetnici uz zaštitu odgovorne upotrebe |
+| Founder | bez naplate | trajni no-limit pristup za serverski označen nalog vlasnika |
 
 Limit u dolarima je zaštita od automatizovane zloupotrebe i neočekivanog
 računa, a ne marketinški brojač. Admin panel prikazuje trenutni model, tokene,

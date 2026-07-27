@@ -25,8 +25,8 @@
 
 ## Store i naplata
 
-- [ ] Google Play proizvodi: `briefai_premium_monthly` i `briefai_pro_monthly`.
-- [ ] App Store proizvodi sa istim entitlement mapiranjem.
+- [ ] Google Play mesečna pretplata: `briefai_premium_monthly` (9,90 EUR).
+- [ ] App Store mesečna pretplata `briefai_premium_monthly` sa istim entitlement mapiranjem.
 - [ ] Kupovine verifikovane server-side i obnova/cancel/webhook scenariji testirani.
 - [ ] Stripe se koristi isključivo za web i entitlement se sinhronizuje server-side.
 

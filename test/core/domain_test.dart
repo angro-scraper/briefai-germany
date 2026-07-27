@@ -61,7 +61,7 @@ void main() {
     expect(state.onboardingComplete, isTrue);
   });
 
-  test('free beta keeps analysis available without consuming quota', () {
+  test('trial allows three analyses and then requires Premium', () {
     final state = AppState();
     state.addAnalysis(
       LetterAnalysis(
@@ -78,6 +78,10 @@ void main() {
     state.setFreeAnalysesUsed(2);
 
     expect(state.freeAnalysesUsed, 2);
+    expect(state.canAnalyse, isTrue);
+    state.setFreeAnalysesUsed(3);
+    expect(state.canAnalyse, isFalse);
+    state.setPremium(true);
     expect(state.canAnalyse, isTrue);
   });
 

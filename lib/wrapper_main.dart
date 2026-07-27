@@ -158,7 +158,6 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         case 'products':
           final response = await InAppPurchase.instance.queryProductDetails({
             'briefai_premium_monthly',
-            'briefai_pro_monthly',
           });
           await _resolveNative(requestId, {
             'ok': true,

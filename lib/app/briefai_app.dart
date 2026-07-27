@@ -496,7 +496,9 @@ class HomeScreen extends StatelessWidget {
                     ? strings.text('freeBetaActive')
                     : state.isPremium
                     ? strings.text('unlimited')
-                    : strings.remaining(2 - state.freeAnalysesUsed),
+                    : strings.remaining(
+                        kFreeAnalysisLimit - state.freeAnalysesUsed,
+                      ),
                 style: const TextStyle(color: Color(0xFFD7E0FF)),
               ),
               if (unavailable) ...[
@@ -2137,7 +2139,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     price:
                         productById[PurchaseService.premiumId]?.price ??
                         wrapperPrices[PurchaseService.premiumId] ??
-                        '4,99 € / mesečno',
+                        '9,90 € / mesečno',
                     features: [
                       strings.text('premiumFeature1'),
                       strings.text('premiumFeature2'),
@@ -2146,20 +2148,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     action: kIsWeb
                         ? () => _webCheckout('premium')
                         : () => _buy(productById[PurchaseService.premiumId]),
-                  ),
-                  _PlanCard(
-                    title: 'PRO',
-                    price:
-                        productById[PurchaseService.proId]?.price ??
-                        wrapperPrices[PurchaseService.proId] ??
-                        '9,99 € / mesečno',
-                    features: [
-                      strings.text('proFeature1'),
-                      strings.text('proFeature2'),
-                    ],
-                    action: kIsWeb
-                        ? () => _webCheckout('pro')
-                        : () => _buy(productById[PurchaseService.proId]),
                   ),
                   const SizedBox(height: 12),
                   if (!kIsWeb || snapshot.data?.nativeWrapper == true)

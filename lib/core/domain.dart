@@ -175,7 +175,7 @@ class AppState extends ChangeNotifier {
   final List<LetterAnalysis> letters = [];
 
   bool get canAnalyse =>
-      kFreeBetaMode || isPremium || freeAnalysesUsed < 2;
+      kFreeBetaMode || isPremium || freeAnalysesUsed < kFreeAnalysisLimit;
 
   void setLocale(String value) {
     if (localeCode == value) return;
@@ -200,7 +200,7 @@ class AppState extends ChangeNotifier {
   }
 
   void setFreeAnalysesUsed(int value) {
-    freeAnalysesUsed = value.clamp(0, 2).toInt();
+    freeAnalysesUsed = value.clamp(0, kFreeAnalysisLimit).toInt();
     notifyListeners();
   }
 

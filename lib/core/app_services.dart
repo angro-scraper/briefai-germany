@@ -358,6 +358,20 @@ class AuthService {
   Future<void> _ensureProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    try {
+      final result = await FirebaseFunctions.instanceFor(
+        region: 'europe-west3',
+      ).httpsCallable('claimFounderAccess').call<Map<Object?, Object?>>();
+      if (result.data['founder'] == true) {
+        await user.getIdToken(true);
+      }
+    } on FirebaseFunctionsException catch (error) {
+      if (error.code != 'permission-denied' &&
+          error.code != 'not-found' &&
+          error.code != 'unimplemented') {
+        rethrow;
+      }
+    }
     final preferences = await SharedPreferences.getInstance();
     final languageKey = _profileKey(user.uid, 'preferredLanguage');
     if (!preferences.containsKey(languageKey)) {
@@ -842,10 +856,21 @@ class EntitlementService {
     final preferences = await SharedPreferences.getInstance();
     final key = _localUsageKey(uid);
     final current = preferences.getInt(key) ?? 0;
-    await preferences.setInt(key, (current + 1).clamp(0, 2));
+    await preferences.setInt(key, (current + 1).clamp(0, kFreeAnalysisLimit));
   }
 
   Stream<bool> _watch(String uid) async* {
+    try {
+      final token = await FirebaseAuth.instance.currentUser?.getIdTokenResult(
+        true,
+      );
+      if (token?.claims?['founder'] == true) {
+        yield true;
+        return;
+      }
+    } on FirebaseAuthException {
+      // A token refresh failure is handled by the normal signed-in flow.
+    }
     yield false;
     try {
       await for (final document
@@ -873,26 +898,15 @@ class EntitlementService {
               .doc('current')
               .snapshots()) {
         final data = document.data();
-        if (data?['monthKey'] != _berlinMonthKey()) {
-          yield 0;
-          continue;
-        }
-        final usage = data?['analysesThisMonth'];
-        yield usage is int ? usage.clamp(0, 2).toInt() : 0;
+        final usage = data?['analysesLifetime'];
+        yield usage is int ? usage.clamp(0, kFreeAnalysisLimit).toInt() : 0;
       }
     } on FirebaseException {
       // The local free tier remains available while metrics are unavailable.
     }
   }
 
-  String _berlinMonthKey() {
-    final now = tz.TZDateTime.now(tz.getLocation('Europe/Berlin'));
-    final month = now.month.toString().padLeft(2, '0');
-    return '${now.year}-$month';
-  }
-
-  String _localUsageKey(String uid) =>
-      'briefai.usage.$uid.${_berlinMonthKey()}';
+  String _localUsageKey(String uid) => 'briefai.usage.$uid.lifetime';
 }
 
 class ReminderService {
@@ -1004,13 +1018,12 @@ class PurchaseService {
   PurchaseService({required this.cloudEnabled});
   final bool cloudEnabled;
   static const premiumId = 'briefai_premium_monthly';
-  static const proId = 'briefai_pro_monthly';
 
   Future<ProductDetailsResponse> products() async {
     if (!await InAppPurchase.instance.isAvailable()) {
       throw StateError('Store plaćanja nije dostupan na ovom uređaju.');
     }
-    return InAppPurchase.instance.queryProductDetails({premiumId, proId});
+    return InAppPurchase.instance.queryProductDetails({premiumId});
   }
 
   Stream<List<PurchaseDetails>> get updates =>
@@ -1066,13 +1079,12 @@ class PurchaseService {
       throw StateError('Web naplata zahteva povezani Firebase projekat.');
     }
     if (kIsWeb && await nativeStoreAvailable()) {
-      final productId = plan == 'pro' ? proId : premiumId;
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) {
         throw StateError('Prijavite se pre kupovine pretplate.');
       }
       await nativeStoreRequest('buy', {
-        'productId': productId,
+        'productId': premiumId,
         'applicationUserName': userId,
       });
       final purchase = await nativeStoreRequest('waitPurchase');

@@ -4,15 +4,19 @@
 /// static hosting. A later paid build can override them with `--dart-define`.
 const bool kFreeBetaMode = bool.fromEnvironment(
   'BRIEFAI_FREE_BETA',
-  defaultValue: true,
+  defaultValue: false,
 );
 
 const bool kPaymentsEnabled = bool.fromEnvironment(
   'BRIEFAI_PAYMENTS_ENABLED',
-  defaultValue: false,
+  defaultValue: true,
 );
 
 const bool kCloudAiEnabled = bool.fromEnvironment(
   'BRIEFAI_CLOUD_AI_ENABLED',
   defaultValue: true,
 );
+
+/// A signed-in account can analyse three letters before a subscription is
+/// required. This is a lifetime trial, not a monthly allowance.
+const int kFreeAnalysisLimit = 3;

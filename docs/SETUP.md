@@ -87,6 +87,14 @@ npm run admin:claim -- --email=ADMIN_EMAIL --confirm-project=briefai-germany
 Alat čuva postojeće custom claim-ove i odbija izvršenje ako cilj nije tačno
 `briefai-germany`. Za uklanjanje privilegije dodati `--revoke`.
 
+Founder nalog ima trajni no-limit entitlement bez pretplate. Dodela se radi
+isključivo server-side i čuva sve postojeće claim-ove:
+
+```powershell
+Set-Location functions
+npm run founder:claim -- --email=FOUNDER_EMAIL --confirm-project=briefai-germany
+```
+
 ## Stripe i Store
 
 Stripe secrets:
@@ -104,7 +112,6 @@ Google/Apple proizvodi:
 
 ```text
 briefai_premium_monthly
-briefai_pro_monthly
 ```
 
 Google servisni nalog ide u `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`; Apple p8 ide u
