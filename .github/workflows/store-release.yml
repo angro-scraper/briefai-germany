@@ -33,7 +33,30 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$KEYSTORE" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
-          printf '%s' "$KEYSTORE" | base64 --decode > android/briefai-release.jks
+          validate_keystore() {
+            local candidate="$1"
+            if keytool -list \
+              -keystore "$candidate" \
+              -storepass "$STORE_PASSWORD" \
+              -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+              cp "$candidate" android/briefai-release.jks
+              return 0
+            fi
+            return 1
+          }
+          printf '%s' "$KEYSTORE" > /tmp/keystore-raw
+          printf '%s' "$KEYSTORE" \
+            | sed -e 's/^\"//' -e 's/\"$//' -e 's#^data:[^,]*,##' -e 'y#-_#+/#' \
+            | base64 --decode --ignore-garbage > /tmp/keystore-once 2>/dev/null || true
+          base64 --decode --ignore-garbage /tmp/keystore-once > /tmp/keystore-twice 2>/dev/null || true
+          iconv -f UTF-16LE -t UTF-8 /tmp/keystore-once > /tmp/keystore-once-utf8 2>/dev/null || true
+          base64 --decode --ignore-garbage /tmp/keystore-once-utf8 > /tmp/keystore-unicode 2>/dev/null || true
+          validate_keystore /tmp/keystore-once \
+            || validate_keystore /tmp/keystore-twice \
+            || validate_keystore /tmp/keystore-unicode \
+            || validate_keystore /tmp/keystore-raw \
+            || { echo "ANDROID_KEYSTORE_BASE64 does not match the configured alias/password"; exit 1; }
+          echo "Restored and validated Android signing keystore"
           printf 'storeFile=../briefai-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
       - run: flutter pub get
       - run: flutter analyze
