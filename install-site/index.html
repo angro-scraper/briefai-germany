@@ -98,7 +98,11 @@
         });
         localStorage.setItem('briefai.platform-language', code);
       }
-      selector.value = localStorage.getItem('briefai.platform-language') || initial;
+      // A language explicitly included in a shared link must override an
+      // earlier choice saved in this browser.
+      selector.value = languages[queryLanguage]
+        ? queryLanguage
+        : (localStorage.getItem('briefai.platform-language') || initial);
       applyLanguage(selector.value);
       selector.addEventListener('change', event => applyLanguage(event.target.value));
     </script>
