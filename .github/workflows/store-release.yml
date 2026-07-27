@@ -34,8 +34,15 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$KEYSTORE" && test -n "$GOOGLE_SERVICES" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
-          echo "$KEYSTORE" | base64 --decode > android/briefai-release.jks
-          echo "$GOOGLE_SERVICES" | base64 --decode > android/app/google-services.json
+          printf '%s' "$KEYSTORE" | base64 --decode > android/briefai-release.jks
+          if printf '%s' "$GOOGLE_SERVICES" | base64 --decode > android/app/google-services.json 2>/dev/null \
+            && jq -e . android/app/google-services.json >/dev/null 2>&1; then
+            echo "Restored base64-encoded google-services.json"
+          else
+            printf '%s' "$GOOGLE_SERVICES" > android/app/google-services.json
+            jq -e . android/app/google-services.json >/dev/null
+            echo "Restored plain JSON google-services.json"
+          fi
           printf 'storeFile=../briefai-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
       - run: flutter pub get
       - run: flutter analyze
