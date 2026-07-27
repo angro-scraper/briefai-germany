@@ -35,14 +35,27 @@ jobs:
         run: |
           test -n "$KEYSTORE" && test -n "$GOOGLE_SERVICES" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
           printf '%s' "$KEYSTORE" | base64 --decode > android/briefai-release.jks
-          if printf '%s' "$GOOGLE_SERVICES" | base64 --decode > android/app/google-services.json 2>/dev/null \
-            && jq -e . android/app/google-services.json >/dev/null 2>&1; then
-            echo "Restored base64-encoded google-services.json"
-          else
-            printf '%s' "$GOOGLE_SERVICES" > android/app/google-services.json
-            jq -e . android/app/google-services.json >/dev/null
-            echo "Restored plain JSON google-services.json"
-          fi
+          restore_google_services() {
+            local candidate="$1"
+            if jq -e . "$candidate" >/dev/null 2>&1; then
+              cp "$candidate" android/app/google-services.json
+              return 0
+            fi
+            if iconv -f UTF-16LE -t UTF-8 "$candidate" > /tmp/google-services-utf8.json 2>/dev/null \
+              && jq -e . /tmp/google-services-utf8.json >/dev/null 2>&1; then
+              cp /tmp/google-services-utf8.json android/app/google-services.json
+              return 0
+            fi
+            return 1
+          }
+          printf '%s' "$GOOGLE_SERVICES" > /tmp/google-services-raw
+          printf '%s' "$GOOGLE_SERVICES" | base64 --decode > /tmp/google-services-once 2>/dev/null || true
+          base64 --decode /tmp/google-services-once > /tmp/google-services-twice 2>/dev/null || true
+          restore_google_services /tmp/google-services-raw \
+            || restore_google_services /tmp/google-services-once \
+            || restore_google_services /tmp/google-services-twice \
+            || { echo "GOOGLE_SERVICES_JSON_BASE64 is not valid JSON in a supported encoding"; exit 1; }
+          echo "Restored and validated google-services.json"
           printf 'storeFile=../briefai-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
       - run: flutter pub get
       - run: flutter analyze
