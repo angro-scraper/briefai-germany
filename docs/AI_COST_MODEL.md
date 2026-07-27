@@ -18,11 +18,13 @@ usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 
 ## Server-side ograničenja
 
-- analiza: najviše 1.200 izlaznih tokena;
-- formalni odgovor: najviše 1.400 izlaznih tokena;
+- analiza: najviše 1.500 izlaznih tokena;
+- formalni odgovor: najviše 2.800 izlaznih tokena;
 - pitanje AI asistentu: najviše 700 izlaznih tokena;
 - globalni AI budžet: 30 USD mesečno;
-- odgovorna upotreba Premium naloga: 1,50 USD mesečno;
+- probni nalog ima zaštitni AI budžet od 1,50 USD mesečno;
+- Basic / Plus / Pro imaju zaštitne AI budžete od 4 / 8 / 12 USD mesečno;
+- plaćeni paketi imaju 50 / 100 / 150 analiza po kalendarskom mesecu;
 - svaki prijavljeni nalog dobija tri probne analize ukupno;
 - nakon treće analize nova pisma, AI odgovor i asistent zahtevaju Premium;
 - founder claim za vlasnika zaobilazi probni i korisnički limit, dok globalni
@@ -48,7 +50,9 @@ ne šalju OpenAI-ju niti čuvaju u Firebase-u.
 | Plan | Cena | AI funkcije |
 |---|---:|---|
 | Probni | 0 € | 3 analize ukupno |
-| Premium | 9,90 €/mesec | analize, odgovori, asistent, arhiva i podsetnici uz zaštitu odgovorne upotrebe |
+| Basic | 9,90 €/mesec | 50 analiza, odgovori, asistent, arhiva i podsetnici |
+| Plus | 19,90 €/mesec | 100 analiza, odgovori, asistent, arhiva i podsetnici |
+| Pro | 29,90 €/mesec | 150 analiza, odgovori, asistent, arhiva i podsetnici |
 | Founder | bez naplate | trajni no-limit pristup za serverski označen nalog vlasnika |
 
 Limit u dolarima je zaštita od automatizovane zloupotrebe i neočekivanog

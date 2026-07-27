@@ -16,6 +16,8 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'core/app_config.dart';
+
 const _appUrl =
     'https://briefai-germany-download.onrender.com/app/?nativeWrapper=1';
 const _appHost = 'briefai-germany-download.onrender.com';
@@ -254,9 +256,9 @@ class _WrapperScreenState extends State<_WrapperScreen> {
       if (requestId == null || action == null) throw const FormatException();
       switch (action) {
         case 'products':
-          final response = await InAppPurchase.instance.queryProductDetails({
-            'briefai_premium_monthly',
-          });
+          final response = await InAppPurchase.instance.queryProductDetails(
+            kSubscriptionPlans.map((plan) => plan.productId).toSet(),
+          );
           await _resolveNative(requestId, {
             'ok': true,
             'products': [

@@ -497,7 +497,7 @@ class HomeScreen extends StatelessWidget {
                 kFreeBetaMode
                     ? strings.text('freeBetaActive')
                     : state.isPremium
-                    ? strings.text('unlimited')
+                    ? strings.text('monthlyPlanActive')
                     : strings.remaining(
                         kFreeAnalysisLimit - state.freeAnalysesUsed,
                       ),
@@ -2077,7 +2077,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Prve tri analize pisma su besplatne. Nakon toga je za nove analize i premium funkcije potrebna mesečna BriefAI Premium pretplata. Cena se prikazuje u prodavnici pre kupovine i može zavisiti od zemlje i valute. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
+    'Prve tri analize pisma su besplatne. Nakon toga korisnik može izabrati mesečni paket od 50, 100 ili 150 novih analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Cena se prikazuje u prodavnici pre kupovine i može zavisiti od zemlje i valute. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
   ),
   (
     '4. Prihvatljivo korišćenje',
@@ -2210,21 +2210,31 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     features: [strings.text('freeFeature')],
                     selected: !widget.state.isPremium,
                   ),
-                  _PlanCard(
-                    title: 'PREMIUM',
-                    price:
-                        productById[PurchaseService.premiumId]?.price ??
-                        wrapperPrices[PurchaseService.premiumId] ??
-                        '9,90 € / mesečno',
-                    features: [
-                      strings.text('premiumFeature1'),
-                      strings.text('premiumFeature2'),
-                      strings.text('premiumFeature3'),
-                    ],
-                    action: kIsWeb
-                        ? () => _webCheckout('premium')
-                        : () => _buy(productById[PurchaseService.premiumId]),
-                  ),
+                  for (final plan in kSubscriptionPlans) ...[
+                    _PlanCard(
+                      title:
+                          '${plan.key.toUpperCase()} · '
+                          '${plan.monthlyAnalysisLimit}',
+                      price:
+                          productById[plan.productId]?.price ??
+                          wrapperPrices[plan.productId] ??
+                          plan.fallbackPrice,
+                      features: [
+                        strings
+                            .text('analysesPerMonth')
+                            .replaceFirst(
+                              '{count}',
+                              plan.monthlyAnalysisLimit.toString(),
+                            ),
+                        strings.text('premiumFeature2'),
+                        strings.text('premiumFeature3'),
+                      ],
+                      action: kIsWeb
+                          ? () => _webCheckout(plan.key)
+                          : () => _buy(productById[plan.productId]),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   const SizedBox(height: 12),
                   if (!kIsWeb || snapshot.data?.nativeWrapper == true)
                     OutlinedButton.icon(

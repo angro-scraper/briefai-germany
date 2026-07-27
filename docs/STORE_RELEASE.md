@@ -8,11 +8,13 @@ Ovaj dokument je kontrolna lista za stvarni, potpisani store build. Ne čuvati k
 2. Napraviti upload keystore, sačuvati ga van repozitorijuma i generisati Base64 sadržaj bez preloma redova. Ne menjati upload key nakon što je prvi AAB poslat u Play Console.
 3. U GitHub `production` environment dodati pet secrets koje koristi workflow `Store release`: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `GOOGLE_SERVICES_JSON_BASE64`.
 4. U Play Console aktivirati Google Play Developer API, dodati servisni nalog kao korisnika aplikacije i njegov JSON postaviti samo kao Firebase secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`. Podesiti `ANDROID_PACKAGE_NAME=com.briefai.briefai_germany` kao Functions parameter.
-5. Kreirati subscription `briefai_premium_monthly` sa mesečnim automatskim
-   obnavljanjem i ciljnom cenom 9,90 EUR, zatim testirati kupovinu, obnovu,
-   otkazivanje i grace period preko internal testing track-a. Cena prikazana
-   u aplikaciji uvek dolazi iz prodavnice i može pratiti najbliži raspoloživi
-   Apple price point.
+5. Kreirati mesečne subscription proizvode `briefai_premium_monthly`
+   (50 analiza / 9,90 EUR), `briefai_plus_monthly`
+   (100 analiza / 19,90 EUR) i `briefai_pro_monthly`
+   (150 analiza / 29,90 EUR), zatim testirati kupovinu, upgrade/downgrade,
+   obnovu, otkazivanje i grace period preko internal testing track-a. Cena
+   prikazana u aplikaciji uvek dolazi iz prodavnice i može pratiti najbliži
+   raspoloživi Apple price point.
 6. Ručno pokrenuti GitHub workflow sa sledećim većim `build_number`. Workflow
    gradi `lib/wrapper_main.dart`, odnosno tanki omotač produkcione PWA.
    Preuzeti AAB artefakt, poslati ga u Play Console internal testing i proveriti

@@ -1,7 +1,21 @@
 import 'package:briefai_germany/core/domain.dart';
+import 'package:briefai_germany/core/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('subscription plans expose the commercial monthly quotas', () {
+    expect(
+      kSubscriptionPlans.map((plan) => plan.monthlyAnalysisLimit).toList(),
+      [50, 100, 150],
+    );
+    expect(kSubscriptionPlans.map((plan) => plan.fallbackPrice).toList(), [
+      '9,90 € / mesečno',
+      '19,90 € / mesečno',
+      '29,90 € / mesečno',
+    ]);
+    expect(kSubscriptionPlans.map((plan) => plan.productId).toSet().length, 3);
+  });
+
   test('letter analysis round-trips the server data contract', () {
     final analysis = LetterAnalysis.fromMap(
       id: 'letter-1',

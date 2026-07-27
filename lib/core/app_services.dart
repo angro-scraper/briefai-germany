@@ -1177,12 +1177,14 @@ class PurchaseService {
   PurchaseService({required this.cloudEnabled});
   final bool cloudEnabled;
   static const premiumId = 'briefai_premium_monthly';
+  static Set<String> get productIds =>
+      kSubscriptionPlans.map((plan) => plan.productId).toSet();
 
   Future<ProductDetailsResponse> products() async {
     if (!await InAppPurchase.instance.isAvailable()) {
       throw StateError('Store plaćanja nije dostupan na ovom uređaju.');
     }
-    return InAppPurchase.instance.queryProductDetails({premiumId});
+    return InAppPurchase.instance.queryProductDetails(productIds);
   }
 
   Stream<List<PurchaseDetails>> get updates =>
@@ -1243,7 +1245,9 @@ class PurchaseService {
         throw StateError('Prijavite se pre kupovine pretplate.');
       }
       await nativeStoreRequest('buy', {
-        'productId': premiumId,
+        'productId': kSubscriptionPlans
+            .firstWhere((candidate) => candidate.key == plan)
+            .productId,
         'applicationUserName': userId,
       });
       final purchase = await nativeStoreRequest('waitPurchase');

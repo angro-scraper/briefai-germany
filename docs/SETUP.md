@@ -112,6 +112,8 @@ Google/Apple proizvodi:
 
 ```text
 briefai_premium_monthly
+briefai_plus_monthly
+briefai_pro_monthly
 ```
 
 Google servisni nalog ide u `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`; Apple p8 ide u
