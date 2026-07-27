@@ -88,6 +88,8 @@ class LetterAnalysis {
     this.servicePeriod,
     this.paymentReference,
     this.deadline,
+    this.paymentDueDate,
+    this.isPaymentObligation = false,
     this.amount,
     this.status = LetterStatus.newLetter,
     this.sourceText = '',
@@ -108,6 +110,8 @@ class LetterAnalysis {
   final String? servicePeriod;
   final String? paymentReference;
   final DateTime? deadline;
+  final DateTime? paymentDueDate;
+  final bool isPaymentObligation;
   final String? amount;
   final LetterStatus status;
   final String sourceText;
@@ -128,6 +132,8 @@ class LetterAnalysis {
     servicePeriod: servicePeriod,
     paymentReference: paymentReference,
     deadline: deadline,
+    paymentDueDate: paymentDueDate,
+    isPaymentObligation: isPaymentObligation,
     amount: amount,
     status: status ?? this.status,
     sourceText: sourceText,
@@ -139,6 +145,8 @@ class LetterAnalysis {
     'category': category.label,
     'urgency': urgency.name.toUpperCase(),
     'deadline': deadline?.toIso8601String().split('T').first,
+    'paymentDueDate': paymentDueDate?.toIso8601String().split('T').first,
+    'isPaymentObligation': isPaymentObligation,
     'amounts': amount == null ? <String>[] : [amount],
     'amount': amount,
     'suggestedAction': suggestedAction,
@@ -160,6 +168,7 @@ class LetterAnalysis {
     String? sourceText,
   }) {
     final deadlineValue = map['deadline'] as String?;
+    final paymentDueDateValue = map['paymentDueDate'] as String?;
     final amountValues = map['amounts'];
     final dynamic rawCreatedAt = map['createdAt'];
     final createdAt = rawCreatedAt is DateTime
@@ -189,6 +198,10 @@ class LetterAnalysis {
       servicePeriod: _nonEmptyString(map['servicePeriod']),
       paymentReference: _nonEmptyString(map['paymentReference']),
       deadline: deadlineValue == null ? null : DateTime.tryParse(deadlineValue),
+      paymentDueDate: paymentDueDateValue == null
+          ? null
+          : DateTime.tryParse(paymentDueDateValue),
+      isPaymentObligation: map['isPaymentObligation'] == true,
       amount:
           _nonEmptyString(map['totalAmount']) ??
           _nonEmptyString(map['amount']) ??

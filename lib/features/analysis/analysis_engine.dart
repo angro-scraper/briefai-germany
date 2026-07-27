@@ -53,6 +53,19 @@ class AnalysisEngine {
       caseSensitive: false,
     ).firstMatch(text)?.group(1)?.trim();
     final documentType = _documentType(normalized);
+    final isPaymentObligation =
+        amount != null &&
+        _containsAny(normalized, const [
+          'zu zahlen',
+          'zahlbetrag',
+          'fällig',
+          'faellig',
+          'rechnung',
+          'mahnung',
+          'zahlungserinnerung',
+          'überweisen',
+          'ueberweisen',
+        ]);
     final urgency =
         deadline != null && deadline.difference(DateTime.now()).inDays <= 7
         ? Urgency.high
@@ -89,6 +102,8 @@ class AnalysisEngine {
       servicePeriod: servicePeriod,
       paymentReference: paymentReference,
       deadline: deadline,
+      paymentDueDate: isPaymentObligation ? deadline : null,
+      isPaymentObligation: isPaymentObligation,
       amount: amount,
       sourceText: text,
     );
@@ -318,11 +333,45 @@ class AnalysisEngine {
       values.any(text.contains);
 
   DateTime? _deadlineFor(String text) {
-    final match = RegExp(
+    final matches = RegExp(
       r'(?:bis(?:\s+spätestens)?\s+(?:zum\s+)?|spätestens\s+(?:am\s+)?|frist(?:\s+\w+){0,4}\s+bis\s+)(\d{1,2})[./](\d{1,2})[./](\d{2}|\d{4})\b',
       caseSensitive: false,
-    ).firstMatch(text);
-    if (match == null) return null;
+    ).allMatches(text).toList();
+    if (matches.isEmpty) return null;
+    RegExpMatch? bestMatch;
+    var bestScore = -1000;
+    for (final match in matches) {
+      final start = (match.start - 100).clamp(0, text.length);
+      final context = text.substring(start, match.end).toLowerCase();
+      var score = 0;
+      if (_containsAny(context, const [
+        'fällig',
+        'faellig',
+        'zahlbar',
+        'zahlung',
+        'überweisen',
+        'ueberweisen',
+        'frist',
+        'spätestens',
+      ])) {
+        score += 10;
+      }
+      if (_containsAny(context, const [
+        'leistungszeitraum',
+        'abrechnungszeitraum',
+        'lieferzeitraum',
+        'von',
+      ])) {
+        score -= 4;
+      }
+      // When evidence has equal strength, the later explicit date is usually
+      // the action/payment deadline after header and service-period dates.
+      if (score >= bestScore) {
+        bestScore = score;
+        bestMatch = match;
+      }
+    }
+    final match = bestMatch!;
     var year = int.parse(match.group(3)!);
     if (year < 100) year += 2000;
     final month = int.parse(match.group(2)!);

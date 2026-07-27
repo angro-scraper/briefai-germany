@@ -19,6 +19,8 @@ void main() {
         'category': 'Finanzamt',
         'urgency': 'HIGH',
         'deadline': '2026-08-05',
+        'paymentDueDate': '2026-08-05',
+        'isPaymentObligation': true,
         'amounts': ['120,00 EUR'],
         'suggestedAction': 'Odgovorite do roka.',
         'status': 'inProgress',
@@ -29,6 +31,8 @@ void main() {
     expect(analysis.category, LetterCategory.finanzamt);
     expect(analysis.urgency, Urgency.high);
     expect(analysis.deadline, DateTime(2026, 8, 5));
+    expect(analysis.paymentDueDate, DateTime(2026, 8, 5));
+    expect(analysis.isPaymentObligation, isTrue);
     expect(analysis.senderName, 'Muster Energie GmbH');
     expect(analysis.recipientName, 'Max Mustermann');
     expect(analysis.invoiceNumber, 'RE-2026-123');
@@ -73,6 +77,15 @@ void main() {
     state.restoreOnboarding(true);
 
     expect(state.onboardingComplete, isTrue);
+  });
+
+  test('app state changes every supported interface language immediately', () {
+    final state = AppState();
+
+    for (final language in const ['hr', 'bs', 'mk', 'de', 'en', 'bg', 'sr']) {
+      state.setLocale(language);
+      expect(state.localeCode, language);
+    }
   });
 
   test('trial allows three analyses and then requires Premium', () {

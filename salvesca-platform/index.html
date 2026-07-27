@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07142f">
+    <meta name="description" content="Salvesca — digitalni alati za naše ljude u dijaspori.">
+    <title>Salvesca — lakši život u dijaspori</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --navy: #07142f;
+        --surface: #0d2046;
+        --line: rgba(164, 193, 255, .2);
+        --text: #f7f9ff;
+        --muted: #b9c7e5;
+        --blue: #5d8cff;
+        --violet: #a982ff;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% -8%, rgba(49, 102, 255, .46), transparent 34rem),
+          radial-gradient(circle at 88% 12%, rgba(153, 91, 255, .24), transparent 32rem),
+          var(--navy);
+      }
+      a { color: inherit; }
+      .wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 24px 0;
+      }
+      .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 850; letter-spacing: -.03em; }
+      .mark {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--blue), var(--violet));
+        box-shadow: 0 10px 32px rgba(70, 103, 255, .35);
+      }
+      .mark svg { width: 25px; height: 25px; }
+      nav { display: flex; gap: 24px; font-size: .92rem; color: var(--muted); }
+      nav a { text-decoration: none; }
+      .hero { padding: 104px 0 88px; max-width: 900px; }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: #c8d9ff;
+        background: rgba(13, 32, 70, .72);
+        font-size: .8rem;
+        font-weight: 750;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: #67e8b4; box-shadow: 0 0 16px #67e8b4; }
+      h1 {
+        margin: 24px 0 24px;
+        max-width: 850px;
+        font-size: clamp(3.2rem, 8.5vw, 7rem);
+        line-height: .93;
+        letter-spacing: -.075em;
+      }
+      .gradient { color: transparent; background: linear-gradient(92deg, #fff 4%, #a9c3ff 52%, #c7a9ff); background-clip: text; }
+      .lead { max-width: 700px; margin: 0; color: var(--muted); font-size: clamp(1.08rem, 2vw, 1.32rem); line-height: 1.65; }
+      .section-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+      h2 { margin: 0; font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.055em; }
+      .section-head p { max-width: 470px; margin: 0; color: var(--muted); line-height: 1.6; }
+      .apps { padding: 26px 0 110px; }
+      .grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: 20px; }
+      .card {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(28px, 5vw, 52px);
+        min-height: 430px;
+        border: 1px solid var(--line);
+        border-radius: 32px;
+        background: linear-gradient(145deg, rgba(17, 43, 92, .94), rgba(8, 24, 55, .94));
+        box-shadow: 0 30px 80px rgba(0, 0, 0, .24);
+      }
+      .card::after {
+        content: "";
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        right: -100px;
+        top: -120px;
+        border-radius: 50%;
+        background: rgba(83, 124, 255, .24);
+        filter: blur(8px);
+      }
+      .app-icon {
+        width: 66px;
+        height: 66px;
+        display: grid;
+        place-items: center;
+        border-radius: 20px;
+        background: linear-gradient(140deg, #376cff, #9b70ff);
+        font-size: 1.7rem;
+        box-shadow: 0 18px 48px rgba(68, 99, 255, .35);
+      }
+      .card h3 { position: relative; z-index: 1; margin: 30px 0 14px; font-size: clamp(2rem, 4vw, 3.2rem); letter-spacing: -.055em; }
+      .card p { position: relative; z-index: 1; max-width: 620px; color: var(--muted); line-height: 1.65; }
+      .features { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 9px; margin: 22px 0 30px; }
+      .features span { padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; color: #dbe5ff; font-size: .82rem; }
+      .actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 11px; }
+      .button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 13px; background: #fff; color: #091b3e; text-decoration: none; font-weight: 800; }
+      .button.secondary { border: 1px solid var(--line); background: rgba(255,255,255,.05); color: #eef3ff; }
+      .soon { display: flex; flex-direction: column; justify-content: space-between; }
+      .soon .number { font-size: 5rem; font-weight: 900; line-height: 1; letter-spacing: -.08em; color: #8aabff; }
+      footer { border-top: 1px solid var(--line); padding: 34px 0 44px; color: #91a5cb; font-size: .88rem; }
+      footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+      @media (max-width: 760px) {
+        nav { display: none; }
+        .hero { padding: 72px 0 68px; }
+        .section-head { display: block; }
+        .section-head p { margin-top: 14px; }
+        .grid { grid-template-columns: 1fr; }
+        .card { min-height: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <a class="brand" href="/" aria-label="Salvesca početna">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 13.5 10 18l9-12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>Salvesca</span>
+      </a>
+      <nav aria-label="Glavna navigacija">
+        <a href="#aplikacije">Aplikacije</a>
+        <a href="https://briefai.salvesca.com/support.html">Podrška</a>
+        <a href="https://briefai.salvesca.com/privacy.html">Privatnost</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <span class="eyebrow"><span class="dot"></span> Digitalni alati za dijasporu</span>
+        <h1><span class="gradient">Lakši život</span><br>daleko od kuće.</h1>
+        <p class="lead">Salvesca okuplja praktične aplikacije koje našim ljudima u dijaspori pomažu da razumeju dokumente, poštuju rokove i lakše rešavaju svakodnevne obaveze.</p>
+      </section>
+
+      <section class="apps wrap" id="aplikacije">
+        <div class="section-head">
+          <h2>Naše aplikacije</h2>
+          <p>Svaka aplikacija ima svoju zasebnu stranicu, web verziju i direktne linkove za Android i iOS.</p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <div class="app-icon" aria-hidden="true">✦</div>
+            <h3>BriefAI Germany</h3>
+            <p>Fotografišite nemačko službeno pismo. BriefAI prepoznaje pošiljaoca i primaoca, objašnjava sadržaj na vašem jeziku, izdvaja iznose i rokove i priprema profesionalan nemački odgovor.</p>
+            <div class="features">
+              <span>7 jezika</span>
+              <span>Privatna lokalna arhiva</span>
+              <span>Podsetnici 7 / 3 / 1 dan</span>
+              <span>Android i iOS</span>
+            </div>
+            <div class="actions">
+              <a class="button" href="https://briefai.salvesca.com">Otvori BriefAI</a>
+              <a class="button secondary" href="https://briefai.salvesca.com/app/">Pokreni web aplikaciju</a>
+            </div>
+          </article>
+          <article class="card soon">
+            <div>
+              <div class="number">+</div>
+              <h3>Još aplikacija stiže</h3>
+              <p>Salvesca platforma je spremna za nove servise za život i rad u dijaspori. Svaki novi proizvod dobiće svoj poddomen i mesto ovde.</p>
+            </div>
+            <span class="eyebrow">U razvoju</span>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>© 2026 Salvesca. Sva prava zadržana.</span>
+        <span>Napravljeno za naše ljude u dijaspori.</span>
+      </div>
+    </footer>
+  </body>
+</html>

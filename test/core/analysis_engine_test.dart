@@ -42,6 +42,8 @@ void main() {
     expect(result.servicePeriod, '01.06.2026 bis 30.06.2026');
     expect(result.amount, '84,50 EUR');
     expect(result.paymentReference, 'RE-2026-123');
+    expect(result.isPaymentObligation, isTrue);
+    expect(result.paymentDueDate, DateTime(2026, 8, 15));
   });
 
   test('Familienkasse sa Steuer-ID nije Finanzamt i daje konkretne korake', () {

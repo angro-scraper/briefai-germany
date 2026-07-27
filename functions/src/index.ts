@@ -61,6 +61,8 @@ type Analysis = {
   category: (typeof allowedCategories)[number];
   urgency: "LOW" | "MEDIUM" | "HIGH";
   deadline: string | null;
+  paymentDueDate: string | null;
+  isPaymentObligation: boolean;
   amounts: string[];
   suggestedAction: string;
   disclaimer: string;
@@ -269,7 +271,8 @@ const analysisSchema = {
     "title", "plainExplanation", "senderName", "recipientName",
     "paymentRecipient", "documentType", "invoiceNumber", "servicePeriod",
     "totalAmount", "paymentReference",
-    "category", "urgency", "deadline", "amounts", "suggestedAction",
+    "category", "urgency", "deadline", "paymentDueDate",
+    "isPaymentObligation", "amounts", "suggestedAction",
     "disclaimer",
   ],
   properties: {
@@ -286,6 +289,14 @@ const analysisSchema = {
     category: {type: "string", enum: allowedCategories},
     urgency: {type: "string", enum: ["LOW", "MEDIUM", "HIGH"]},
     deadline: {type: ["string", "null"], description: "ISO date YYYY-MM-DD if explicitly found"},
+    paymentDueDate: {
+      type: ["string", "null"],
+      description: "Exact ISO payment due date YYYY-MM-DD; never invoice/document date",
+    },
+    isPaymentObligation: {
+      type: "boolean",
+      description: "True only when the recipient currently has a supported payment obligation",
+    },
     amounts: {type: "array", items: {type: "string"}},
     suggestedAction: {type: "string"},
     disclaimer: {type: "string"},
@@ -588,7 +599,7 @@ Party identification is a required evidence task, especially for invoices and pa
 - Never swap issuer and customer. Distinguish invoice issuer/supplier, billing agent, addressed customer, delivery/service address, and bank/payment beneficiary.
 - When a party is not reliably supported by OCR text, return null instead of guessing. Mention the uncertainty in plainExplanation and tell the user exactly where to verify it on the original.
 
-For invoices, reminders, utility bills, telecom bills, insurance premiums, rent statements, and similar documents, also extract the exact documentType, invoiceNumber, servicePeriod, totalAmount, all amounts, payment deadline, and paymentReference when visible. totalAmount MUST be the final amount currently payable, not a net subtotal, tax component, discount, prior balance, instalment that is not currently due, or consumption figure. In amounts, put the final payable total first, followed by clearly labelled net/tax/credit/other amounts. The title and explanation must explicitly say who is charging whom, for what, how much, and by when. Distinguish invoice date, service period, due date, and reminder deadline.
+For invoices, reminders, utility bills, telecom bills, insurance premiums, rent statements, and similar documents, also extract the exact documentType, invoiceNumber, servicePeriod, totalAmount, all amounts, payment deadline, and paymentReference when visible. totalAmount MUST be the final amount currently payable, not a net subtotal, tax component, discount, prior balance, instalment that is not currently due, or consumption figure. In amounts, put the final payable total first, followed by clearly labelled net/tax/credit/other amounts. The title and explanation must explicitly say who is charging whom, for what, how much, and by when. Distinguish invoice date, service period, due date, and reminder deadline. Set isPaymentObligation=true only when the addressed recipient is presently asked or required to pay; an informational amount, credit, refund, already paid sum, supplier-side invoice copy, or unclear OCR is not enough. paymentDueDate is only the explicit due date for that payment and must be null when no payment due date is visible.
 
 Use the narrowest matching category. Distinguish Agentur für Arbeit from Jobcenter and Familienkasse; Ausländerbehörde from Bürgeramt; Sozialamt from Wohngeldstelle and Jugendamt; and court from police/prosecution, customs, or debt collection. Rundfunkbeitrag, energy suppliers, pension insurance, BAföG offices, and Inkasso each have their own category. Use "Ostalo" only when no listed sender type is supported by the text.
 

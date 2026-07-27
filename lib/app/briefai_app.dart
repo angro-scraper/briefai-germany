@@ -585,8 +585,13 @@ class _LanguageMenu extends StatelessWidget {
     initialValue: state.localeCode,
     icon: const Icon(Icons.translate),
     onSelected: (language) async {
-      await services.auth.setPreferredLanguage(language);
       state.setLocale(language);
+      try {
+        await services.auth.setPreferredLanguage(language);
+      } on Object {
+        // The visible language changes immediately. Persistence can be retried
+        // without reverting the user's explicit selection.
+      }
     },
     itemBuilder: (_) => _languageLabels.entries
         .map(
@@ -982,7 +987,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       // completed AI result. The analysis remains available even if reminders
       // cannot be registered on this device.
       try {
-        await widget.services.reminders.schedule(analysis);
+        await widget.services.reminders.schedule(analysis, language: language);
       } on Object {
         // The user can still add a reminder manually from the result screen.
       }
@@ -1141,6 +1146,19 @@ class ResultScreen extends StatelessWidget {
               title: strings.text('deadline'),
               content:
                   '${letter.deadline!.day.toString().padLeft(2, '0')}.${letter.deadline!.month.toString().padLeft(2, '0')}.${letter.deadline!.year}',
+            ),
+          if (letter.isPaymentObligation)
+            _ResultSection(
+              title: strings.text('paymentObligation'),
+              content: letter.status == LetterStatus.done
+                  ? strings.text('paymentPaid')
+                  : strings.text('paymentOpen'),
+            ),
+          if (letter.paymentDueDate != null)
+            _ResultSection(
+              title: strings.text('paymentDueDate'),
+              content:
+                  '${letter.paymentDueDate!.day.toString().padLeft(2, '0')}.${letter.paymentDueDate!.month.toString().padLeft(2, '0')}.${letter.paymentDueDate!.year}',
             ),
           if (letter.amount != null)
             _ResultSection(
@@ -1372,6 +1390,14 @@ class ArchiveScreen extends StatelessWidget {
                   letter.id,
                   status,
                 );
+                if (status == LetterStatus.done) {
+                  await services.reminders.cancel(letter.id);
+                } else {
+                  await services.reminders.schedule(
+                    letter.copyWith(status: status),
+                    language: state.localeCode,
+                  );
+                }
               },
               onDelete: () => showDialog<void>(
                 context: context,
@@ -1608,8 +1634,14 @@ class ProfileScreen extends StatelessWidget {
                     subtitle: Text(_languageLabels[language] ?? language),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) async {
-                        await services.auth.setPreferredLanguage(value);
                         state.setLocale(value);
+                        try {
+                          await services.auth.setPreferredLanguage(value);
+                        } on Object {
+                          // Keep the selected UI language even during a
+                          // temporary local-storage or cloud synchronization
+                          // failure.
+                        }
                       },
                       itemBuilder: (_) => _languageLabels.entries
                           .map(
@@ -2317,7 +2349,8 @@ class LetterCard extends StatelessWidget {
       title: Text(letter.title),
       subtitle: Text(
         '${context.strings.category(letter.category.name)}'
-        '${letter.deadline == null ? '' : ' • ${context.strings.text('deadline')} ${letter.deadline!.day}.${letter.deadline!.month}.'}',
+        '${letter.isPaymentObligation ? ' • ${letter.status == LetterStatus.done ? context.strings.text('paymentPaid') : context.strings.text('paymentOpen')}' : ''}'
+        '${(letter.paymentDueDate ?? letter.deadline) == null ? '' : ' • ${context.strings.text(letter.paymentDueDate != null ? 'paymentDueDate' : 'deadline')} ${(letter.paymentDueDate ?? letter.deadline)!.day}.${(letter.paymentDueDate ?? letter.deadline)!.month}.'}',
       ),
       trailing: onStatus == null && onDelete == null
           ? null

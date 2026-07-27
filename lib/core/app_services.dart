@@ -981,6 +981,9 @@ class ReminderService {
   Future<void> initialize() async {
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Europe/Berlin'));
+    // The hosted app delegates durable notifications to the native wrapper.
+    // Browser timers cannot reliably wake a closed Android/iOS application.
+    if (kIsWeb) return;
     await _local.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -1030,8 +1033,19 @@ class ReminderService {
     }
   }
 
-  Future<void> schedule(LetterAnalysis letter) async {
-    if (letter.deadline == null) return;
+  Future<void> schedule(LetterAnalysis letter, {String language = 'sr'}) async {
+    final dueDate = letter.paymentDueDate ?? letter.deadline;
+    if (dueDate == null || letter.status == LetterStatus.done) return;
+    if (kIsWeb && await nativeStoreAvailable()) {
+      await nativeStoreRequest('scheduleReminders', {
+        'letterId': letter.id,
+        'dueDate': dueDate.toIso8601String().split('T').first,
+        'language': language,
+        'isPayment': letter.isPaymentObligation,
+      });
+      return;
+    }
+    if (kIsWeb) return;
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'deadlines',
@@ -1043,7 +1057,7 @@ class ReminderService {
       iOS: DarwinNotificationDetails(),
     );
     for (final days in [7, 3, 1]) {
-      final deadline = letter.deadline!;
+      final deadline = dueDate;
       final target = DateTime(
         deadline.year,
         deadline.month,
@@ -1052,10 +1066,10 @@ class ReminderService {
       ).subtract(Duration(days: days));
       if (target.isBefore(DateTime.now())) continue;
       await _local.zonedSchedule(
-        id: '${letter.id}-$days'.hashCode,
+        id: _stableNotificationId(letter.id, days),
         // Do not expose letter content through a lock-screen notification.
         title: 'BriefAI Germany',
-        body: 'Rok je za $days ${days == 1 ? 'dan' : 'dana'}.',
+        body: _reminderBody(language, days, letter.isPaymentObligation),
         scheduledDate: tz.TZDateTime.from(target, tz.local),
         notificationDetails: details,
         // A day-level deadline reminder does not need Android's privileged
@@ -1070,10 +1084,58 @@ class ReminderService {
   Future<void> cancelAll() => _local.cancelAll();
 
   Future<void> cancel(String letterId) async {
+    if (kIsWeb && await nativeStoreAvailable()) {
+      await nativeStoreRequest('cancelReminders', {'letterId': letterId});
+      return;
+    }
+    if (kIsWeb) return;
     for (final days in [7, 3, 1]) {
-      await _local.cancel(id: '$letterId-$days'.hashCode);
+      await _local.cancel(id: _stableNotificationId(letterId, days));
     }
   }
+}
+
+int _stableNotificationId(String letterId, int days) {
+  var hash = 0x811c9dc5;
+  for (final codeUnit in '$letterId-$days'.codeUnits) {
+    hash ^= codeUnit;
+    hash = (hash * 0x01000193) & 0x7fffffff;
+  }
+  return hash;
+}
+
+String _reminderBody(String language, int days, bool isPayment) {
+  final one = days == 1;
+  return switch (language) {
+    'de' =>
+      isPayment
+          ? 'Die Zahlung ist in $days ${one ? 'Tag' : 'Tagen'} fällig.'
+          : 'Die Frist endet in $days ${one ? 'Tag' : 'Tagen'}.',
+    'en' =>
+      isPayment
+          ? 'Payment is due in $days ${one ? 'day' : 'days'}.'
+          : 'The deadline is in $days ${one ? 'day' : 'days'}.',
+    'mk' =>
+      isPayment
+          ? 'Плаќањето доспева за $days ${one ? 'ден' : 'дена'}.'
+          : 'Рокот истекува за $days ${one ? 'ден' : 'дена'}.',
+    'bg' =>
+      isPayment
+          ? 'Плащането е дължимо след $days ${one ? 'ден' : 'дни'}.'
+          : 'Срокът изтича след $days ${one ? 'ден' : 'дни'}.',
+    'hr' =>
+      isPayment
+          ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'
+          : 'Rok istječe za $days ${one ? 'dan' : 'dana'}.',
+    'bs' =>
+      isPayment
+          ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'
+          : 'Rok ističe za $days ${one ? 'dan' : 'dana'}.',
+    _ =>
+      isPayment
+          ? 'Plaćanje dospeva za $days ${one ? 'dan' : 'dana'}.'
+          : 'Rok ističe za $days ${one ? 'dan' : 'dana'}.',
+  };
 }
 
 class PurchaseService {
