@@ -2,7 +2,10 @@ import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-
 import {initializeAppCheck, ReCaptchaV3Provider} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js';
 import {
   getAuth,
+  browserLocalPersistence,
   GoogleAuthProvider,
+  onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
@@ -29,6 +32,7 @@ if (configured) {
     isTokenAutoRefreshEnabled: true,
   });
   const auth = getAuth(app);
+  await setPersistence(auth, browserLocalPersistence);
   functions = getFunctions(app, 'europe-west3');
   const completeSignIn = async () => {
     await loadMetrics();
@@ -52,6 +56,14 @@ if (configured) {
         document.querySelector('#admin-password').value,
       );
       document.querySelector('#admin-password').value = '';
+      await completeSignIn();
+    } catch (error) {
+      status.textContent = `Access failed: ${error.message}`;
+    }
+  });
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    try {
       await completeSignIn();
     } catch (error) {
       status.textContent = `Access failed: ${error.message}`;

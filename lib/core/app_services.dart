@@ -35,6 +35,16 @@ import '../features/ocr/local_ocr.dart';
 import 'local_database_factory.dart';
 import 'native_store_bridge.dart';
 
+const _terminalAuthErrorCodes = {
+  'user-disabled',
+  'user-not-found',
+  'invalid-user-token',
+  'user-token-expired',
+};
+
+bool _isTerminalAuthError(String code) =>
+    _terminalAuthErrorCodes.contains(code);
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -89,6 +99,13 @@ class AppServices {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
+      }
+      // Firebase Auth normally defaults to local persistence on web, but the
+      // hosted app is also used inside Android/iOS WebViews. Make the contract
+      // explicit so closing and reopening the wrapper does not turn a signed-in
+      // user into a guest.
+      if (kIsWeb) {
+        await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
       }
       cloudEnabled = true;
     } catch (error, stackTrace) {
@@ -186,11 +203,19 @@ class AuthService {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
     try {
-      final token = await user.getIdToken(true);
+      // The SDK refreshes expired tokens automatically. Forcing a network
+      // refresh before every AI action made a temporary connection problem look
+      // like a logout.
+      final token = await user.getIdToken();
       return token != null && token.isNotEmpty;
-    } on FirebaseAuthException {
-      await FirebaseAuth.instance.signOut();
-      return false;
+    } on FirebaseAuthException catch (error) {
+      if (_isTerminalAuthError(error.code)) {
+        await FirebaseAuth.instance.signOut();
+        return false;
+      }
+      // Keep the locally restored user for transient network/service errors.
+      // The actual callable function remains authoritative and can be retried.
+      return FirebaseAuth.instance.currentUser != null;
     }
   }
 

@@ -342,6 +342,7 @@ class _AppShellState extends State<AppShell> {
         _bindLocalVault();
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
+        if (mounted) setState(() {});
         if (user != null) {
           unawaited(
             widget.services.auth.preferredLanguage().then(
