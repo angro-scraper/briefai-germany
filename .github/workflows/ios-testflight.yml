@@ -82,7 +82,12 @@ jobs:
         run: flutter pub get
 
       - name: Install iOS signing tools
-        run: pip3 install --disable-pip-version-check codemagic-cli-tools
+        run: |
+          python3 -m venv "$RUNNER_TEMP/codemagic-venv"
+          "$RUNNER_TEMP/codemagic-venv/bin/pip" install \
+            --disable-pip-version-check \
+            codemagic-cli-tools
+          echo "$RUNNER_TEMP/codemagic-venv/bin" >> "$GITHUB_PATH"
 
       - name: Analyze and test
         run: |
