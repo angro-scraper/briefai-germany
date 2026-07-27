@@ -89,20 +89,6 @@ jobs:
             codemagic-cli-tools
           echo "$RUNNER_TEMP/codemagic-venv/bin" >> "$GITHUB_PATH"
 
-      - name: Analyze and test
-        run: |
-          flutter analyze --no-pub
-          flutter test --no-pub
-
-      - name: Prepare Flutter iOS release
-        run: |
-          flutter build ios \
-            --release \
-            --no-codesign \
-            --target lib/wrapper_main.dart \
-            --build-name "${{ inputs.build_name }}" \
-            --build-number "${{ inputs.build_number }}"
-
       - name: Create App Store signing files
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
@@ -124,6 +110,23 @@ jobs:
             --private-key "@file:$API_KEY_PATH" \
             --certificate-key "@file:$CERTIFICATE_KEY"
           keychain add-certificates
+
+      - name: Analyze and test
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub
+
+      - name: Prepare Flutter iOS release
+        run: |
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --target lib/wrapper_main.dart \
+            --build-name "${{ inputs.build_name }}" \
+            --build-number "${{ inputs.build_number }}"
+
+      - name: Apply App Store provisioning profile
+        run: |
           xcode-project use-profiles --project ios/Runner.xcodeproj
 
       - name: Build signed IPA
