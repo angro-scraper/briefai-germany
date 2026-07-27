@@ -14,6 +14,8 @@ void main() {
         'documentType': 'Rechnung',
         'invoiceNumber': 'RE-2026-123',
         'servicePeriod': '01.06.2026–30.06.2026',
+        'totalAmount': '84,50 EUR',
+        'paymentReference': 'RE-2026-123',
         'category': 'Finanzamt',
         'urgency': 'HIGH',
         'deadline': '2026-08-05',
@@ -30,6 +32,8 @@ void main() {
     expect(analysis.senderName, 'Muster Energie GmbH');
     expect(analysis.recipientName, 'Max Mustermann');
     expect(analysis.invoiceNumber, 'RE-2026-123');
+    expect(analysis.amount, '84,50 EUR');
+    expect(analysis.paymentReference, 'RE-2026-123');
     expect(analysis.toMap()['servicePeriod'], '01.06.2026–30.06.2026');
     expect(analysis.status, LetterStatus.inProgress);
     expect(analysis.toMap()['status'], 'inProgress');

@@ -10,10 +10,16 @@ class AnalysisEngine {
     final normalized = text.toLowerCase();
     final category = _categoryFor(normalized);
     final deadline = _deadlineFor(text);
-    final amount = RegExp(
-      r'(?:€|eur)\s?([0-9.,]+)|([0-9.,]+)\s?(?:€|eur)',
+    final totalAmount = RegExp(
+      r'(?:gesamtbetrag|rechnungsbetrag|zahlbetrag|zu zahlen)\s*:?\s*((?:€|eur)\s?[0-9.,]+|[0-9.,]+\s?(?:€|eur))',
       caseSensitive: false,
-    ).firstMatch(text)?.group(0);
+    ).firstMatch(text)?.group(1);
+    final amount =
+        totalAmount ??
+        RegExp(
+          r'(?:€|eur)\s?([0-9.,]+)|([0-9.,]+)\s?(?:€|eur)',
+          caseSensitive: false,
+        ).firstMatch(text)?.group(0);
     final senderName = _labeledParty(text, const [
       'absender',
       'rechnungssteller',
@@ -40,6 +46,10 @@ class AnalysisEngine {
     ).firstMatch(text)?.group(1);
     final servicePeriod = RegExp(
       r'(?:leistungszeitraum|abrechnungszeitraum|zeitraum)\s*:?\s*([^\r\n]+)',
+      caseSensitive: false,
+    ).firstMatch(text)?.group(1)?.trim();
+    final paymentReference = RegExp(
+      r'(?:verwendungszweck|zahlungsreferenz|referenz)\s*:?\s*([^\r\n]+)',
       caseSensitive: false,
     ).firstMatch(text)?.group(1)?.trim();
     final documentType = _documentType(normalized);
@@ -77,6 +87,7 @@ class AnalysisEngine {
       documentType: documentType,
       invoiceNumber: invoiceNumber,
       servicePeriod: servicePeriod,
+      paymentReference: paymentReference,
       deadline: deadline,
       amount: amount,
       sourceText: text,

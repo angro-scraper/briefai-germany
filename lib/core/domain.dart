@@ -86,6 +86,7 @@ class LetterAnalysis {
     this.documentType,
     this.invoiceNumber,
     this.servicePeriod,
+    this.paymentReference,
     this.deadline,
     this.amount,
     this.status = LetterStatus.newLetter,
@@ -105,6 +106,7 @@ class LetterAnalysis {
   final String? documentType;
   final String? invoiceNumber;
   final String? servicePeriod;
+  final String? paymentReference;
   final DateTime? deadline;
   final String? amount;
   final LetterStatus status;
@@ -124,6 +126,7 @@ class LetterAnalysis {
     documentType: documentType,
     invoiceNumber: invoiceNumber,
     servicePeriod: servicePeriod,
+    paymentReference: paymentReference,
     deadline: deadline,
     amount: amount,
     status: status ?? this.status,
@@ -145,6 +148,8 @@ class LetterAnalysis {
     'documentType': documentType,
     'invoiceNumber': invoiceNumber,
     'servicePeriod': servicePeriod,
+    'paymentReference': paymentReference,
+    'totalAmount': amount,
     'status': status.name,
     'sourceText': sourceText,
   };
@@ -182,9 +187,11 @@ class LetterAnalysis {
       documentType: _nonEmptyString(map['documentType']),
       invoiceNumber: _nonEmptyString(map['invoiceNumber']),
       servicePeriod: _nonEmptyString(map['servicePeriod']),
+      paymentReference: _nonEmptyString(map['paymentReference']),
       deadline: deadlineValue == null ? null : DateTime.tryParse(deadlineValue),
       amount:
-          map['amount'] as String? ??
+          _nonEmptyString(map['totalAmount']) ??
+          _nonEmptyString(map['amount']) ??
           (amountValues is List && amountValues.isNotEmpty
               ? amountValues.first as String?
               : null),

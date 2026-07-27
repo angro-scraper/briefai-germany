@@ -33,6 +33,7 @@ void main() {
         'documentType',
         'invoiceNumber',
         'servicePeriod',
+        'paymentReference',
         'generateReply',
         'replyTitle',
         'archiveSubtitle',

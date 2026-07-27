@@ -29,7 +29,9 @@ void main() {
       'Zahlungsempfänger: Muster Energie Abrechnung GmbH\n'
       'Rechnungsnummer: RE-2026-123\n'
       'Leistungszeitraum: 01.06.2026 bis 30.06.2026\n'
-      'Stromrechnung 84,50 EUR, fällig bis zum 15.08.2026.',
+      'Nettobetrag 71,01 EUR\n'
+      'Gesamtbetrag 84,50 EUR, fällig bis zum 15.08.2026.\n'
+      'Verwendungszweck: RE-2026-123',
     );
 
     expect(result.senderName, 'Muster Energie GmbH');
@@ -38,6 +40,8 @@ void main() {
     expect(result.documentType, 'Rechnung');
     expect(result.invoiceNumber, 'RE-2026-123');
     expect(result.servicePeriod, '01.06.2026 bis 30.06.2026');
+    expect(result.amount, '84,50 EUR');
+    expect(result.paymentReference, 'RE-2026-123');
   });
 
   test('Familienkasse sa Steuer-ID nije Finanzamt i daje konkretne korake', () {

@@ -1123,6 +1123,11 @@ class ResultScreen extends StatelessWidget {
               title: strings.text('servicePeriod'),
               content: letter.servicePeriod!,
             ),
+          if (letter.paymentReference != null)
+            _ResultSection(
+              title: strings.text('paymentReference'),
+              content: letter.paymentReference!,
+            ),
           _ResultSection(
             title: strings.text('simpleExplanation'),
             content: letter.plainExplanation,
