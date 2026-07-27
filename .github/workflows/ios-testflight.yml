@@ -46,9 +46,6 @@ jobs:
 
       - name: Verify required Apple secrets
         env:
-          CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
@@ -56,9 +53,6 @@ jobs:
         run: |
           set -euo pipefail
           for value in \
-            "$CERTIFICATE_BASE64" \
-            "$CERTIFICATE_PASSWORD" \
-            "$PROVISIONING_PROFILE_BASE64" \
             "$TEAM_ID" \
             "$API_KEY_ID" \
             "$API_ISSUER_ID" \
@@ -66,66 +60,21 @@ jobs:
             test -n "$value"
           done
 
-      - name: Install Apple distribution signing
-        id: signing
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: ${{ secrets.IOS_TEMP_KEYCHAIN_PASSWORD }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          CERTIFICATE_PATH="$RUNNER_TEMP/briefai-distribution.p12"
-          PROFILE_PATH="$RUNNER_TEMP/briefai-app-store.mobileprovision"
-          KEYCHAIN_PATH="$RUNNER_TEMP/briefai-signing.keychain-db"
-          KEYCHAIN_PASSWORD="${KEYCHAIN_PASSWORD:-$(openssl rand -hex 24)}"
-
-          printf '%s' "$CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
-          printf '%s' "$PROVISIONING_PROFILE_BASE64" | base64 -D > "$PROFILE_PATH"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" \
-            -P "$CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: \
-            -s \
-            -k "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
-
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          PROFILE_PLIST="$RUNNER_TEMP/briefai-profile.plist"
-          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
-          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
-          PROFILE_TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")
-          PROFILE_APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST")
-          test "$PROFILE_TEAM_ID" = "$TEAM_ID"
-          test "${PROFILE_APP_ID#*.}" = "$BUNDLE_ID"
-          cp "$PROFILE_PATH" \
-            "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
-
-          echo "profile_name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
-          echo "keychain_path=$KEYCHAIN_PATH" >> "$GITHUB_OUTPUT"
-
       - name: Install App Store Connect API key
+        id: api_key
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64 }}
         run: |
           set -euo pipefail
-          API_KEYS_DIR="$HOME/.appstoreconnect/private_keys"
-          mkdir -p "$API_KEYS_DIR"
+          API_KEYS_DIR="$RUNNER_TEMP/app-store-connect-keys"
+          mkdir -p "$API_KEYS_DIR" "$HOME/.appstoreconnect/private_keys"
           printf '%s' "$API_PRIVATE_KEY_BASE64" | base64 -D \
             > "$API_KEYS_DIR/AuthKey_${API_KEY_ID}.p8"
           chmod 600 "$API_KEYS_DIR/AuthKey_${API_KEY_ID}.p8"
+          cp "$API_KEYS_DIR/AuthKey_${API_KEY_ID}.p8" \
+            "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
+          echo "path=$API_KEYS_DIR/AuthKey_${API_KEY_ID}.p8" >> "$GITHUB_OUTPUT"
 
       - name: Install Flutter dependencies
         run: flutter pub get
@@ -147,7 +96,9 @@ jobs:
       - name: Archive signed iOS app
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROFILE_NAME: ${{ steps.signing.outputs.profile_name }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          API_KEY_PATH: ${{ steps.api_key.outputs.path }}
         run: |
           set -euo pipefail
           xcodebuild \
@@ -157,15 +108,19 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$ARCHIVE_PATH" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY='Apple Distribution' \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID" \
             archive
 
       - name: Export signed IPA
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROFILE_NAME: ${{ steps.signing.outputs.profile_name }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          API_KEY_PATH: ${{ steps.api_key.outputs.path }}
         run: |
           set -euo pipefail
           EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
@@ -179,14 +134,9 @@ jobs:
             <key>destination</key>
             <string>export</string>
             <key>signingStyle</key>
-            <string>manual</string>
+            <string>automatic</string>
             <key>teamID</key>
             <string>$TEAM_ID</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>$BUNDLE_ID</key>
-              <string>$PROFILE_NAME</string>
-            </dict>
             <key>stripSwiftSymbols</key>
             <true/>
             <key>uploadSymbols</key>
@@ -199,7 +149,11 @@ jobs:
             -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist "$EXPORT_OPTIONS"
+            -exportOptionsPlist "$EXPORT_OPTIONS" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -228,14 +182,8 @@ jobs:
       - name: Clean temporary signing material
         if: ${{ always() }}
         env:
-          KEYCHAIN_PATH: ${{ steps.signing.outputs.keychain_path }}
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
         run: |
-          if [ -n "${KEYCHAIN_PATH:-}" ] && [ -f "$KEYCHAIN_PATH" ]; then
-            security delete-keychain "$KEYCHAIN_PATH" || true
-          fi
           rm -f \
             "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8" \
-            "$RUNNER_TEMP/briefai-distribution.p12" \
-            "$RUNNER_TEMP/briefai-app-store.mobileprovision" \
-            "$RUNNER_TEMP/briefai-profile.plist"
+            "$RUNNER_TEMP/app-store-connect-keys/AuthKey_${API_KEY_ID}.p8"
