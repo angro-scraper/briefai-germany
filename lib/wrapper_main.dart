@@ -161,9 +161,6 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         NavigationDelegate(
           onProgress: (progress) => setState(() => _progress = progress),
           onPageStarted: (_) => setState(() => _error = null),
-          onPageFinished: (_) {
-            unawaited(_removeStaleWebAppCache());
-          },
           onWebResourceError: (error) {
             if (error.isForMainFrame ?? true) {
               setState(() => _error = error.description);
@@ -196,21 +193,13 @@ class _WrapperScreenState extends State<_WrapperScreen> {
   }
 
   Future<void> _loadLiveWebApp() async {
-    try {
-      // The wrapper must always display the current hosted application. This
-      // clears only HTTP resources; user authentication, preferences and the
-      // local document vault remain untouched.
-      await _controller.clearCache();
-    } on Object {
-      // A cache cleanup failure must not prevent the hosted app from opening.
-    }
     await _controller.loadRequest(
       Uri.parse(_appUrl).replace(
         queryParameters: {
           'nativeWrapper': '1',
-          // Forces the WebView to request the current hosted shell on every
-          // cold start. LocalStorage/IndexedDB remain intact, so login,
-          // preferences and the private document vault are preserved.
+          // Requests the hosted shell on every cold start. The version token
+          // keeps the entry document fresh while allowing WebView to reuse
+          // already downloaded Flutter assets for a fast native startup.
           'webVersion': DateTime.now().millisecondsSinceEpoch.toString(),
         },
       ),
@@ -219,38 +208,6 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         'Pragma': 'no-cache',
       },
     );
-  }
-
-  Future<void> _removeStaleWebAppCache() async {
-    try {
-      await _controller.runJavaScript(r'''
-        (() => {
-          const marker = 'briefai-wrapper-web-cache-v1';
-          if (window.sessionStorage.getItem(marker) === 'done') return;
-          window.sessionStorage.setItem(marker, 'done');
-          Promise.all([
-            ('serviceWorker' in navigator)
-              ? navigator.serviceWorker.getRegistrations().then(
-                  registrations => Promise.all(
-                    registrations.map(registration => registration.unregister())
-                  )
-                )
-              : Promise.resolve(),
-            ('caches' in window)
-              ? caches.keys().then(
-                  keys => Promise.all(keys.map(key => caches.delete(key)))
-                )
-              : Promise.resolve(),
-          ]).then(() => {
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-              window.location.reload();
-            }
-          });
-        })();
-      ''');
-    } on Object {
-      // The live app is still usable when a WebView vendor blocks this API.
-    }
   }
 
   @override
