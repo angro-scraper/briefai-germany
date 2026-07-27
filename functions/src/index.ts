@@ -34,6 +34,25 @@ const stripePlusPriceId = defineString("STRIPE_PLUS_PRICE_ID", {
 const stripeProPriceId = defineString("STRIPE_PRO_PRICE_ID", {
   default: "not-configured",
 });
+
+// The native wrappers authenticate with the operating system's secure browser
+// sheet. The hosted Flutter UI exchanges the verified native Firebase ID token
+// for its own web session, avoiding embedded-WebView OAuth/reCAPTCHA loops.
+export const exchangeNativeAuth = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const idToken = requireString(request.data?.idToken, "idToken", 4096);
+    let decoded;
+    try {
+      decoded = await getAuth().verifyIdToken(idToken, true);
+    } catch {
+      throw new HttpsError("unauthenticated", "Native prijava nije validna.");
+    }
+    return {
+      customToken: await getAuth().createCustomToken(decoded.uid),
+    };
+  },
+);
 const webAppOrigin = defineString("WEB_APP_ORIGIN");
 const androidPackageName = defineString("ANDROID_PACKAGE_NAME");
 const appleBundleId = defineString("APPLE_BUNDLE_ID");

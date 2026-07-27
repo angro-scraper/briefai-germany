@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "891432357321",
+    "project_id": "briefai-germany",
+    "storage_bucket": "briefai-germany.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:891432357321:android:10adc4738f7f840fdbac18",
+        "android_client_info": {
+          "package_name": "com.briefai.briefai_germany"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "891432357321-1a918vk20vb8762q26p9ms220mmrechf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9VOAK3n-qc4_bFsgW4NMWt4kmujTchGM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "891432357321-1a918vk20vb8762q26p9ms220mmrechf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "891432357321-jn75154m8kvdsotmbvvbk342g954leep.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.briefai.briefaiGermany"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

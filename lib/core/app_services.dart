@@ -262,18 +262,60 @@ class AuthService {
 
   Future<void> signInWithGoogle() async {
     if (!cloudEnabled) return;
+    if (await _signInThroughNativeWrapper('authGoogle')) {
+      await _ensureProfile();
+      return;
+    }
     await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
     await _ensureProfile();
   }
 
   Future<void> signInWithApple() async {
     if (!cloudEnabled) return;
+    if (await _signInThroughNativeWrapper('authApple')) {
+      await _ensureProfile();
+      return;
+    }
     await FirebaseAuth.instance.signInWithProvider(AppleAuthProvider());
     await _ensureProfile();
   }
 
+  Future<bool> _signInThroughNativeWrapper(String action) async {
+    if (!kIsWeb || !await nativeStoreAvailable()) return false;
+    try {
+      final capabilities = await nativeStoreRequest('capabilities');
+      if (capabilities['nativeAuth'] != true) return false;
+    } on Object {
+      // Store builds before native-auth support continue to use the existing
+      // web provider flow until the user installs the new wrapper.
+      return false;
+    }
+    final response = await nativeStoreRequest(action);
+    final idToken = response['idToken'];
+    if (idToken is! String || idToken.isEmpty) {
+      throw StateError('Native prijava nije vratila bezbednosni token.');
+    }
+    final exchange = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('exchangeNativeAuth')
+        .call<Map<Object?, Object?>>({'idToken': idToken});
+    final customToken = exchange.data['customToken'];
+    if (customToken is! String || customToken.isEmpty) {
+      throw StateError('Firebase nije završio native prijavu.');
+    }
+    await FirebaseAuth.instance.signInWithCustomToken(customToken);
+    return true;
+  }
+
   Future<void> signOut() async {
-    if (cloudEnabled) await FirebaseAuth.instance.signOut();
+    if (!cloudEnabled) return;
+    await FirebaseAuth.instance.signOut();
+    if (kIsWeb && await nativeStoreAvailable()) {
+      try {
+        await nativeStoreRequest('authSignOut');
+      } on Object {
+        // The web session is already closed. Native cleanup is best-effort.
+      }
+    }
   }
 
   Future<void> deleteAccount() async {

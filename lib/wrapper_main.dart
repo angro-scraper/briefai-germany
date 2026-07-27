@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -17,6 +19,7 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'core/app_config.dart';
+import 'firebase_options.dart';
 
 const _appUrl = 'https://briefai-germany-download.onrender.com/app/';
 const _appHost = 'briefai-germany-download.onrender.com';
@@ -91,8 +94,9 @@ Future<String> _resizeWrapperImage(Map<String, String> job) async {
   return job['output']!;
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const BriefAiWrapper());
 }
 
@@ -268,6 +272,34 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           : const <String, dynamic>{};
       if (requestId == null || action == null) throw const FormatException();
       switch (action) {
+        case 'capabilities':
+          await _resolveNative(requestId, {
+            'ok': true,
+            'nativeAuth': true,
+            'wrapperBuild': 30,
+          });
+        case 'authGoogle':
+          final credential = await FirebaseAuth.instance.signInWithProvider(
+            GoogleAuthProvider()
+              ..setCustomParameters({'prompt': 'select_account'}),
+          );
+          final idToken = await credential.user?.getIdToken(true);
+          if (idToken == null || idToken.isEmpty) {
+            throw StateError('Google prijava nije vratila token.');
+          }
+          await _resolveNative(requestId, {'ok': true, 'idToken': idToken});
+        case 'authApple':
+          final credential = await FirebaseAuth.instance.signInWithProvider(
+            AppleAuthProvider(),
+          );
+          final idToken = await credential.user?.getIdToken(true);
+          if (idToken == null || idToken.isEmpty) {
+            throw StateError('Apple prijava nije vratila token.');
+          }
+          await _resolveNative(requestId, {'ok': true, 'idToken': idToken});
+        case 'authSignOut':
+          await FirebaseAuth.instance.signOut();
+          await _resolveNative(requestId, {'ok': true});
         case 'products':
           final response = await InAppPurchase.instance.queryProductDetails(
             kSubscriptionPlans.map((plan) => plan.productId).toSet(),
