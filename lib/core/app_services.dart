@@ -362,7 +362,8 @@ class AuthService {
       final result = await FirebaseFunctions.instanceFor(
         region: 'europe-west3',
       ).httpsCallable('claimFounderAccess').call<Map<Object?, Object?>>();
-      if (result.data['founder'] == true) {
+      if (result.data['founder'] == true ||
+          result.data['playReviewer'] == true) {
         await user.getIdToken(true);
       }
     } on FirebaseFunctionsException catch (error) {

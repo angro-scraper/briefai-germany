@@ -15,6 +15,7 @@ initializeApp();
 const db = getFirestore();
 const openAiApiKey = defineSecret("OPENAI_API_KEY");
 const founderEmail = defineSecret("FOUNDER_EMAIL");
+const reviewEmail = defineSecret("PLAY_REVIEW_EMAIL");
 const openAiModel = defineString("OPENAI_MODEL", {
   default: "gpt-5.6-terra",
 });
@@ -104,8 +105,14 @@ function isFounder(token: unknown): boolean {
     (token as {founder?: unknown}).founder === true;
 }
 
-async function hasPremiumAccess(uid: string, founder: boolean): Promise<boolean> {
-  if (founder) return true;
+function isPlayReviewer(token: unknown): boolean {
+  return typeof token === "object" &&
+    token !== null &&
+    (token as {playReviewer?: unknown}).playReviewer === true;
+}
+
+async function hasPremiumAccess(uid: string, accessOverride: boolean): Promise<boolean> {
+  if (accessOverride) return true;
   const subscription = await db.collection("subscriptions").doc(uid).get();
   return ["active", "trialing"].includes(subscription.data()?.status);
 }
@@ -257,7 +264,7 @@ export const claimFounderAccess = onCall(
   {
     region: "europe-west3",
     enforceAppCheck: true,
-    secrets: [founderEmail],
+    secrets: [founderEmail, reviewEmail],
   },
   async (request) => {
     const uid = requireUser(request.auth?.uid);
@@ -266,17 +273,27 @@ export const claimFounderAccess = onCall(
         ? request.auth.token.email.trim().toLowerCase()
         : "";
     const authorizedEmail = founderEmail.value().trim().toLowerCase();
-    if (!authenticatedEmail ||
-        !authorizedEmail ||
-        authenticatedEmail !== authorizedEmail) {
+    const authorizedReviewEmail = reviewEmail.value().trim().toLowerCase();
+    const founder = Boolean(
+      authenticatedEmail &&
+      authorizedEmail &&
+      authenticatedEmail === authorizedEmail,
+    );
+    const playReviewer = Boolean(
+      authenticatedEmail &&
+      authorizedReviewEmail &&
+      authenticatedEmail === authorizedReviewEmail,
+    );
+    if (!founder && !playReviewer) {
       throw new HttpsError("permission-denied", "Founder pristup nije dostupan.");
     }
     const user = await getAuth().getUser(uid);
     await getAuth().setCustomUserClaims(uid, {
       ...(user.customClaims ?? {}),
-      founder: true,
+      ...(founder ? {founder: true} : {}),
+      ...(playReviewer ? {playReviewer: true} : {}),
     });
-    return {founder: true};
+    return {founder, playReviewer};
   },
 );
 
@@ -421,6 +438,7 @@ export const analyzeLetter = onCall(
   async (request) => {
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
+    const accessOverride = founder || isPlayReviewer(request.auth?.token);
     requireString(request.data?.letterId, "letterId", 128);
     const ocrText = requireString(request.data?.ocrText, "ocrText", 30000);
     const preferredLanguage = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
@@ -430,7 +448,7 @@ export const analyzeLetter = onCall(
     // Reserve the free quota before making a billable OpenAI request. The
     // transaction prevents concurrent calls from bypassing the three-letter
     // lifetime trial. A failed AI request releases this reservation below.
-    const reservedFreeAnalysis = founder
+    const reservedFreeAnalysis = accessOverride
       ? false
       : await db.runTransaction(async (transaction) => {
       const [usage, subscription] = await Promise.all([
@@ -527,11 +545,12 @@ export const generateReply = onCall(
   async (request) => {
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
+    const accessOverride = founder || isPlayReviewer(request.auth?.token);
     requireString(request.data?.letterId, "letterId", 128);
     const sourceText = requireString(request.data?.sourceText, "sourceText", 20000);
     const facts = requireString(request.data?.facts, "facts", 10000);
     const language = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
-    if (!await hasPremiumAccess(uid, founder)) {
+    if (!await hasPremiumAccess(uid, accessOverride)) {
       throw new HttpsError("permission-denied", "AI odgovori su dostupni uz Premium pretplatu.");
     }
     const input = `Source letter text:\n${sourceText}\n\nUser-supplied facts:\n${facts}\n\nPreferred explanation language: ${language}`;
@@ -580,6 +599,7 @@ export const askLetterAssistant = onCall(
   async (request) => {
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
+    const accessOverride = founder || isPlayReviewer(request.auth?.token);
     const question = requireString(request.data?.question, "question", 1200);
     const language = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
     const context = typeof request.data?.letterContext === "string" &&
@@ -591,7 +611,7 @@ export const askLetterAssistant = onCall(
       ? requireString(request.data.conversation, "conversation", 6000)
       : "[]";
 
-    if (!await hasPremiumAccess(uid, founder)) {
+    if (!await hasPremiumAccess(uid, accessOverride)) {
       throw new HttpsError(
         "permission-denied",
         "AI asistent je dostupan uz Premium pretplatu.",
