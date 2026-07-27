@@ -85,9 +85,11 @@ class AppServices {
       // Legal identity is displayed and audited separately. An incomplete
       // legal draft must never silently disable authentication in an otherwise
       // valid release build.
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
       cloudEnabled = true;
     } catch (error, stackTrace) {
       debugPrint('Firebase initialization failed: $error\n$stackTrace');
@@ -101,21 +103,7 @@ class AppServices {
       // opening the local document vault or the authentication screen.
       // reCAPTCHA Enterprise can be unavailable inside an Android/iOS WebView,
       // so its startup failure must not make the entire hosted app unavailable.
-      try {
-        await FirebaseAppCheck.instance.activate(
-          providerWeb: ReCaptchaEnterpriseProvider(
-            '6LcSEWctAAAAACxE9d6yObjEogL8mhkh74kSbFc2',
-          ),
-          providerAndroid: kDebugMode
-              ? const AndroidDebugProvider()
-              : const AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode
-              ? const AppleDebugProvider()
-              : const AppleAppAttestProvider(),
-        );
-      } catch (error, stackTrace) {
-        debugPrint('Firebase App Check activation skipped: $error\n$stackTrace');
-      }
+      unawaited(_activateAppCheck());
 
       // Analytics is opt-in. Never start behavioral tracking before the
       // user has explicitly accepted it in the privacy settings.
@@ -157,6 +145,24 @@ class AppServices {
       purchases: PurchaseService(cloudEnabled: cloudEnabled),
       exports: ReplyExportService(),
     );
+  }
+
+  static Future<void> _activateAppCheck() async {
+    try {
+      await FirebaseAppCheck.instance.activate(
+        providerWeb: ReCaptchaEnterpriseProvider(
+          '6LcSEWctAAAAACxE9d6yObjEogL8mhkh74kSbFc2',
+        ),
+        providerAndroid: kDebugMode
+            ? const AndroidDebugProvider()
+            : const AndroidPlayIntegrityProvider(),
+        providerApple: kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestProvider(),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Firebase App Check activation skipped: $error\n$stackTrace');
+    }
   }
 }
 

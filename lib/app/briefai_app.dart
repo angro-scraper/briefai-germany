@@ -435,7 +435,8 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final unavailable = !kFreeBetaMode && !services.cloudEnabled && !kDebugMode;
+    final cloudUnavailable =
+        !kFreeBetaMode && !services.cloudEnabled && !kDebugMode;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -501,18 +502,17 @@ class HomeScreen extends StatelessWidget {
                       ),
                 style: const TextStyle(color: Color(0xFFD7E0FF)),
               ),
-              if (unavailable) ...[
+              if (cloudUnavailable) ...[
                 const SizedBox(height: 10),
-                Text(
-                  services.configurationError ?? 'Usluga nije dostupna.',
-                  style: const TextStyle(color: Color(0xFFFFC2C2)),
+                const Text(
+                  'Online AI trenutno nije dostupan. '
+                  'OCR i lokalna analiza i dalje rade na ovom uređaju.',
+                  style: TextStyle(color: Color(0xFFFFE0B2)),
                 ),
               ],
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: unavailable
-                    ? null
-                    : state.canAnalyse
+                onPressed: state.canAnalyse
                     ? () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) =>

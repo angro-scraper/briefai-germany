@@ -25,7 +25,7 @@ class _StartupAppState extends State<StartupApp> {
     // A timed-out bootstrap falls back to the safe local/debug experience and
     // makes the unavailable production service visible in the UI.
     _services = AppServices.bootstrap().timeout(
-      const Duration(seconds: 8),
+      const Duration(seconds: 20),
       onTimeout: () => AppServices.unavailable(
         'Pokretanje cloud usluge je isteklo. Pokušajte ponovo kasnije.',
       ),
