@@ -18,8 +18,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'core/app_config.dart';
 
-const _appUrl =
-    'https://briefai-germany-download.onrender.com/app/?nativeWrapper=1';
+const _appUrl = 'https://briefai-germany-download.onrender.com/app/';
 const _appHost = 'briefai-germany-download.onrender.com';
 const _wrapperImageMaxSide = 2200;
 
@@ -201,7 +200,21 @@ class _WrapperScreenState extends State<_WrapperScreen> {
     } on Object {
       // A cache cleanup failure must not prevent the hosted app from opening.
     }
-    await _controller.loadRequest(Uri.parse(_appUrl));
+    await _controller.loadRequest(
+      Uri.parse(_appUrl).replace(
+        queryParameters: {
+          'nativeWrapper': '1',
+          // Forces the WebView to request the current hosted shell on every
+          // cold start. LocalStorage/IndexedDB remain intact, so login,
+          // preferences and the private document vault are preserved.
+          'webVersion': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      ),
+      headers: const {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    );
   }
 
   Future<void> _removeStaleWebAppCache() async {

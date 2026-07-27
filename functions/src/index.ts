@@ -673,7 +673,7 @@ export const analyzeLetter = onCall(
         max_output_tokens: maxOutputTokens,
         store: false,
         safety_identifier: safetyIdentifier(uid),
-        instructions: `You are a meticulous German official-letter analyst. Explain the letter in the user's requested language (${preferredLanguage}); supported codes are sr, hr, bs, mk, bg, tr, de, and en. Use natural everyday language for that locale without mixing languages.
+        instructions: `You are a meticulous German official-letter analyst. Explain the letter in the user's requested language identified by BCP-47 language code "${preferredLanguage}". Use natural, fluent everyday language for that locale without mixing languages. Do not default to Serbian or German when another language was requested.
 
 First identify the actual sender from letterhead, authority name, contact details, reference number, and subject. Familienkasse / Bundesagentur für Arbeit letters about Kindergeld or Kinderzuschlag MUST be category "Familienkasse", even when they mention Steuer-ID or steuerliche Identifikationsnummer. The word "Steuer" alone is never enough to classify a letter as Finanzamt. Use "Finanzamt" only when the sender or tax-office context is explicit.
 

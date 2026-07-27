@@ -20,22 +20,24 @@
       small { display: block; margin-top: 18px; color: #9bb0d2; line-height: 1.5; }
       footer { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 16px; }
       footer a { color: #bcd4ff; }
+      .language { float: right; padding: 10px 12px; border-radius: 10px; color: #fff; background: #102a59; border: 1px solid #668bc8; }
     </style>
   </head>
   <body>
     <main>
+      <select class="language" id="language" aria-label="Language"></select>
       <span class="badge">BriefAI Germany</span>
-      <h1>Razumi nemačko pismo.</h1>
-      <p>Fotografiši službeno pismo, dobij detaljno objašnjenje na svom jeziku, proveri ko šalje račun i ne propusti rok za odgovor ili plaćanje.</p>
+      <h1 data-i18n="title">Razumi nemačko pismo.</h1>
+      <p data-i18n="intro">Fotografiši službeno pismo, dobij detaljno objašnjenje na svom jeziku, proveri ko šalje račun i ne propusti rok za odgovor ili plaćanje.</p>
       <section class="card" aria-label="Pokretanje aplikacije">
-        <h2>Jedna aplikacija, uvek najnovija</h2>
-        <p>Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost, a zatim zakazuje podsetnike 7, 3 i 1 dan ranije.</p>
+        <h2 data-i18n="cardTitle">Jedna aplikacija, uvek najnovija</h2>
+        <p data-i18n="cardBody">Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost, a zatim zakazuje podsetnike 7, 3 i 1 dan ranije.</p>
         <div class="actions">
-          <a class="button" href="/app/">Otvori BriefAI</a>
+          <a class="button" id="open-app" href="/app/" data-i18n="open">Otvori BriefAI</a>
           <a class="button secondary" href="https://play.google.com/store/apps/details?id=com.briefai.briefai_germany">Android</a>
           <a class="button secondary" href="https://apps.apple.com/app/id6794959959">iPhone i iPad</a>
         </div>
-        <small>Store link može privremeno prikazati da aplikacija nije dostupna dok Google ili Apple ne završe pregled aktuelne verzije.</small>
+        <small data-i18n="note">Store link može privremeno prikazati da aplikacija nije dostupna dok Google ili Apple ne završe pregled aktuelne verzije.</small>
       </section>
       <footer>
         <a href="https://salvesca.com">Salvesca platforma</a>
@@ -44,5 +46,50 @@
         <a href="/support.html">Support</a>
       </footer>
     </main>
+    <script>
+      const languages = {
+        sq:'Shqip',ar:'العربية',hy:'Հայերեն',az:'Azərbaycanca',bn:'বাংলা',bs:'Bosanski',bg:'Български',
+        zh:'中文',hr:'Hrvatski',cs:'Čeština',da:'Dansk',nl:'Nederlands',en:'English',et:'Eesti',
+        fa:'فارسی',fi:'Suomi',fr:'Français',ka:'ქართული',de:'Deutsch',el:'Ελληνικά',he:'עברית',
+        hi:'हिन्दी',hu:'Magyar',is:'Íslenska',id:'Bahasa Indonesia',it:'Italiano',ja:'日本語',
+        kk:'Қазақша',ko:'한국어',lv:'Latviešu',lt:'Lietuvių',mk:'Македонски',ms:'Bahasa Melayu',
+        no:'Norsk',ps:'پښتو',pl:'Polski',pt:'Português',ro:'Română',ru:'Русский',sr:'Srpski',
+        sk:'Slovenčina',sl:'Slovenščina',es:'Español',sw:'Kiswahili',sv:'Svenska',ta:'தமிழ்',
+        th:'ไทย',tr:'Türkçe',uk:'Українська',ur:'اردو',uz:'O‘zbekcha',vi:'Tiếng Việt'
+      };
+      const copy = {
+        sr:['Razumi nemačko pismo.','Fotografiši službeno pismo i dobij detaljno objašnjenje na svom jeziku.','Jedna aplikacija, uvek najnovija','Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost.','Otvori BriefAI','Store link može biti nedostupan dok Google ili Apple ne završe pregled.'],
+        en:['Understand your German letter.','Photograph an official letter and receive a detailed explanation in your language.','One app, always up to date','Documents and the archive stay on your device. BriefAI extracts the sender, recipient, amount, deadline and urgency.','Open BriefAI','The store link may be unavailable until Google or Apple completes its review.'],
+        de:['Deutschen Brief verstehen.','Fotografieren Sie ein amtliches Schreiben und erhalten Sie eine verständliche Erklärung.','Eine App, immer aktuell','Dokumente und Archiv bleiben auf Ihrem Gerät. BriefAI erkennt Absender, Empfänger, Betrag, Frist und Dringlichkeit.','BriefAI öffnen','Der Store-Link kann bis zum Abschluss der Prüfung vorübergehend nicht verfügbar sein.'],
+        fr:['Comprenez votre courrier allemand.','Photographiez un courrier officiel et recevez une explication détaillée dans votre langue.','Une application, toujours à jour','Les documents et les archives restent sur votre appareil. BriefAI extrait expéditeur, destinataire, montant, délai et urgence.','Ouvrir BriefAI','Le lien peut rester indisponible jusqu’à la fin de la validation.'],
+        it:['Comprendi la tua lettera tedesca.','Fotografa una lettera ufficiale e ricevi una spiegazione dettagliata nella tua lingua.','Una sola app, sempre aggiornata','Documenti e archivio restano sul dispositivo. BriefAI identifica mittente, destinatario, importo, scadenza e urgenza.','Apri BriefAI','Il link dello store può non essere disponibile durante la revisione.'],
+        es:['Entiende tu carta alemana.','Fotografía una carta oficial y recibe una explicación detallada en tu idioma.','Una aplicación, siempre actualizada','Los documentos y el archivo permanecen en tu dispositivo. BriefAI identifica remitente, destinatario, importe, plazo y urgencia.','Abrir BriefAI','El enlace puede no estar disponible hasta que finalice la revisión.'],
+        tr:['Almanca mektubunuzu anlayın.','Resmî mektubun fotoğrafını çekin ve kendi dilinizde ayrıntılı açıklama alın.','Tek uygulama, her zaman güncel','Belgeler ve arşiv cihazınızda kalır. BriefAI göndereni, alıcıyı, tutarı, son tarihi ve aciliyeti belirler.','BriefAI’yi aç','İnceleme tamamlanana kadar mağaza bağlantısı kullanılamayabilir.'],
+        bg:['Разберете немското си писмо.','Снимайте официално писмо и получете подробно обяснение на своя език.','Едно приложение, винаги актуално','Документите и архивът остават на устройството. BriefAI извлича подател, получател, сума, срок и спешност.','Отвори BriefAI','Връзката към магазина може да е недостъпна до края на прегледа.'],
+        ru:['Поймите письмо на немецком.','Сфотографируйте официальное письмо и получите подробное объяснение на своём языке.','Одно приложение, всегда актуальное','Документы и архив остаются на устройстве. BriefAI определяет отправителя, получателя, сумму, срок и срочность.','Открыть BriefAI','Ссылка магазина может быть недоступна до завершения проверки.'],
+        uk:['Зрозумійте лист німецькою.','Сфотографуйте офіційний лист і отримайте докладне пояснення своєю мовою.','Один застосунок, завжди актуальний','Документи й архів залишаються на пристрої. BriefAI визначає відправника, одержувача, суму, строк і терміновість.','Відкрити BriefAI','Посилання магазину може бути недоступним до завершення перевірки.'],
+        pl:['Zrozum swój niemiecki list.','Zrób zdjęcie urzędowego pisma i otrzymaj szczegółowe wyjaśnienie w swoim języku.','Jedna aplikacja, zawsze aktualna','Dokumenty i archiwum pozostają na urządzeniu. BriefAI rozpoznaje nadawcę, odbiorcę, kwotę, termin i pilność.','Otwórz BriefAI','Link do sklepu może być niedostępny do zakończenia weryfikacji.'],
+        ro:['Înțelege scrisoarea în germană.','Fotografiază o scrisoare oficială și primește o explicație detaliată în limba ta.','O aplicație, mereu actualizată','Documentele și arhiva rămân pe dispozitiv. BriefAI identifică expeditorul, destinatarul, suma, termenul și urgența.','Deschide BriefAI','Linkul magazinului poate fi indisponibil până la finalizarea verificării.'],
+        ar:['افهم رسالتك الألمانية.','صوّر الخطاب الرسمي واحصل على شرح مفصل بلغتك.','تطبيق واحد، محدث دائمًا','تبقى المستندات والأرشيف على جهازك. يحدد BriefAI المرسل والمستلم والمبلغ والموعد ودرجة الاستعجال.','افتح BriefAI','قد لا يتوفر رابط المتجر حتى اكتمال المراجعة.']
+      };
+      const selector = document.getElementById('language');
+      Object.entries(languages).forEach(([code,label]) => selector.add(new Option(label, code)));
+      const queryLanguage = new URLSearchParams(location.search).get('lang');
+      const browserLanguage = navigator.language.slice(0,2);
+      const initial = languages[queryLanguage] ? queryLanguage : (languages[browserLanguage] ? browserLanguage : 'en');
+      function applyLanguage(code) {
+        const values = copy[code] || copy.en;
+        document.documentElement.lang = code;
+        document.documentElement.dir = ['ar','fa','he','ps','ur'].includes(code) ? 'rtl' : 'ltr';
+        ['title','intro','cardTitle','cardBody','open','note'].forEach((key,index) => {
+          document.querySelector(`[data-i18n="${key}"]`).textContent = values[index];
+        });
+        document.getElementById('open-app').href = `/app/?lang=${encodeURIComponent(code)}`;
+        localStorage.setItem('briefai.platform-language', code);
+      }
+      selector.value = localStorage.getItem('briefai.platform-language') || initial;
+      applyLanguage(selector.value);
+      selector.addEventListener('change', event => applyLanguage(event.target.value));
+    </script>
   </body>
 </html>

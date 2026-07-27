@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'domain.dart';
 import 'app_config.dart';
+import 'app_localizations.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
 import '../features/analysis/image_preprocessor.dart';
@@ -415,8 +416,7 @@ class AuthService {
   }
 
   Future<void> setPreferredLanguage(String language) async {
-    const supported = {'sr', 'hr', 'bs', 'mk', 'de', 'en', 'bg', 'tr'};
-    if (!supported.contains(language)) {
+    if (!AppStrings.languageLabels.containsKey(language)) {
       throw ArgumentError.value(language, 'language');
     }
     final preferences = await SharedPreferences.getInstance();

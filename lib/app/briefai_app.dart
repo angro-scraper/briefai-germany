@@ -44,7 +44,15 @@ class _BriefAiAppState extends State<BriefAiApp> {
     _state.restoreOnboarding(
       preferences.getBool('briefai.onboarding-complete') ?? false,
     );
-    _state.setLocale(await widget.services.auth.preferredLanguage());
+    final requestedLanguage = kIsWeb ? Uri.base.queryParameters['lang'] : null;
+    final language =
+        requestedLanguage != null &&
+            AppStrings.languageLabels.containsKey(requestedLanguage)
+        ? requestedLanguage
+        : preferences.getString('briefai.ui-language') ??
+              await widget.services.auth.preferredLanguage();
+    _state.setLocale(language);
+    await preferences.setString('briefai.ui-language', language);
     if (mounted) setState(() => _restored = true);
   }
 
@@ -344,11 +352,6 @@ class _AppShellState extends State<AppShell> {
         _usageSubscription?.cancel();
         if (mounted) setState(() {});
         if (user != null) {
-          unawaited(
-            widget.services.auth.preferredLanguage().then(
-              widget.state.setLocale,
-            ),
-          );
           unawaited(widget.services.auth.touchActivity());
           unawaited(widget.services.reminders.syncToken());
           _entitlementSubscription = widget.services.entitlements
@@ -593,7 +596,7 @@ class _LanguageMenu extends StatelessWidget {
         // without reverting the user's explicit selection.
       }
     },
-    itemBuilder: (_) => _languageLabels.entries
+    itemBuilder: (_) => AppStrings.languageLabels.entries
         .map(
           (entry) => PopupMenuItem<String>(
             value: entry.key,
@@ -950,7 +953,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     final enterTextFirst = context.strings.text('enterTextFirst');
     try {
       final id = newLetterId();
-      final language = await widget.services.auth.preferredLanguage();
+      final language = widget.state.localeCode;
       if (_document != null && _text.text.trim().isEmpty) {
         setState(() => _recognizing = true);
         await WidgetsBinding.instance.endOfFrame;
@@ -1197,8 +1200,11 @@ class ResultScreen extends StatelessWidget {
               }
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      ResponseScreen(letter: letter, services: services),
+                  builder: (_) => ResponseScreen(
+                    state: state,
+                    letter: letter,
+                    services: services,
+                  ),
                 ),
               );
             },
@@ -1219,9 +1225,11 @@ class ResultScreen extends StatelessWidget {
 class ResponseScreen extends StatefulWidget {
   const ResponseScreen({
     super.key,
+    required this.state,
     required this.letter,
     required this.services,
   });
+  final AppState state;
   final LetterAnalysis letter;
   final AppServices services;
 
@@ -1231,7 +1239,7 @@ class ResponseScreen extends StatefulWidget {
 
 class _ResponseScreenState extends State<ResponseScreen> {
   late final Future<GeneratedReply> _response = () async {
-    final language = await widget.services.auth.preferredLanguage();
+    final language = widget.state.localeCode;
     return widget.services.ai.generateReply(
       letterId: widget.letter.id,
       sourceText: widget.letter.sourceText,
@@ -1545,7 +1553,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       _sending = true;
     });
     try {
-      final language = await widget.services.auth.preferredLanguage();
+      final language = widget.state.localeCode;
       final answer = await widget.services.ai.askLetterAssistant(
         question: question,
         language: language,
@@ -1608,7 +1616,7 @@ class ProfileScreen extends StatelessWidget {
             stream: services.auth.profileChanges(),
             builder: (context, snapshot) {
               final profile = snapshot.data ?? const <String, dynamic>{};
-              final language = profile['preferredLanguage'] as String? ?? 'sr';
+              final language = state.localeCode;
               final country = profile['countryOfOrigin'] as String? ?? '';
               final name = profile['displayName'] as String? ?? '';
               return Column(
@@ -1631,7 +1639,9 @@ class ProfileScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.language),
                     title: Text(strings.text('preferredLanguage')),
-                    subtitle: Text(_languageLabels[language] ?? language),
+                    subtitle: Text(
+                      AppStrings.languageLabels[language] ?? language,
+                    ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) async {
                         state.setLocale(value);
@@ -1643,7 +1653,7 @@ class ProfileScreen extends StatelessWidget {
                           // failure.
                         }
                       },
-                      itemBuilder: (_) => _languageLabels.entries
+                      itemBuilder: (_) => AppStrings.languageLabels.entries
                           .map(
                             (entry) => PopupMenuItem(
                               value: entry.key,
@@ -1677,7 +1687,7 @@ class ProfileScreen extends StatelessWidget {
             leading: const Icon(Icons.language),
             title: Text(strings.text('appLanguage')),
             subtitle: Text(
-              _languageLabels[state.localeCode] ?? state.localeCode,
+              AppStrings.languageLabels[state.localeCode] ?? state.localeCode,
             ),
             trailing: _LanguageMenu(state: state, services: services),
           ),
@@ -1833,17 +1843,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
-
-const _languageLabels = {
-  'sr': 'Srpski',
-  'hr': 'Hrvatski',
-  'bs': 'Bosanski',
-  'mk': 'Makedonski',
-  'de': 'Nemački',
-  'en': 'Engleski',
-  'bg': 'Bugarski',
-  'tr': 'Türkçe',
-};
 
 Future<bool> _ensureCloudAiAccess(
   BuildContext context,

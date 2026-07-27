@@ -5,32 +5,86 @@ class AppStrings {
 
   final Locale locale;
 
-  static const supportedLocales = <Locale>[
-    Locale('sr'),
-    Locale('hr'),
-    Locale('bs'),
-    Locale('mk'),
-    Locale('de'),
-    Locale('en'),
-    Locale('bg'),
-    Locale('tr'),
-  ];
+  /// Languages users can choose for AI explanations and replies.
+  ///
+  /// The eight fully translated interfaces keep their native copy. For every
+  /// additional language the interface uses English until its complete static
+  /// translation ships, while OpenAI receives the selected BCP-47 code and
+  /// answers in that language immediately.
+  static const languageLabels = <String, String>{
+    'sq': 'Shqip',
+    'ar': 'العربية',
+    'hy': 'Հայերեն',
+    'az': 'Azərbaycanca',
+    'bn': 'বাংলা',
+    'bs': 'Bosanski',
+    'bg': 'Български',
+    'zh': '中文',
+    'hr': 'Hrvatski',
+    'cs': 'Čeština',
+    'da': 'Dansk',
+    'nl': 'Nederlands',
+    'en': 'English',
+    'et': 'Eesti',
+    'fa': 'فارسی',
+    'fi': 'Suomi',
+    'fr': 'Français',
+    'ka': 'ქართული',
+    'de': 'Deutsch',
+    'el': 'Ελληνικά',
+    'he': 'עברית',
+    'hi': 'हिन्दी',
+    'hu': 'Magyar',
+    'is': 'Íslenska',
+    'id': 'Bahasa Indonesia',
+    'it': 'Italiano',
+    'ja': '日本語',
+    'kk': 'Қазақша',
+    'ko': '한국어',
+    'lv': 'Latviešu',
+    'lt': 'Lietuvių',
+    'mk': 'Македонски',
+    'ms': 'Bahasa Melayu',
+    'no': 'Norsk',
+    'ps': 'پښتو',
+    'pl': 'Polski',
+    'pt': 'Português',
+    'ro': 'Română',
+    'ru': 'Русский',
+    'sr': 'Srpski',
+    'sk': 'Slovenčina',
+    'sl': 'Slovenščina',
+    'es': 'Español',
+    'sw': 'Kiswahili',
+    'sv': 'Svenska',
+    'ta': 'தமிழ்',
+    'th': 'ไทย',
+    'tr': 'Türkçe',
+    'uk': 'Українська',
+    'ur': 'اردو',
+    'uz': 'O‘zbekcha',
+    'vi': 'Tiếng Việt',
+  };
+
+  static final supportedLocales = languageLabels.keys
+      .map(Locale.new)
+      .toList(growable: false);
 
   static AppStrings of(BuildContext context) =>
       Localizations.of<AppStrings>(context, AppStrings) ??
       const AppStrings(Locale('sr'));
 
   String text(String key) =>
-      (_values[locale.languageCode] ?? _values['sr']!)[key] ??
-      _values['sr']![key] ??
+      (_values[locale.languageCode] ?? _values['en']!)[key] ??
+      _values['en']![key] ??
       key;
 
   String remaining(int value) =>
       text('remaining').replaceFirst('{count}', value.toString());
 
   String category(String key) =>
-      (_categories[locale.languageCode] ?? _categories['sr']!)[key] ??
-      _categories['sr']![key] ??
+      (_categories[locale.languageCode] ?? _categories['en']!)[key] ??
+      _categories['en']![key] ??
       key;
 
   static const LocalizationsDelegate<AppStrings> delegate =

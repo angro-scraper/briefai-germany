@@ -27,6 +27,9 @@ services:
       - path: /app/*
         name: Cache-Control
         value: no-store, no-cache, must-revalidate
+      - path: /app/index.html
+        name: Clear-Site-Data
+        value: "\"cache\""
       - path: /admin/*
         name: Content-Security-Policy
         value: "default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
