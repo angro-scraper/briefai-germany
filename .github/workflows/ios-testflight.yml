@@ -50,13 +50,15 @@ jobs:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           API_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64 }}
+          CERTIFICATE_PRIVATE_KEY_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PRIVATE_KEY_BASE64 }}
         run: |
           set -euo pipefail
           for value in \
             "$TEAM_ID" \
             "$API_KEY_ID" \
             "$API_ISSUER_ID" \
-            "$API_PRIVATE_KEY_BASE64"; do
+            "$API_PRIVATE_KEY_BASE64" \
+            "$CERTIFICATE_PRIVATE_KEY_BASE64"; do
             test -n "$value"
           done
 
@@ -79,6 +81,9 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
+      - name: Install iOS signing tools
+        run: pip3 install --disable-pip-version-check codemagic-cli-tools
+
       - name: Analyze and test
         run: |
           flutter analyze --no-pub
@@ -93,64 +98,35 @@ jobs:
             --build-name "${{ inputs.build_name }}" \
             --build-number "${{ inputs.build_number }}"
 
-      - name: Archive signed iOS app
+      - name: Create App Store signing files
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           API_KEY_PATH: ${{ steps.api_key.outputs.path }}
+          CERTIFICATE_PRIVATE_KEY_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PRIVATE_KEY_BASE64 }}
         run: |
           set -euo pipefail
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$ARCHIVE_PATH" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$API_KEY_PATH" \
-            -authenticationKeyID "$API_KEY_ID" \
-            -authenticationKeyIssuerID "$API_ISSUER_ID" \
-            archive
+          CERTIFICATE_KEY="$RUNNER_TEMP/briefai-distribution-key.pem"
+          printf '%s' "$CERTIFICATE_PRIVATE_KEY_BASE64" | base64 -D \
+            > "$CERTIFICATE_KEY"
+          chmod 600 "$CERTIFICATE_KEY"
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --issuer-id "$API_ISSUER_ID" \
+            --key-id "$API_KEY_ID" \
+            --private-key "@file:$API_KEY_PATH" \
+            --certificate-key "@file:$CERTIFICATE_KEY"
+          keychain add-certificates
+          xcode-project use-profiles --project ios/Runner.xcodeproj
 
-      - name: Export signed IPA
-        env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          API_KEY_PATH: ${{ steps.api_key.outputs.path }}
+      - name: Build signed IPA
         run: |
           set -euo pipefail
-          EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
-          cat > "$EXPORT_OPTIONS" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>destination</key>
-            <string>export</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>teamID</key>
-            <string>$TEAM_ID</string>
-            <key>stripSwiftSymbols</key>
-            <true/>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
-
-          xcodebuild \
-            -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
-            -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist "$EXPORT_OPTIONS" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$API_KEY_PATH" \
-            -authenticationKeyID "$API_KEY_ID" \
-            -authenticationKeyIssuerID "$API_ISSUER_ID"
+          xcode-project build-ipa \
+            --workspace ios/Runner.xcworkspace \
+            --scheme Runner
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -183,4 +159,5 @@ jobs:
         run: |
           rm -f \
             "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8" \
-            "$RUNNER_TEMP/app-store-connect-keys/AuthKey_${API_KEY_ID}.p8"
+            "$RUNNER_TEMP/app-store-connect-keys/AuthKey_${API_KEY_ID}.p8" \
+            "$RUNNER_TEMP/briefai-distribution-key.pem"
