@@ -89,26 +89,56 @@ class AppServices {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       cloudEnabled = true;
-      await FirebaseAppCheck.instance.activate(
-        providerWeb: ReCaptchaEnterpriseProvider(
-          '6LcSEWctAAAAACxE9d6yObjEogL8mhkh74kSbFc2',
-        ),
-        providerAndroid: kDebugMode
-            ? const AndroidDebugProvider()
-            : const AndroidPlayIntegrityProvider(),
-        providerApple: kDebugMode
-            ? const AppleDebugProvider()
-            : const AppleAppAttestProvider(),
-      );
-      FlutterError.onError =
-          FirebaseCrashlytics.instance.recordFlutterFatalError;
-      // Analytics is opt-in. Never start behavioral tracking before the
-      // user has explicitly accepted it in the privacy settings.
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Firebase initialization failed: $error\n$stackTrace');
       configurationError = kDebugMode
           ? 'Firebase nije podešen; uključen je lokalni razvojni režim.'
           : 'Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.';
+    }
+
+    if (cloudEnabled) {
+      // App Check is an additional protection layer, not a prerequisite for
+      // opening the local document vault or the authentication screen.
+      // reCAPTCHA Enterprise can be unavailable inside an Android/iOS WebView,
+      // so its startup failure must not make the entire hosted app unavailable.
+      try {
+        await FirebaseAppCheck.instance.activate(
+          providerWeb: ReCaptchaEnterpriseProvider(
+            '6LcSEWctAAAAACxE9d6yObjEogL8mhkh74kSbFc2',
+          ),
+          providerAndroid: kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode
+              ? const AppleDebugProvider()
+              : const AppleAppAttestProvider(),
+        );
+      } catch (error, stackTrace) {
+        debugPrint('Firebase App Check activation skipped: $error\n$stackTrace');
+      }
+
+      // Analytics is opt-in. Never start behavioral tracking before the
+      // user has explicitly accepted it in the privacy settings.
+      // Crashlytics and the native FCM background isolate are not available in
+      // the hosted web build used by the mobile WebView wrappers.
+      if (!kIsWeb) {
+        try {
+          FlutterError.onError =
+              FirebaseCrashlytics.instance.recordFlutterFatalError;
+        } catch (error, stackTrace) {
+          debugPrint('Crashlytics initialization skipped: $error\n$stackTrace');
+        }
+        try {
+          FirebaseMessaging.onBackgroundMessage(
+            firebaseMessagingBackgroundHandler,
+          );
+        } catch (error, stackTrace) {
+          debugPrint(
+            'Firebase Messaging background handler skipped: '
+            '$error\n$stackTrace',
+          );
+        }
+      }
     }
     final reminders = ReminderService(cloudEnabled: cloudEnabled);
     // Notification plugin startup must never delay the first Flutter frame.
