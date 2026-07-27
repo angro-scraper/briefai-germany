@@ -11,7 +11,7 @@ on:
       build_number:
         description: Unique App Store build number
         required: true
-        default: "23"
+        default: "24"
         type: string
       upload_to_testflight:
         description: Upload the signed IPA to TestFlight
@@ -29,7 +29,7 @@ concurrency:
 jobs:
   build-and-upload:
     name: Build signed IPA and upload to TestFlight
-    runs-on: macos-15
+    runs-on: macos-26
     environment: ios-production
     timeout-minutes: 60
     env:
@@ -39,10 +39,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+
+      - name: Verify App Store SDK
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          test "${SDK_VERSION%%.*}" -ge 26
 
       - name: Verify required Apple secrets
         env:

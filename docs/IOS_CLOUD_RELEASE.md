@@ -1,7 +1,7 @@
 # BriefAI Germany — iOS cloud release
 
-The repository can build iOS on GitHub's hosted macOS runner, so the release
-operator does not need to own a Mac.
+The repository builds iOS on GitHub's hosted macOS 26 runner with Xcode 26 and
+the current App Store SDK, so the release operator does not need to own a Mac.
 
 ## Workflows
 
