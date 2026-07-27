@@ -35,7 +35,19 @@ if (configured) {
   await setPersistence(auth, browserLocalPersistence);
   functions = getFunctions(app, 'europe-west3');
   const completeSignIn = async () => {
-    await loadMetrics();
+    try {
+      await loadMetrics();
+    } catch (error) {
+      // The authorized founder can safely self-claim the admin role. The
+      // callable function compares the authenticated email with a server-side
+      // Firebase Secret, so changing this page cannot grant access to anyone
+      // else.
+      if (error.code !== 'functions/permission-denied') throw error;
+      const result = await httpsCallable(functions, 'claimFounderAccess')();
+      if (result.data?.admin !== true) throw error;
+      await auth.currentUser?.getIdToken(true);
+      await loadMetrics();
+    }
     status.textContent =
       'Signed in. Metrics are visible only to users with the Firebase admin custom claim.';
   };

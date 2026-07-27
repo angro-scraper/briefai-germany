@@ -353,10 +353,10 @@ export const claimFounderAccess = onCall(
     const user = await getAuth().getUser(uid);
     await getAuth().setCustomUserClaims(uid, {
       ...(user.customClaims ?? {}),
-      ...(founder ? {founder: true} : {}),
+      ...(founder ? {founder: true, admin: true} : {}),
       ...(playReviewer ? {playReviewer: true} : {}),
     });
-    return {founder, playReviewer};
+    return {founder, playReviewer, admin: founder};
   },
 );
 
