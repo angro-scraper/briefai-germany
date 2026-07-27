@@ -8,6 +8,12 @@ void main() {
       map: {
         'title': 'Finanzamt zahtev',
         'plainExplanation': 'Pošaljite dokumenta.',
+        'senderName': 'Muster Energie GmbH',
+        'recipientName': 'Max Mustermann',
+        'paymentRecipient': 'Muster Energie GmbH',
+        'documentType': 'Rechnung',
+        'invoiceNumber': 'RE-2026-123',
+        'servicePeriod': '01.06.2026–30.06.2026',
         'category': 'Finanzamt',
         'urgency': 'HIGH',
         'deadline': '2026-08-05',
@@ -21,6 +27,10 @@ void main() {
     expect(analysis.category, LetterCategory.finanzamt);
     expect(analysis.urgency, Urgency.high);
     expect(analysis.deadline, DateTime(2026, 8, 5));
+    expect(analysis.senderName, 'Muster Energie GmbH');
+    expect(analysis.recipientName, 'Max Mustermann');
+    expect(analysis.invoiceNumber, 'RE-2026-123');
+    expect(analysis.toMap()['servicePeriod'], '01.06.2026–30.06.2026');
     expect(analysis.status, LetterStatus.inProgress);
     expect(analysis.toMap()['status'], 'inProgress');
   });

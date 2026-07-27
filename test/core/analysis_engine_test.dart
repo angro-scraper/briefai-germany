@@ -22,6 +22,24 @@ void main() {
     expect(result.urgency, Urgency.low);
   });
 
+  test('račun ne meša izdavaoca, primaoca i primaoca uplate', () {
+    final result = engine.analyse(
+      'Rechnungssteller: Muster Energie GmbH\n'
+      'Rechnungsempfänger: Max Mustermann\n'
+      'Zahlungsempfänger: Muster Energie Abrechnung GmbH\n'
+      'Rechnungsnummer: RE-2026-123\n'
+      'Leistungszeitraum: 01.06.2026 bis 30.06.2026\n'
+      'Stromrechnung 84,50 EUR, fällig bis zum 15.08.2026.',
+    );
+
+    expect(result.senderName, 'Muster Energie GmbH');
+    expect(result.recipientName, 'Max Mustermann');
+    expect(result.paymentRecipient, 'Muster Energie Abrechnung GmbH');
+    expect(result.documentType, 'Rechnung');
+    expect(result.invoiceNumber, 'RE-2026-123');
+    expect(result.servicePeriod, '01.06.2026 bis 30.06.2026');
+  });
+
   test('Familienkasse sa Steuer-ID nije Finanzamt i daje konkretne korake', () {
     final result = engine.analyse(
       'Bundesagentur für Arbeit - Familienkasse. '

@@ -974,9 +974,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       if (!kFreeBetaMode &&
           !widget.state.isPremium &&
           widget.services.auth.uid == null) {
-        await widget.services.entitlements.recordAnalysis(
-          'local-device',
-        );
+        await widget.services.entitlements.recordAnalysis('local-device');
         widget.state.setFreeAnalysesUsed(widget.state.freeAnalysesUsed + 1);
       }
       widget.state.addAnalysis(analysis);
@@ -1095,6 +1093,36 @@ class ResultScreen extends StatelessWidget {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
+          if (letter.documentType != null)
+            _ResultSection(
+              title: strings.text('documentType'),
+              content: letter.documentType!,
+            ),
+          if (letter.senderName != null)
+            _ResultSection(
+              title: strings.text('senderName'),
+              content: letter.senderName!,
+            ),
+          if (letter.recipientName != null)
+            _ResultSection(
+              title: strings.text('recipientName'),
+              content: letter.recipientName!,
+            ),
+          if (letter.paymentRecipient != null)
+            _ResultSection(
+              title: strings.text('paymentRecipient'),
+              content: letter.paymentRecipient!,
+            ),
+          if (letter.invoiceNumber != null)
+            _ResultSection(
+              title: strings.text('invoiceNumber'),
+              content: letter.invoiceNumber!,
+            ),
+          if (letter.servicePeriod != null)
+            _ResultSection(
+              title: strings.text('servicePeriod'),
+              content: letter.servicePeriod!,
+            ),
           _ResultSection(
             title: strings.text('simpleExplanation'),
             content: letter.plainExplanation,

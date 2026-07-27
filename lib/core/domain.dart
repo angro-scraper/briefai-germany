@@ -80,6 +80,12 @@ class LetterAnalysis {
     required this.urgency,
     required this.suggestedAction,
     required this.createdAt,
+    this.senderName,
+    this.recipientName,
+    this.paymentRecipient,
+    this.documentType,
+    this.invoiceNumber,
+    this.servicePeriod,
     this.deadline,
     this.amount,
     this.status = LetterStatus.newLetter,
@@ -93,6 +99,12 @@ class LetterAnalysis {
   final Urgency urgency;
   final String suggestedAction;
   final DateTime createdAt;
+  final String? senderName;
+  final String? recipientName;
+  final String? paymentRecipient;
+  final String? documentType;
+  final String? invoiceNumber;
+  final String? servicePeriod;
   final DateTime? deadline;
   final String? amount;
   final LetterStatus status;
@@ -106,6 +118,12 @@ class LetterAnalysis {
     urgency: urgency,
     suggestedAction: suggestedAction,
     createdAt: createdAt,
+    senderName: senderName,
+    recipientName: recipientName,
+    paymentRecipient: paymentRecipient,
+    documentType: documentType,
+    invoiceNumber: invoiceNumber,
+    servicePeriod: servicePeriod,
     deadline: deadline,
     amount: amount,
     status: status ?? this.status,
@@ -121,6 +139,12 @@ class LetterAnalysis {
     'amounts': amount == null ? <String>[] : [amount],
     'amount': amount,
     'suggestedAction': suggestedAction,
+    'senderName': senderName,
+    'recipientName': recipientName,
+    'paymentRecipient': paymentRecipient,
+    'documentType': documentType,
+    'invoiceNumber': invoiceNumber,
+    'servicePeriod': servicePeriod,
     'status': status.name,
     'sourceText': sourceText,
   };
@@ -152,6 +176,12 @@ class LetterAnalysis {
       ),
       suggestedAction: map['suggestedAction'] as String? ?? '',
       createdAt: createdAt,
+      senderName: _nonEmptyString(map['senderName']),
+      recipientName: _nonEmptyString(map['recipientName']),
+      paymentRecipient: _nonEmptyString(map['paymentRecipient']),
+      documentType: _nonEmptyString(map['documentType']),
+      invoiceNumber: _nonEmptyString(map['invoiceNumber']),
+      servicePeriod: _nonEmptyString(map['servicePeriod']),
       deadline: deadlineValue == null ? null : DateTime.tryParse(deadlineValue),
       amount:
           map['amount'] as String? ??
@@ -165,6 +195,11 @@ class LetterAnalysis {
       sourceText: sourceText ?? map['sourceText'] as String? ?? '',
     );
   }
+}
+
+String? _nonEmptyString(dynamic value) {
+  if (value is! String || value.trim().isEmpty) return null;
+  return value.trim();
 }
 
 class AppState extends ChangeNotifier {

@@ -14,6 +14,35 @@ class AnalysisEngine {
       r'(?:€|eur)\s?([0-9.,]+)|([0-9.,]+)\s?(?:€|eur)',
       caseSensitive: false,
     ).firstMatch(text)?.group(0);
+    final senderName = _labeledParty(text, const [
+      'absender',
+      'rechnungssteller',
+      'rechnung von',
+      'anbieter',
+      'lieferant',
+    ]);
+    final recipientName = _labeledParty(text, const [
+      'rechnungsempfänger',
+      'rechnung an',
+      'empfänger',
+      'kunde',
+      'kundin',
+      'an',
+    ]);
+    final paymentRecipient = _labeledParty(text, const [
+      'zahlungsempfänger',
+      'kontoinhaber',
+      'begünstigter',
+    ]);
+    final invoiceNumber = RegExp(
+      r'(?:rechnungsnummer|rechnungs?[- ]?nr\.?|belegnummer)\s*:?\s*([A-Z0-9][A-Z0-9./-]+)',
+      caseSensitive: false,
+    ).firstMatch(text)?.group(1);
+    final servicePeriod = RegExp(
+      r'(?:leistungszeitraum|abrechnungszeitraum|zeitraum)\s*:?\s*([^\r\n]+)',
+      caseSensitive: false,
+    ).firstMatch(text)?.group(1)?.trim();
+    final documentType = _documentType(normalized);
     final urgency =
         deadline != null && deadline.difference(DateTime.now()).inDays <= 7
         ? Urgency.high
@@ -42,10 +71,52 @@ class AnalysisEngine {
       urgency: urgency,
       suggestedAction: family?.action ?? general!.action,
       createdAt: DateTime.now(),
+      senderName: senderName,
+      recipientName: recipientName,
+      paymentRecipient: paymentRecipient,
+      documentType: documentType,
+      invoiceNumber: invoiceNumber,
+      servicePeriod: servicePeriod,
       deadline: deadline,
       amount: amount,
       sourceText: text,
     );
+  }
+
+  String? _labeledParty(String text, List<String> labels) {
+    final lines = text
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    for (var index = 0; index < lines.length; index++) {
+      final lower = lines[index].toLowerCase();
+      for (final label in labels) {
+        if (lower == label || lower == '$label:') {
+          return index + 1 < lines.length ? lines[index + 1] : null;
+        }
+        final match = RegExp(
+          '^${RegExp.escape(label)}\\s*:\\s*(.+)\$',
+          caseSensitive: false,
+        ).firstMatch(lines[index]);
+        final value = match?.group(1)?.trim();
+        if (value != null && value.isNotEmpty) return value;
+      }
+    }
+    return null;
+  }
+
+  String? _documentType(String text) {
+    if (_containsAny(text, const ['mahnung', 'zahlungserinnerung'])) {
+      return 'Mahnung / Zahlungserinnerung';
+    }
+    if (_containsAny(text, const ['gutschrift', 'stornorechnung'])) {
+      return 'Gutschrift / Stornorechnung';
+    }
+    if (_containsAny(text, const ['rechnung', 'invoice'])) return 'Rechnung';
+    if (_containsAny(text, const ['bescheid'])) return 'Bescheid';
+    if (_containsAny(text, const ['kündigung'])) return 'Kündigung';
+    return null;
   }
 
   LetterCategory _categoryFor(String text) {
