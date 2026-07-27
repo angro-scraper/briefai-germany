@@ -9,7 +9,7 @@ const bool kFreeBetaMode = bool.fromEnvironment(
 
 const bool kPaymentsEnabled = bool.fromEnvironment(
   'BRIEFAI_PAYMENTS_ENABLED',
-  defaultValue: true,
+  defaultValue: false,
 );
 
 const bool kCloudAiEnabled = bool.fromEnvironment(
@@ -17,9 +17,9 @@ const bool kCloudAiEnabled = bool.fromEnvironment(
   defaultValue: true,
 );
 
-/// A signed-in account can analyse three letters before a subscription is
-/// required. This is a lifetime trial, not a monthly allowance.
-const int kFreeAnalysisLimit = 3;
+/// Store-review and closed-testing accounts can analyse fifteen letters
+/// without payment. This is a lifetime testing allowance, not a monthly one.
+const int kFreeAnalysisLimit = 15;
 
 class SubscriptionPlan {
   const SubscriptionPlan({

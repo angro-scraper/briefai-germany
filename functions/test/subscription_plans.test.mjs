@@ -4,6 +4,10 @@ import test from "node:test";
 
 const source = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
 
+test("closed testing grants fifteen analyses before payment", () => {
+  assert.match(source, /const freeAnalysisLimit = 15;/);
+});
+
 test("three store products map to 50, 100 and 150 monthly analyses", () => {
   assert.match(
     source,

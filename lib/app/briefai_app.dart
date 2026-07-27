@@ -2077,7 +2077,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Prve tri analize pisma su besplatne. Nakon toga korisnik može izabrati mesečni paket od 50, 100 ili 150 novih analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Cena se prikazuje u prodavnici pre kupovine i može zavisiti od zemlje i valute. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
+    'Tokom zatvorenog testiranja svaki nalog dobija 15 test analiza bez naplate. Kada komercijalna naplata bude aktivirana, korisnik će moći da izabere mesečni paket od 50, 100 ili 150 novih analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
   ),
   (
     '4. Prihvatljivo korišćenje',

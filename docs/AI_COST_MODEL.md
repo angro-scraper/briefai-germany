@@ -25,7 +25,7 @@ usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 - probni nalog ima zaštitni AI budžet od 1,50 USD mesečno;
 - Basic / Plus / Pro imaju zaštitne AI budžete od 4 / 8 / 12 USD mesečno;
 - plaćeni paketi imaju 50 / 100 / 150 analiza po kalendarskom mesecu;
-- svaki prijavljeni nalog dobija tri probne analize ukupno;
+- svaki prijavljeni nalog tokom zatvorenog testiranja dobija 15 analiza ukupno;
 - nakon treće analize nova pisma, AI odgovor i asistent zahtevaju Premium;
 - founder claim za vlasnika zaobilazi probni i korisnički limit, dok globalni
   sigurnosni budžet ostaje aktivan kao zaštita od zloupotrebe i greške.
@@ -49,7 +49,7 @@ ne šalju OpenAI-ju niti čuvaju u Firebase-u.
 
 | Plan | Cena | AI funkcije |
 |---|---:|---|
-| Probni | 0 € | 3 analize ukupno |
+| Test | 0 € | 15 analiza ukupno, naplata isključena |
 | Basic | 9,90 €/mesec | 50 analiza, odgovori, asistent, arhiva i podsetnici |
 | Plus | 19,90 €/mesec | 100 analiza, odgovori, asistent, arhiva i podsetnici |
 | Pro | 29,90 €/mesec | 150 analiza, odgovori, asistent, arhiva i podsetnici |

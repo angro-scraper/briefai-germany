@@ -102,7 +102,7 @@ void main() {
     }
   });
 
-  test('trial allows three analyses and then requires Premium', () {
+  test('closed test allows fifteen analyses and then requires a plan', () {
     final state = AppState();
     state.addAnalysis(
       LetterAnalysis(
@@ -116,11 +116,11 @@ void main() {
       ),
     );
 
-    state.setFreeAnalysesUsed(2);
+    state.setFreeAnalysesUsed(14);
 
-    expect(state.freeAnalysesUsed, 2);
+    expect(state.freeAnalysesUsed, 14);
     expect(state.canAnalyse, isTrue);
-    state.setFreeAnalysesUsed(3);
+    state.setFreeAnalysesUsed(15);
     expect(state.canAnalyse, isFalse);
     state.setPremium(true);
     expect(state.canAnalyse, isTrue);

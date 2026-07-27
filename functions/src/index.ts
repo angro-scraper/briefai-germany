@@ -63,7 +63,7 @@ type SubscriptionPlanKey = keyof typeof subscriptionPlans;
 const storeProductIds = new Set<string>(
   Object.values(subscriptionPlans).map((plan) => plan.productId),
 );
-const freeAnalysisLimit = 3;
+const freeAnalysisLimit = 15;
 const allowedCategories = [
   "Finanzamt", "Krankenkasse", "Jobcenter", "Banka", "Osiguranje",
   "Telekom", "Poslodavac", "Stanodavac", "Škola", "Vrtić", "Sud",
@@ -646,7 +646,7 @@ export const analyzeLetter = onCall(
           analysesLifetime >= freeAnalysisLimit) {
         throw new HttpsError(
           "resource-exhausted",
-          "Tri probne analize su iskorišćene. Za nastavak je potrebna Premium pretplata.",
+          "Petnaest test analiza je iskorišćeno. Sačekajte komercijalnu verziju ili aktivaciju paketa.",
         );
       }
       transaction.set(usageRef, {
