@@ -1,7 +1,5 @@
 platform :ios, '15.5'
 
-use_modular_headers!
-
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -36,6 +34,8 @@ require File.expand_path(
 flutter_ios_podfile_setup
 
 target 'Runner' do
+  use_frameworks! :linkage => :static
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
   target 'RunnerTests' do
