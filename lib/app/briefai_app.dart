@@ -2001,7 +2001,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Tokom besplatne beta faze naplata nije aktivna. Premium i Pro planovi biće ponuđeni tek nakon provere kvaliteta i uz jasno prikazanu cenu i uslove pre kupovine.',
+    'Prve tri analize pisma su besplatne. Nakon toga je za nove analize i premium funkcije potrebna mesečna BriefAI Premium pretplata. Cena se prikazuje u prodavnici pre kupovine i može zavisiti od zemlje i valute. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
   ),
   (
     '4. Prihvatljivo korišćenje',
