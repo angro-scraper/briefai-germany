@@ -1,0 +1,59 @@
+name: iOS cloud check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ios-cloud-check.yml"
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+  pull_request:
+    paths:
+      - ".github/workflows/ios-cloud-check.yml"
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: briefai-ios-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-build:
+    name: Build iOS without signing
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub
+
+      - name: Compile iOS release without signing
+        run: |
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --target lib/wrapper_main.dart \
+            --build-name 1.0.22 \
+            --build-number 23
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BriefAI-Germany-iOS-unsigned-app
+          path: build/ios/iphoneos/Runner.app
+          if-no-files-found: error
+          retention-days: 7
