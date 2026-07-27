@@ -45,6 +45,15 @@ const _terminalAuthErrorCodes = {
 bool _isTerminalAuthError(String code) =>
     _terminalAuthErrorCodes.contains(code);
 
+bool get _isNativeWebViewWrapper =>
+    kIsWeb &&
+    (Uri.base.queryParameters['nativeWrapper'] == '1' ||
+        // Existing store shells do not yet append the marker. Treat mobile
+        // web runtimes as wrapper-compatible as well so the reCAPTCHA fix
+        // reaches already installed builds through the hosted app.
+        defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.android);
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -120,7 +129,12 @@ class AppServices {
       // opening the local document vault or the authentication screen.
       // reCAPTCHA Enterprise can be unavailable inside an Android/iOS WebView,
       // so its startup failure must not make the entire hosted app unavailable.
-      unawaited(_activateAppCheck());
+      // The hosted build runs inside a native WKWebView/WebView as well as in
+      // normal browsers. Web reCAPTCHA App Check is not compatible with the
+      // native wrapper and caused an endless challenge loop on iOS.
+      if (!_isNativeWebViewWrapper) {
+        unawaited(_activateAppCheck());
+      }
 
       // Analytics is opt-in. Never start behavioral tracking before the
       // user has explicitly accepted it in the privacy settings.
@@ -150,13 +164,19 @@ class AppServices {
     // It can be slow on a cold Android emulator or while the OS restores a
     // notification channel; reminders initialize in the background instead.
     unawaited(reminders.initialize().catchError((_) {}));
+    final letters = LetterRepository(cloudEnabled: cloudEnabled);
+    // The archive belongs to this physical browser/app installation, not to
+    // the current Firebase session. Older builds changed owner keys at login,
+    // which made saved letters appear to disappear. Consolidate those records
+    // before the UI subscribes to the local vault.
+    await letters.migrateToDeviceVault();
     return AppServices._(
       cloudEnabled: cloudEnabled,
       configurationError: configurationError,
       auth: AuthService(cloudEnabled: cloudEnabled),
       documents: DocumentService(cloudEnabled: cloudEnabled),
       ai: AiService(cloudEnabled: cloudEnabled),
-      letters: LetterRepository(cloudEnabled: cloudEnabled),
+      letters: letters,
       entitlements: EntitlementService(cloudEnabled: cloudEnabled),
       reminders: reminders,
       purchases: PurchaseService(cloudEnabled: cloudEnabled),
@@ -196,7 +216,7 @@ class AuthService {
       cloudEnabled && FirebaseAuth.instance.currentUser != null;
   String? get uid =>
       cloudEnabled ? FirebaseAuth.instance.currentUser?.uid : null;
-  String get localVaultKey => uid == null ? 'anonymous' : 'user:$uid';
+  String get localVaultKey => LetterRepository.deviceVaultKey;
 
   Future<bool> ensureFreshSession() async {
     if (!cloudEnabled) return false;
@@ -395,7 +415,7 @@ class AuthService {
   }
 
   Future<void> setPreferredLanguage(String language) async {
-    const supported = {'sr', 'hr', 'bs', 'mk', 'de', 'en', 'bg'};
+    const supported = {'sr', 'hr', 'bs', 'mk', 'de', 'en', 'bg', 'tr'};
     if (!supported.contains(language)) {
       throw ArgumentError.value(language, 'language');
     }
@@ -745,6 +765,8 @@ class AiService {
 }
 
 class LetterRepository {
+  static const deviceVaultKey = 'device-local-v2';
+
   LetterRepository({
     required this.cloudEnabled,
     this.databaseFactory,
@@ -760,6 +782,23 @@ class LetterRepository {
   Future<Database> _db() async => _database ??=
       await (databaseFactory?.openDatabase(databasePath) ??
           openBriefAiLocalDatabase());
+
+  /// Moves records written by all previous local-vault schemes into one
+  /// installation-local archive. This never uploads document content and is
+  /// deliberately idempotent so it is safe on every cold start.
+  Future<void> migrateToDeviceVault() async {
+    final database = await _db();
+    await database.transaction((transaction) async {
+      final records = await _store.find(transaction);
+      for (final record in records) {
+        if (record.value['ownerKey'] == deviceVaultKey) continue;
+        await _store.record(record.key).update(transaction, {
+          'ownerKey': deviceVaultKey,
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+      }
+    });
+  }
 
   Stream<List<LetterAnalysis>> watch(String uid) {
     return Stream.fromFuture(_db()).asyncExpand(
@@ -884,20 +923,12 @@ class LetterRepository {
     );
   }
 
-  Filter _ownerFilter(String uid) => uid == 'anonymous'
-      ? Filter.or([
-          Filter.equals('ownerKey', uid),
-          // Records created by an older local-first build had no owner key.
-          // They migrate into the anonymous device vault instead of becoming
-          // globally visible to every subsequently signed-in account.
-          Filter.isNull('ownerKey'),
-        ])
-      : Filter.equals('ownerKey', uid);
+  Filter _ownerFilter(String uid) => Filter.equals('ownerKey', uid);
 
   bool _ownedBy(Map<String, Object?>? values, String uid) {
     if (values == null) return false;
     final owner = values['ownerKey'];
-    return owner == uid || (uid == 'anonymous' && owner == null);
+    return owner == uid;
   }
 }
 
@@ -1123,6 +1154,10 @@ String _reminderBody(String language, int days, bool isPayment) {
       isPayment
           ? 'Плащането е дължимо след $days ${one ? 'ден' : 'дни'}.'
           : 'Срокът изтича след $days ${one ? 'ден' : 'дни'}.',
+    'tr' =>
+      isPayment
+          ? 'Ödemenin son tarihi $days gün sonra.'
+          : 'Son tarih $days gün sonra.',
     'hr' =>
       isPayment
           ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'

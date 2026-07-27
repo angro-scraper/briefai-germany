@@ -134,6 +134,8 @@ const _deadlineWords = [
   'when',
   'срок',
   'краен',
+  'son tarih',
+  'ne zaman',
 ];
 const _paymentWords = [
   'plat',
@@ -145,6 +147,8 @@ const _paymentWords = [
   'pay',
   'плат',
   'сума',
+  'ödeme',
+  'tutar',
 ];
 const _senderWords = [
   'ko je',
@@ -156,6 +160,8 @@ const _senderWords = [
   'von wem',
   'испраќач',
   'подател',
+  'gönderen',
+  'kimden',
 ];
 const _consequenceWords = [
   'hitno',
@@ -169,6 +175,8 @@ const _consequenceWords = [
   'dringend',
   'послед',
   'спеш',
+  'acil',
+  'sonuç',
 ];
 const _actionWords = [
   'šta da',
@@ -182,6 +190,8 @@ const _actionWords = [
   'tun',
   'што да',
   'какво да',
+  'ne yap',
+  'sonraki',
 ];
 const _replyWords = [
   'odgovor',
@@ -190,6 +200,8 @@ const _replyWords = [
   'antwort',
   'schreiben',
   'одговор',
+  'yanıt',
+  'cevap',
 ];
 const _documentWords = [
   'dokument',
@@ -198,6 +210,8 @@ const _documentWords = [
   'nachweis',
   'documents',
   'документ',
+  'belge',
+  'evrak',
 ];
 const _paymentSourceWords = [
   'zahlung',
@@ -485,5 +499,39 @@ const _copy = <String, _AssistantCopy>{
         'Missing an appeal deadline may make the decision final. Check the Rechtsbehelfsbelehrung section.',
     noExplicitConsequence:
         'No specific consequence was reliably found. Check the final paragraph and attachments.',
+  ),
+  'tr': _AssistantCopy(
+    analyseFirst:
+        'Önce mektubun fotoğrafını çekin veya yükleyin, ardından analizi başlatın.',
+    deadline: 'Güvenilir biçimde tanınan son tarih',
+    noDeadline:
+        'Açık bir son tarih güvenilir biçimde bulunamadı. Orijinalde “bis”, “innerhalb” ve “Frist” geçen bölümleri kontrol edin.',
+    keepOriginal: 'Orijinali ve gönderim belgesini saklayın.',
+    amount: 'Bir ödeme yükümlülüğü ve tutar tanındı:',
+    noAmount:
+        'Ödenecek tutar güvenilir biçimde bulunamadı. Orijinal tabloyu ve ekleri kontrol edin.',
+    verifyPayment:
+        'Ödemeden önce alıcıyı, IBAN’ı, dönemi, dosya numarasını ve nihai tutarı doğrulayın.',
+    foundAmount: 'Tanınan tutar:',
+    amountNotNecessarilyDue:
+        'Metin bunun ödenecek tutar olduğunu güvenilir biçimde göstermiyor.',
+    sender: 'Tanınan kurum:',
+    titleMeaning: 'Mektup türü:',
+    nextSteps: 'Somut sonraki adımlar:',
+    documentsAdvice:
+        'Gerekli belgelerin tam listesini orijinalde kontrol edin. Ardından:',
+    replyAdvice:
+        'Yanıtta dosya numarasını, gerçekleri ve yalnızca ilgili ekleri belirtin. Öneri:',
+    directSummary: 'Mektuba dayalı doğrudan yanıt:',
+    askHint:
+        'Şunları sorabilirsiniz: “Son tarih nedir?”, “Ödeme yapmalı mıyım?” veya “Şimdi ne yapmalıyım?”',
+    paymentConsequence:
+        'Hatırlatma ücreti, hizmetin durdurulması, tahsilat veya icra söz konusu olabilir. Son tarihten önce harekete geçin.',
+    benefitConsequence:
+        'Bir hak veya ödeme reddedilebilir, durdurulabilir ya da geri istenebilir. Yanıtınızın kanıtını saklayın.',
+    appealConsequence:
+        'İtiraz süresinin kaçırılması kararı kesinleştirebilir. Rechtsbehelfsbelehrung bölümünü kontrol edin.',
+    noExplicitConsequence:
+        'Belirli bir sonuç güvenilir biçimde bulunamadı. Son paragrafı ve ekleri kontrol edin.',
   ),
 };

@@ -1325,4 +1325,15 @@ final _copy = <String, _LocalCopy>{
     action:
         'Prepare the requested documents, verify your personal details and reply in writing. Seek professional advice for legal or financial risks.',
   ),
+  'tr': _LocalCopy(
+    finanzamtTitle: 'Vergi dairesinden talep',
+    jobcenterTitle: 'Jobcenter bildirimi',
+    krankenkasseTitle: 'Sağlık sigortası bildirimi',
+    courtTitle: 'Hukuki bildirim',
+    generalTitle: 'İncelenmesi gereken resmî mektup',
+    explanation: (category, hasDeadline) =>
+        'Mektubu gönderen: $category. Sizden ne istendiğini kontrol edin. ${hasDeadline ? 'Bir tarih algılandı ve bu bir son tarih olabilir; zamanında yanıt verin.' : 'Açık bir son tarih algılanmadı; orijinal mektubu kontrol edin.'}',
+    action:
+        'İstenen belgeleri hazırlayın, kişisel bilgilerinizi doğrulayın ve yazılı yanıt verin. Hukuki veya mali risk varsa uzman desteği alın.',
+  ),
 };

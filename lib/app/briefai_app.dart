@@ -1842,6 +1842,7 @@ const _languageLabels = {
   'de': 'Nemački',
   'en': 'Engleski',
   'bg': 'Bugarski',
+  'tr': 'Türkçe',
 };
 
 Future<bool> _ensureCloudAiAccess(
@@ -1929,6 +1930,12 @@ const _cloudAiConsentCopy = <String, (String, String, String, String)>{
     'For a higher-quality analysis, the recognized OCR text will be sent securely to OpenAI for this request only. The original photo/PDF, analysis, and archive remain local on this device and are not stored in Firebase.',
     'Cancel',
     'Agree and continue',
+  ),
+  'tr': (
+    'OpenAI analizi',
+    'Daha kaliteli bir analiz için tanınan OCR metni yalnızca bu istek kapsamında güvenli biçimde OpenAI’ye gönderilir. Orijinal fotoğraf/PDF, analiz ve arşiv bu cihazda yerel kalır ve Firebase’de saklanmaz.',
+    'İptal',
+    'Kabul et ve devam et',
   ),
 };
 

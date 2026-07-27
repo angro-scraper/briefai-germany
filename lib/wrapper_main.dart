@@ -16,7 +16,8 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-const _appUrl = 'https://briefai-germany-download.onrender.com/app/';
+const _appUrl =
+    'https://briefai-germany-download.onrender.com/app/?nativeWrapper=1';
 const _appHost = 'briefai-germany-download.onrender.com';
 const _wrapperImageMaxSide = 2200;
 
@@ -48,6 +49,10 @@ String _nativeReminderBody(String language, int days, bool isPayment) {
       isPayment
           ? 'Плащането е дължимо след $days ${one ? 'ден' : 'дни'}.'
           : 'Срокът изтича след $days ${one ? 'ден' : 'дни'}.',
+    'tr' =>
+      isPayment
+          ? 'Ödemenin son tarihi $days ${one ? 'gün' : 'gün'} sonra.'
+          : 'Son tarih $days ${one ? 'gün' : 'gün'} sonra.',
     'hr' || 'bs' =>
       isPayment
           ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'

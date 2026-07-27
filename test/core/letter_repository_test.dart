@@ -7,7 +7,7 @@ import 'package:sembast/sembast_memory.dart';
 
 void main() {
   test(
-    'local vault isolates, exports and deletes records per account',
+    'legacy account vaults migrate into one durable device-local archive',
     () async {
       final repository = LetterRepository(
         cloudEnabled: false,
@@ -43,22 +43,32 @@ void main() {
         document: document,
       );
 
-      final alice = await repository.exportRecords('user:alice');
-      final bob = await repository.exportRecords('user:bob');
-      expect(alice.single['id'], 'alice-letter');
-      expect(alice.single['sourceText'], 'Alice OCR');
-      expect(alice.single['documentBase64'], 'AQIDBA==');
-      expect(bob.single['id'], 'bob-letter');
-      expect(await repository.loadDocument('user:bob', 'alice-letter'), isNull);
+      await repository.migrateToDeviceVault();
+      final archive = await repository.exportRecords(
+        LetterRepository.deviceVaultKey,
+      );
+      expect(
+        archive.map((record) => record['id']),
+        containsAll(['alice-letter', 'bob-letter']),
+      );
+      expect(
+        await repository.loadDocument(
+          LetterRepository.deviceVaultKey,
+          'alice-letter',
+        ),
+        isNotNull,
+      );
 
-      await repository.clearAll('user:alice');
-      expect(await repository.exportRecords('user:alice'), isEmpty);
-      expect(await repository.exportRecords('user:bob'), hasLength(1));
+      await repository.clearAll(LetterRepository.deviceVaultKey);
+      expect(
+        await repository.exportRecords(LetterRepository.deviceVaultKey),
+        isEmpty,
+      );
     },
   );
 
   test(
-    'legacy ownerless records are visible only in anonymous vault',
+    'migration is idempotent and includes anonymous legacy records',
     () async {
       final repository = LetterRepository(
         cloudEnabled: false,
@@ -80,8 +90,12 @@ void main() {
         ),
       );
 
-      expect(await repository.exportRecords('anonymous'), hasLength(1));
-      expect(await repository.exportRecords('user:alice'), isEmpty);
+      await repository.migrateToDeviceVault();
+      await repository.migrateToDeviceVault();
+      expect(
+        await repository.exportRecords(LetterRepository.deviceVaultKey),
+        hasLength(1),
+      );
     },
   );
 }
