@@ -21,8 +21,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'core/app_config.dart';
 import 'firebase_options.dart';
 
-const _appUrl = 'https://briefai-germany-download.onrender.com/app/';
-const _appHost = 'briefai-germany-download.onrender.com';
+const _appUrl = 'https://briefai.salvesca.com/app/';
+const _appHost = 'briefai.salvesca.com';
 const _wrapperImageMaxSide = 2200;
 
 int _nativeNotificationId(String letterId, int days) {
