@@ -46,9 +46,20 @@ potreban za taj poziv, ograničavaju veličinu, zahtevaju Auth i App Check i
 tretiraju dokument kao nepoverljiv sadržaj. Rezultati se validiraju JSON
 šemom gde je primenljivo.
 
+## Jezici
+
+Korisnik može izabrati svaki jezik naveden u
+`AppStrings.languageLabels`. Potpuno prevedeni statički interfejsi koriste
+sopstvene tekstove, a ostali jezici privremeno koriste engleski interfejs.
+Izabrani BCP-47 kod se uvek prosleđuje AI funkcijama, pa analiza, objašnjenje
+i asistent odgovaraju na izabranom jeziku bez vraćanja na srpski.
+
 ## Pretplate
 
-- FREE: dve analize po Berlin kalendarskom mesecu.
+- Zatvoreni test: ukupno 15 analiza po nalogu bez naplate.
+- PREMIUM: 50 analiza mesečno za 9,90 EUR.
+- PLUS: 100 analiza mesečno za 19,90 EUR.
+- PRO: 150 analiza mesečno za 29,90 EUR.
 - PREMIUM/PRO: entitlement upisuje isključivo Stripe webhook ili funkcija koja
   proverava Google Play/App Store dokaz kod same prodavnice.
 - U omotaču PWA traži proizvod/kupovinu preko `BriefAiNative` mosta. Omotač

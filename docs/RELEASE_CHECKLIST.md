@@ -37,7 +37,8 @@
 
 - [ ] Testirati fotografiju, galeriju i PDF na stvarnim Android/iOS uređajima.
 - [ ] Testirati nemački OCR na mutnim, zakrivljenim i višestraničnim dokumentima.
-- [ ] Testirati sve podržane jezike: sr, hr, bs, mk, de, en, bg.
+- [ ] Testirati svih osam potpuno prevedenih interfejsa i reprezentativni
+      uzorak dodatnih BCP-47 jezika; AI odgovor mora ostati na izabranom jeziku.
 - [ ] Testirati rokove: 7 dana, 3 dana, 1 dan, promena vremenske zone i otkazana obaveštenja.
 - [ ] Testirati IndexedDB/app vault posle restarta, update-a, odjave i promene
       naloga; dokumenti ne smeju preći između profila uređaja.

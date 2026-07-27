@@ -29,7 +29,7 @@ npx firebase-tools deploy --only firestore:rules,storage,functions
 Pre deploy-a podesiti Functions parametre:
 
 ```text
-WEB_APP_ORIGIN=https://briefai-germany-download.onrender.com
+WEB_APP_ORIGIN=https://briefai.salvesca.com
 OPENAI_MODEL=gpt-5.6-terra
 FREE_BETA_AI_ENABLED=true
 AI_MONTHLY_BUDGET_USD=30
@@ -57,6 +57,7 @@ dokument nikada se ne šalje Functions/OpenAI servisu.
 Web domeni koji moraju biti registrovani:
 
 ```text
+briefai.salvesca.com
 briefai-germany-download.onrender.com
 briefai-germany.firebaseapp.com
 ```

@@ -45,9 +45,13 @@ Apple, signing or service-account secrets.
 
 ## Published endpoints
 
-- PWA: <https://briefai-germany-download.onrender.com/app/>
-- Admin: <https://briefai-germany-download.onrender.com/admin/>
-- Android QA APK:
-  <https://briefai-germany-download.onrender.com/download/app-debug.apk>
+- PWA: <https://briefai.salvesca.com/app/>
+- Admin: <https://briefai.salvesca.com/admin/>
+- Platform page: <https://briefai.salvesca.com/>
+- Android instalacija i sva buduća ažuriranja:
+  <https://play.google.com/store/apps/details?id=com.briefai.briefai_germany>
 
-The QA APK is debug-signed and is not a Play Store release artifact.
+The Render hostname is the hosting origin only; customer-facing links and
+native wrappers use the `briefai.salvesca.com` custom domain. Do not distribute
+debug APK files: Android installations must come from Google Play so Play App
+Signing can deliver future updates over the existing installation.
