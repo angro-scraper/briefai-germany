@@ -44,6 +44,10 @@ android {
 
     buildTypes {
         release {
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             if (signingPropertiesFile.exists()) {
                 signingConfig = signingConfigs.create("release") {
                     keyAlias = signingProperties.getProperty("keyAlias")
