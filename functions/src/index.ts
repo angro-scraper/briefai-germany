@@ -509,6 +509,44 @@ function parseLifeAssistantAnswer(value: string): LifeAssistantAnswer {
   }
 }
 
+/**
+ * The common entry points are deterministic administrative checklists.  They
+ * should be useful instantly and must not spend a user's AI allowance.
+ */
+function immediateLifeGuide(question: string): LifeAssistantAnswer | undefined {
+  const normalized = question.toLocaleLowerCase("de-DE");
+  const base = {
+    disclaimer: "Ovo su opšte informacije; važne odluke potvrdite kod nadležne institucije ili kvalifikovanog savetnika.",
+    timing: "Trajanje zavisi od nadležne institucije, termina i potpunosti dokumentacije.",
+    commonMistakes: ["Ne proveriti tačnu lokalnu listu dokumenata.", "Predati kopije bez čuvanja dokaza o predaji.", "Čekati poslednji dan za termin ili dopunu."],
+  };
+  if (/dovedem porodicu|spajanje porodice|family reunification|familiennachzug/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Za spajanje porodice prvo se proverava vrsta vašeg boravka, nadležna ambasada i Ausländerbehörde u mestu stanovanja.",
+    explanation: "Član porodice često podnosi zahtev za vizu iz inostranstva, a postupak zatim uključuje proveru kod nemačke Ausländerbehörde. Tačna pravila zavise od vašeg statusa boravka, odnosa i države iz koje porodica dolazi.",
+    documents: ["Pasoši članova porodice", "Dokaz o srodstvu (na primer venčani list ili izvod rođenih)", "Vaša važeća boravišna dozvola", "Dokaz o adresi, stanu i prihodima — potvrdite lokalno", "Dokumenti koje izričito traži ambasada ili Ausländerbehörde"],
+    steps: ["Proverite zvaničnu stranicu nemačke ambasade za državu u kojoj je član porodice.", "Proverite kod svoje Ausländerbehörde koji dokumenti su potrebni za vaš status.", "Prikupite originale i prevode samo kada ih institucija izričito traži.", "Rezervišite termin za zahtev za vizu ili predaju dokumenata.", "Sačuvajte potvrde, broj predmeta i odgovorite brzo na svaki zahtev za dopunu."],
+    sourceKeys: ["family", "residence"], nextGuides: ["residence_extension", "anmeldung", "health_insurance"],
+  };
+  if (/prijavim adresu|anmeldung|anmelde/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Za prijavu adrese obično vam treba termin u nadležnom Bürgeramt-u i potvrda stanodavca.",
+    explanation: "Prijava adrese se radi kod opštine/Bürgeramt-a nadležnog za novu adresu. Lokalna pravila i rokovi mogu se razlikovati.",
+    documents: ["Pasoš ili lična karta", "Wohnungsgeberbestätigung od stanodavca", "Termin ili potvrda o terminu — ako ga opština traži"],
+    steps: ["Pronađite nadležni Bürgeramt za novu adresu.", "Proverite termin i lokalne rokove.", "Pripremite original potvrde stanodavca.", "Predajte prijavu i sačuvajte Meldebescheinigung.", "Ažurirajte adresu kod banke, osiguranja i važnih institucija."],
+    sourceKeys: ["anmeldung"], nextGuides: ["health_insurance", "kindergeld"],
+  };
+  if (/kindergeld/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Kindergeld se traži preko Familienkasse; potpuna dokumentacija i brz odgovor na dopune su najvažniji.",
+    explanation: "Nadležna Familienkasse proverava porodičnu situaciju, identifikacione brojeve i dokumente koji zavise od vašeg boravka i deteta.",
+    documents: ["Identifikacioni dokumenti", "Poreski identifikacioni brojevi", "Podaci o detetu i prebivalištu", "Dokumenti o boravku, ako su relevantni"],
+    steps: ["Pronađite zvanični obrazac i nadležnu Familienkasse.", "Pripremite tražene podatke bez nagađanja.", "Predajte zahtev zvaničnim kanalom.", "Sačuvajte kopiju i dokaz predaje.", "Odmah odgovorite ako se traži dopuna."],
+    sourceKeys: ["kindergeld"], nextGuides: ["anmeldung", "health_insurance"],
+  };
+  return undefined;
+}
+
 const replyDraftInstructions = `Role: You are a senior German legal-correspondence drafting specialist. Write with the precision, structure, restraint, and professional tone expected from an experienced German lawyer or Rechtsanwaltsfachangestellte, but never state or imply that you are a lawyer and never add a law-firm identity.
 
 Goal: Produce two complete German drafts that the user can review, personalize, and send: (1) a detailed formal letter and (2) a substantive formal email. These are not summaries.
@@ -1055,6 +1093,11 @@ export const askLifeInGermanyAssistant = onCall(
     const recentContext = typeof request.data?.recentContext === "string" && request.data.recentContext.trim()
       ? requireString(request.data.recentContext, "recentContext", 5000)
       : "No earlier conversation is available.";
+    const instantGuide = immediateLifeGuide(question);
+    if (instantGuide) {
+      const sources = instantGuide.sourceKeys.map((key) => ({key, ...officialLifeSources[key]}));
+      return {answer: {...instantGuide, sources}, mode: "instant-guide"};
+    }
     const reservation = await reserveAiBudget(
       uid,
       estimateTokens(question + recentContext) + 2500,
@@ -1099,9 +1142,8 @@ Official-source catalog: ${JSON.stringify(officialLifeSources)}. Return sourceKe
       return {answer: {...answer, sources}};
     } catch (error) {
       if (!providerResponded) await reconcileAiBudget(reservation);
-      if (error instanceof SyntaxError) {
-        throw new HttpsError("internal", "AI odgovor nije validan format.");
-      }
+      // Invalid upstream content must never consume the user's reserved quota.
+      if (error instanceof SyntaxError) throw new HttpsError("unavailable", "AI servis trenutno nije vratio čitljiv odgovor. Vaša AI kvota nije potrošena.");
       throw error;
     }
   },
