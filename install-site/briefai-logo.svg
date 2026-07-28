@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BriefAI Germany">
+  <rect width="512" height="512" rx="104" fill="#0b1c41"/>
+  <circle cx="256" cy="256" r="186" fill="#6556f5"/>
+  <path fill="#fff" d="M153 138h72v37h62v-37h72v74h-36v-38h-36v190h36v-38h36v74h-72v-37h-62v37h-72v-74h36v38h36V174h-36v38h-36z"/>
+  <path fill="#fff" d="M226 207h60c13 0 24 11 24 24s-11 24-24 24h-60c-13 0-24-11-24-24s11-24 24-24zm0 65h60c13 0 24 11 24 24s-11 24-24 24h-60c-13 0-24-11-24-24s11-24 24-24zm0 65h60c13 0 24 11 24 24s-11 24-24 24h-60c-13 0-24-11-24-24s11-24 24-24z"/>
+</svg>
