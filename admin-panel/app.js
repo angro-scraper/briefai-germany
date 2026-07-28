@@ -4,6 +4,7 @@ import {
   browserLocalPersistence,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -78,6 +79,23 @@ if (configured) {
       await completeSignIn();
     } catch (error) {
       status.textContent = `Access failed: ${error.message}`;
+    }
+  });
+  document.querySelector('#password-reset').addEventListener('click', async () => {
+    const email = document.querySelector('#admin-email').value.trim();
+    if (!email) {
+      status.textContent = 'Enter your founder email first, then request a password setup link.';
+      document.querySelector('#admin-email').focus();
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email, {
+        url: 'https://briefai.salvesca.com/admin/',
+        handleCodeInApp: false,
+      });
+      status.textContent = 'Password setup link sent. Check your email inbox and spam folder.';
+    } catch (error) {
+      status.textContent = `Password setup failed: ${error.message}`;
     }
   });
   onAuthStateChanged(auth, async (user) => {
