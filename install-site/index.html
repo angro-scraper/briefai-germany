@@ -11,8 +11,8 @@
       * { box-sizing: border-box; } body { margin: 0; background: #f6f8fc; color: #17223f; } a { color: inherit; }
       main { max-width: 1180px; margin: auto; padding: 22px 28px 44px; }
       .site-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding: 8px 0 36px; }
-      .brand { text-decoration:none; display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.03em; font-size:1.12rem; }
-      .brand-mark { width:36px; height:36px; display:block; overflow:hidden; border-radius:11px; background:#0d1d43; box-shadow:0 8px 22px #1a39702a; } .brand-mark img { display:block; width:100%; height:100%; }
+      .brand { text-decoration:none; display:flex; align-items:center; gap:13px; font-weight:850; letter-spacing:-.035em; font-size:1.25rem; }
+      .brand-mark { width:56px; height:56px; display:block; overflow:hidden; flex:0 0 auto; border-radius:17px; background:#0d1d43; box-shadow:0 12px 28px #1a39703a; } .brand-mark img { display:block; width:100%; height:100%; } .brand small { font-size:.72rem; }
       .brand small { display:block; font-size:.67rem; letter-spacing:.08em; color:#63708c; text-transform:uppercase; margin:0; }
       .nav-tools { display:flex; align-items:center; gap:10px; } .language { padding:10px 12px; border-radius:10px; color:#263653; background:white; border:1px solid #dbe1ed; font:inherit; }
       .nav-link { color:#475675; font-size:.92rem; font-weight:700; text-decoration:none; } .nav-link:hover { color:#234bd4; }
@@ -38,7 +38,8 @@
       .download { padding:58px 0 22px; text-align:center; } .download h2 { margin:0 auto 13px; } .download p { color:#65738d; margin:0 auto 24px; max-width:57ch; } .download .actions { justify-content:center; } small { display:block; margin-top:17px; color:#7b879d; line-height:1.5; }
       .store-badges { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; } .store-badge { min-width:196px; min-height:58px; display:inline-flex; align-items:center; justify-content:center; gap:11px; padding:8px 15px; border-radius:9px; background:#080808; border:1px solid #242424; color:#fff; text-decoration:none; text-align:left; box-shadow:0 8px 19px #0c17301c; transition:transform .18s ease, background .18s ease; } .store-badge:hover { color:#fff; background:#1b1b1b; transform:translateY(-2px); } .store-badge svg { flex:0 0 auto; width:30px; height:34px; } .store-badge .store-small { display:block; font-size:.64rem; font-weight:600; line-height:1.05; letter-spacing:.01em; opacity:.92; } .store-badge .store-name { display:block; font-size:1.16rem; font-weight:700; line-height:1.15; letter-spacing:-.025em; white-space:nowrap; } .store-badge.testflight { background:#163aa4; border-color:#163aa4; } .store-badge.testflight:hover { background:#102e84; }
       footer { margin-top:34px; border-top:1px solid #e0e5ef; padding:25px 0 0; display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; color:#6d7890; font-size:.88rem; } .footer-links { display:flex; flex-wrap:wrap; gap:17px; } footer a { color:#52617d; text-decoration:none; } footer a:hover { color:#234bd4; }
-      @media (max-width:800px) { main { padding:18px 18px 32px; } .site-header { padding-bottom:24px; } .nav-link { display:none; } .hero { grid-template-columns:1fr; gap:32px; padding:35px 0 48px; } .preview-shell { min-height:430px; max-width:540px; } .proof { grid-template-columns:1fr; gap:16px; } .proof div { padding:0; border-left:0; } .steps { grid-template-columns:1fr; } .step h3 { margin-top:25px; } .privacy-band { grid-template-columns:1fr; padding:30px; gap:22px; } .section { padding:58px 0; } }
+      #google_translate_element { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; } .goog-te-banner-frame,.goog-te-balloon-frame { display:none!important; } body { top:0!important; }
+      @media (max-width:800px) { main { padding:18px 18px 32px; } .site-header { padding-bottom:24px; } .brand { font-size:1.08rem; gap:10px; } .brand-mark { width:48px; height:48px; border-radius:15px; } .nav-link { display:none; } .hero { grid-template-columns:1fr; gap:32px; padding:35px 0 48px; } .preview-shell { min-height:430px; max-width:540px; } .proof { grid-template-columns:1fr; gap:16px; } .proof div { padding:0; border-left:0; } .steps { grid-template-columns:1fr; } .step h3 { margin-top:25px; } .privacy-band { grid-template-columns:1fr; padding:30px; gap:22px; } .section { padding:58px 0; } }
     </style>
   </head>
   <body>
@@ -69,6 +70,7 @@
         <span>© 2026 BriefAI Germany</span><div class="footer-links"><a id="platform-link" href="https://salvesca.com" data-i18n="platform">Salvesca platforma</a><a id="privacy-link" href="/privacy.html" data-i18n="privacy">Privatnost</a><a id="terms-link" href="/terms.html" data-i18n="terms">Uslovi korišćenja</a><a id="support-link" href="/support.html" data-i18n="support">Podrška</a></div>
       </footer>
     </main>
+    <div id="google_translate_element" aria-hidden="true"></div>
     <script>
       const languages = {
         sq:'Shqip',ar:'العربية',hy:'Հայերեն',az:'Azərbaycanca',bn:'বাংলা',bs:'Bosanski',bg:'Български',
@@ -103,12 +105,19 @@
       const queryLanguage = new URLSearchParams(location.search).get('lang');
       const browserLanguage = navigator.language.slice(0,2);
       const initial = languages[queryLanguage] ? queryLanguage : (languages[browserLanguage] ? browserLanguage : 'en');
+      const googleLanguageCode = { zh: 'zh-CN' };
+      function getGoogleCookie() {
+        return document.cookie.split('; ').find(cookie => cookie.startsWith('googtrans=')) || '';
+      }
       function applyLanguage(code) {
-        const values = copy[code] || copy.en;
+        // Keep the source document Serbian so the translation engine can translate
+        // every visible section, including the realistic letter preview.
+        const values = copy.sr;
+        const metadata = copy[code] || copy.en;
         document.documentElement.lang = code;
         document.documentElement.dir = ['ar','fa','he','ps','ur'].includes(code) ? 'rtl' : 'ltr';
-        document.title = values.pageTitle;
-        document.querySelector('meta[name="description"]').content = values.intro;
+        document.title = metadata.pageTitle;
+        document.querySelector('meta[name="description"]').content = metadata.intro;
         document.querySelectorAll('[data-i18n]').forEach(element => {
           element.textContent = values[element.dataset.i18n] || copy.en[element.dataset.i18n];
         });
@@ -121,13 +130,33 @@
         });
         localStorage.setItem('briefai.platform-language', code);
       }
+      window.briefaiGoogleTranslateReady = function () {
+        if (!window.google || !google.translate) return;
+        new google.translate.TranslateElement({ pageLanguage:'sr', autoDisplay:false }, 'google_translate_element');
+      };
       // A language explicitly included in a shared link must override an
       // earlier choice saved in this browser.
       selector.value = languages[queryLanguage]
         ? queryLanguage
         : (localStorage.getItem('briefai.platform-language') || initial);
       applyLanguage(selector.value);
-      selector.addEventListener('change', event => applyLanguage(event.target.value));
+      selector.addEventListener('change', event => {
+        const code = event.target.value;
+        localStorage.setItem('briefai.platform-language', code);
+        const googleCode = googleLanguageCode[code] || code;
+        document.cookie = `googtrans=/sr/${googleCode}; path=/; max-age=31536000; SameSite=Lax`;
+        location.search = `?lang=${encodeURIComponent(code)}`;
+      });
+      const activeGoogleCode = googleLanguageCode[selector.value] || selector.value;
+      const expectedCookie = `googtrans=/sr/${activeGoogleCode}`;
+      if (selector.value === 'sr' && getGoogleCookie()) {
+        document.cookie = 'googtrans=; path=/; max-age=0; SameSite=Lax';
+        if (location.search.includes('lang=')) location.replace(location.pathname);
+      } else if (selector.value !== 'sr' && !getGoogleCookie().includes(expectedCookie)) {
+        document.cookie = `${expectedCookie}; path=/; max-age=31536000; SameSite=Lax`;
+        location.reload();
+      }
     </script>
+    <script src="https://translate.google.com/translate_a/element.js?cb=briefaiGoogleTranslateReady"></script>
   </body>
 </html>
