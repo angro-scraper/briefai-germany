@@ -1,0 +1,50 @@
+workflows:
+  life-assistant-ios-testflight:
+    name: Asistent za život — iOS TestFlight
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      # The integration name in Codemagic Team settings must be exactly this.
+      app_store_connect: salvesca-app-store
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.salvesca.lifeassistant
+      vars:
+        APP_STORE_APPLE_ID: "6795650569"
+        BUILD_NAME: "1.0.1"
+    scripts:
+      - name: Set up iOS signing
+        script: xcode-project use-profiles
+      - name: Install Flutter packages
+        script: flutter pub get
+      - name: Install CocoaPods dependencies
+        script: find . -name Podfile -execdir pod install \;
+      - name: Verify the wrapper
+        script: |
+          flutter analyze
+          flutter test
+      - name: Build signed IPA for TestFlight
+        script: |
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1))
+          flutter build ipa --release \
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+      email:
+        recipients:
+          - trajkoff@yahoo.com
+        notify:
+          success: true
+          failure: true
