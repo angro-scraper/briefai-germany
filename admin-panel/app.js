@@ -235,6 +235,11 @@ function textCell(main, sub) {
   return cell;
 }
 
+function formatUsdFromMicros(value) {
+  return new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 4})
+    .format((Number(value) || 0) / 1_000_000);
+}
+
 function renderAccounts() {
   const table = document.querySelector('#accounts-table');
   const query = document.querySelector('#account-search').value.trim().toLowerCase();
@@ -254,20 +259,36 @@ function renderAccounts() {
     const row = document.createElement('tr');
     row.append(accountCell(account));
     row.append(textCell(String(account.plan || 'trial').toUpperCase(), account.subscriptionStatus || 'no subscription'));
-    row.append(textCell(`${account.analysesLifetime || 0} total`, `${account.analysesThisMonth || 0} this month`));
+    row.append(textCell(
+      `${account.analysesLifetime || 0} total · ${account.analysesThisMonth || 0} this month`,
+      `AI: ${formatUsdFromMicros(account.aiCostMicros)} · ${account.aiRequests || 0} requests · ${new Intl.NumberFormat('de-DE').format((account.aiInputTokens || 0) + (account.aiOutputTokens || 0))} tokens`,
+    ));
     row.append(textCell(formatDate(account.lastActiveAt), `Signed in: ${formatDate(account.lastSignInAt)}`));
     const stateCell = document.createElement('td');
     const badge = document.createElement('span');
     badge.className = `status-pill ${account.disabled ? 'disabled' : 'active'}`;
     badge.textContent = account.disabled ? 'Suspended' : 'Active';
     stateCell.append(badge);
+    if (account.aiBlocked) {
+      const aiBadge = document.createElement('span');
+      aiBadge.className = 'status-pill disabled';
+      aiBadge.textContent = 'AI stopped';
+      stateCell.append(document.createElement('br'), aiBadge);
+    }
     row.append(stateCell);
     const controlCell = document.createElement('td');
+    const actions = document.createElement('div');
+    actions.className = 'control-stack';
     const action = document.createElement('button');
     action.className = account.disabled ? 'secondary-action' : 'danger-action';
     action.textContent = account.disabled ? 'Restore' : 'Suspend';
     action.addEventListener('click', () => setAccountDisabled(account));
-    controlCell.append(action);
+    const aiAction = document.createElement('button');
+    aiAction.className = account.aiBlocked ? 'secondary-action' : 'danger-action';
+    aiAction.textContent = account.aiBlocked ? 'Enable AI' : 'Stop AI';
+    aiAction.addEventListener('click', () => setAccountAiBlocked(account));
+    actions.append(action, aiAction);
+    controlCell.append(actions);
     row.append(controlCell);
     table.append(row);
   }
@@ -285,6 +306,21 @@ async function setAccountDisabled(account) {
     await loadAccounts({reset: true});
   } catch (error) {
     status.textContent = `Account control failed: ${error.message}`;
+  }
+}
+
+async function setAccountAiBlocked(account) {
+  const aiBlocked = !account.aiBlocked;
+  const label = account.email || account.uid;
+  if (!window.confirm(`${aiBlocked ? 'Stop all new AI requests for' : 'Restore AI access for'} ${label}?`)) return;
+  try {
+    await httpsCallable(functions, 'adminSetAccountAiBlocked')({uid: account.uid, aiBlocked});
+    document.querySelector('#service-state').textContent = aiBlocked
+      ? `AI requests are now blocked for ${label}. Existing local letters remain untouched.`
+      : `AI access was restored for ${label}.`;
+    await loadAccounts({reset: true});
+  } catch (error) {
+    status.textContent = `AI access control failed: ${error.message}`;
   }
 }
 

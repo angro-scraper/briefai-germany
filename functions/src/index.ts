@@ -246,6 +246,7 @@ async function reserveAiBudget(
   const monthKey = berlinDate(new Date()).slice(0, 7);
   const reservedMicros = aiCostMicros(model, estimatedInputTokens, maxOutputTokens);
   const globalRef = db.collection("adminMetrics").doc(`ai-${monthKey}`);
+  const profileRef = db.collection("users").doc(uid);
   const userRef = db.collection("users").doc(uid).collection("usage").doc(monthKey);
   const subscriptionRef = db.collection("subscriptions").doc(uid);
   const globalLimit = positiveUsdMicros(
@@ -254,11 +255,18 @@ async function reserveAiBudget(
   );
 
   await db.runTransaction(async (transaction) => {
-    const [globalUsage, userUsage, subscription] = await Promise.all([
+    const [globalUsage, userUsage, subscription, profile] = await Promise.all([
       transaction.get(globalRef),
       transaction.get(userRef),
       transaction.get(subscriptionRef),
+      transaction.get(profileRef),
     ]);
+    if (profile.data()?.aiBlocked === true) {
+      throw new HttpsError(
+        "permission-denied",
+        "AI pristup je privremeno zaustavljen za ovaj nalog. Obratite se podršci.",
+      );
+    }
     const subscriptionActive = ["active", "trialing"].includes(
       subscription.data()?.status,
     );
@@ -1166,16 +1174,20 @@ export const adminListAccounts = onCall({region: "europe-west3", enforceAppCheck
   const profileRefs = userIds.map((uid) => db.collection("users").doc(uid));
   const subscriptionRefs = userIds.map((uid) => db.collection("subscriptions").doc(uid));
   const usageRefs = userIds.map((uid) => db.collection("users").doc(uid).collection("usage").doc("current"));
-  const [profiles, subscriptions, usage] = userIds.length === 0 ? [[], [], []] : await Promise.all([
+  const monthKey = berlinDate(new Date()).slice(0, 7);
+  const monthlyUsageRefs = userIds.map((uid) => db.collection("users").doc(uid).collection("usage").doc(monthKey));
+  const [profiles, subscriptions, usage, monthlyUsage] = userIds.length === 0 ? [[], [], [], []] : await Promise.all([
     db.getAll(...profileRefs),
     db.getAll(...subscriptionRefs),
     db.getAll(...usageRefs),
+    db.getAll(...monthlyUsageRefs),
   ]);
   return {
     accounts: page.users.map((user, index) => {
       const profile = profiles[index]?.data() ?? {};
       const subscription = subscriptions[index]?.data() ?? {};
       const currentUsage = usage[index]?.data() ?? {};
+      const monthUsage = monthlyUsage[index]?.data() ?? {};
       return {
         uid: user.uid,
         email: user.email ?? null,
@@ -1183,6 +1195,7 @@ export const adminListAccounts = onCall({region: "europe-west3", enforceAppCheck
         preferredLanguage: profile.preferredLanguage ?? null,
         countryOfOrigin: profile.countryOfOrigin ?? null,
         disabled: user.disabled,
+        aiBlocked: profile.aiBlocked === true,
         createdAt: user.metadata.creationTime ?? null,
         lastSignInAt: user.metadata.lastSignInTime ?? null,
         lastActiveAt: timestampToIso(profile.lastActiveAt),
@@ -1191,7 +1204,11 @@ export const adminListAccounts = onCall({region: "europe-west3", enforceAppCheck
         subscriptionStatus: subscription.status ?? "none",
         subscriptionProvider: subscription.provider ?? null,
         analysesLifetime: Number(currentUsage.analysesLifetime ?? 0),
-        analysesThisMonth: Number(currentUsage.analysesThisMonth ?? 0),
+        analysesThisMonth: Number(monthUsage.analyses ?? currentUsage.analysesThisMonth ?? 0),
+        aiCostMicros: Number(monthUsage.aiCostMicros ?? 0),
+        aiRequests: Number(monthUsage.aiRequests ?? 0),
+        aiInputTokens: Number(monthUsage.inputTokens ?? 0),
+        aiOutputTokens: Number(monthUsage.outputTokens ?? 0),
       };
     }),
     nextPageToken: page.pageToken ?? null,
@@ -1217,6 +1234,31 @@ export const adminSetAccountDisabled = onCall({region: "europe-west3", enforceAp
     actorUid: adminUid,
   }, {merge: true});
   return {uid: targetUid, disabled};
+});
+
+export const adminSetAccountAiBlocked = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  const adminUid = await requireAdmin(request.auth?.uid);
+  const targetUid = requireString(request.data?.uid, "uid", 128);
+  if (targetUid === adminUid) {
+    throw new HttpsError("failed-precondition", "Ne možete zaustaviti AI za sopstveni administratorski nalog.");
+  }
+  if (typeof request.data?.aiBlocked !== "boolean") {
+    throw new HttpsError("invalid-argument", "Polje aiBlocked mora biti true ili false.");
+  }
+  const aiBlocked = request.data.aiBlocked;
+  await db.collection("users").doc(targetUid).set({
+    aiBlocked,
+    aiBlockedAt: aiBlocked ? FieldValue.serverTimestamp() : FieldValue.delete(),
+    aiBlockedBy: aiBlocked ? adminUid : FieldValue.delete(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+  await db.collection("adminMetrics").doc("account-actions").set({
+    lastActionAt: FieldValue.serverTimestamp(),
+    lastAction: aiBlocked ? "ai-blocked" : "ai-restored",
+    targetUid,
+    actorUid: adminUid,
+  }, {merge: true});
+  return {uid: targetUid, aiBlocked};
 });
 
 export const sendAdminNotification = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
