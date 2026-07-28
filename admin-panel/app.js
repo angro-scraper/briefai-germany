@@ -2,6 +2,7 @@ import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-
 import {
   getAuth,
   browserLocalPersistence,
+  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -79,6 +80,22 @@ if (configured) {
       await completeSignIn();
     } catch (error) {
       status.textContent = `Access failed: ${error.message}`;
+    }
+  });
+  document.querySelector('#create-account').addEventListener('click', async () => {
+    const email = document.querySelector('#admin-email').value.trim();
+    const password = document.querySelector('#admin-password').value;
+    if (!email || !password) {
+      status.textContent = 'Enter your email and a new password first.';
+      return;
+    }
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      document.querySelector('#admin-password').value = '';
+      await completeSignIn();
+      status.textContent = 'Account created and signed in. Founder access is granted only to the configured founder email.';
+    } catch (error) {
+      status.textContent = `Account creation failed: ${error.message}`;
     }
   });
   document.querySelector('#password-reset').addEventListener('click', async () => {
