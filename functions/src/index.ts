@@ -462,6 +462,53 @@ function parseAiJson<T>(value: string): T {
   }
 }
 
+type LifeAssistantAnswer = {
+  shortAnswer: string;
+  explanation: string;
+  documents: string[];
+  steps: string[];
+  timing: string;
+  sourceKeys: Array<keyof typeof officialLifeSources>;
+  commonMistakes: string[];
+  nextGuides: string[];
+  disclaimer: string;
+};
+
+function asTextList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+/** Do not turn a provider formatting fault into a blank screen for the user. */
+function parseLifeAssistantAnswer(value: string): LifeAssistantAnswer {
+  try {
+    const parsed = parseAiJson<Partial<LifeAssistantAnswer>>(value);
+    return {
+      shortAnswer: typeof parsed.shortAnswer === "string" ? parsed.shortAnswer : "Praktičan vodič za vaš slučaj",
+      explanation: typeof parsed.explanation === "string" ? parsed.explanation : value,
+      documents: asTextList(parsed.documents),
+      steps: asTextList(parsed.steps),
+      timing: typeof parsed.timing === "string" ? parsed.timing : "Trajanje zavisi od nadležne institucije i potpunosti dokumentacije.",
+      sourceKeys: asTextList(parsed.sourceKeys).filter((key): key is keyof typeof officialLifeSources => key in officialLifeSources),
+      commonMistakes: asTextList(parsed.commonMistakes),
+      nextGuides: asTextList(parsed.nextGuides).filter((key) => lifeGuideKeys.includes(key as typeof lifeGuideKeys[number])),
+      disclaimer: typeof parsed.disclaimer === "string" ? parsed.disclaimer : "Ovo su opšte informacije; važne odluke potvrdite kod nadležne institucije ili kvalifikovanog savetnika.",
+    };
+  } catch {
+    const readable = value
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+    return {
+      shortAnswer: "Praktičan vodič za vaš slučaj",
+      explanation: readable || "AI trenutno nije poslao čitljiv odgovor. Pokušajte ponovo za trenutak.",
+      documents: [], steps: [],
+      timing: "Trajanje zavisi od nadležne institucije i potpunosti dokumentacije.",
+      sourceKeys: [], commonMistakes: [], nextGuides: [],
+      disclaimer: "Ovo su opšte informacije; važne odluke potvrdite kod nadležne institucije ili kvalifikovanog savetnika.",
+    };
+  }
+}
+
 const replyDraftInstructions = `Role: You are a senior German legal-correspondence drafting specialist. Write with the precision, structure, restraint, and professional tone expected from an experienced German lawyer or Rechtsanwaltsfachangestellte, but never state or imply that you are a lawyer and never add a law-firm identity.
 
 Goal: Produce two complete German drafts that the user can review, personalize, and send: (1) a detailed formal letter and (2) a substantive formal email. These are not summaries.
@@ -1041,9 +1088,7 @@ Official-source catalog: ${JSON.stringify(officialLifeSources)}. Return sourceKe
       await reconcileAiBudget(reservation, response.usage);
       const output = response.output_text;
       if (!output) throw new HttpsError("internal", "AI asistent nije vratio odgovor.");
-      const answer = parseAiJson<{
-        sourceKeys: Array<keyof typeof officialLifeSources>;
-      }>(output);
+      const answer = parseLifeAssistantAnswer(output);
       const sources = answer.sourceKeys
         .filter((key) => key in officialLifeSources)
         .map((key) => ({key, ...officialLifeSources[key]}));
