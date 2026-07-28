@@ -83,7 +83,7 @@
         th:'ไทย',tr:'Türkçe',uk:'Українська',ur:'اردو',uz:'O‘zbekcha',vi:'Tiếng Việt'
       };
       const copy = {
-        sr:{title:'Razumi nemačko pismo.',intro:'Fotografiši službeno pismo i dobij detaljno objašnjenje na svom jeziku.',cardTitle:'Jedna aplikacija, uvek najnovija',cardBody:'Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost.',open:'Otvori BriefAI',android:'Android aplikacija',ios:'iPhone i iPad',note:'Store link može biti nedostupan dok Google ili Apple ne završe pregled.',platform:'Salvesca platforma',privacy:'Privatnost',terms:'Uslovi korišćenja',support:'Podrška',launch:'Pokretanje aplikacije',language:'Izaberite jezik',pageTitle:'BriefAI Germany — Razumi nemačko pismo'},
+        sr:{title:'Razumi nemačko službeno pismo.',intro:'Fotografiši službeno pismo i dobij detaljno objašnjenje na svom jeziku.',cardTitle:'Jedna aplikacija, uvek najnovija',cardBody:'Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost.',open:'Otvori BriefAI',android:'Android aplikacija',ios:'iPhone i iPad',note:'Store link može biti nedostupan dok Google ili Apple ne završe pregled.',platform:'Salvesca platforma',privacy:'Privatnost',terms:'Uslovi korišćenja',support:'Podrška',launch:'Pokretanje aplikacije',language:'Izaberite jezik',pageTitle:'BriefAI Germany — Razumi nemačko službeno pismo'},
         en:{title:'Understand your German letter.',intro:'Photograph an official letter and receive a detailed explanation in your language.',cardTitle:'One app, always up to date',cardBody:'Documents and the archive stay on your device. BriefAI extracts the sender, recipient, amount, deadline and urgency.',open:'Open BriefAI',android:'Android app',ios:'iPhone and iPad',note:'The store link may be unavailable until Google or Apple completes its review.',platform:'Salvesca platform',privacy:'Privacy',terms:'Terms and conditions',support:'Support',launch:'Launch the application',language:'Choose language',pageTitle:'BriefAI Germany — Understand your German letter'},
         de:{title:'Deutschen Brief verstehen.',intro:'Fotografieren Sie ein amtliches Schreiben und erhalten Sie eine verständliche Erklärung.',cardTitle:'Eine App, immer aktuell',cardBody:'Dokumente und Archiv bleiben auf Ihrem Gerät. BriefAI erkennt Absender, Empfänger, Betrag, Frist und Dringlichkeit.',open:'BriefAI öffnen',android:'Android-App',ios:'iPhone und iPad',note:'Der Store-Link kann bis zum Abschluss der Prüfung vorübergehend nicht verfügbar sein.',platform:'Salvesca-Plattform',privacy:'Datenschutz',terms:'Nutzungsbedingungen',support:'Support',launch:'App starten',language:'Sprache wählen',pageTitle:'BriefAI Germany — Deutschen Brief verstehen'},
         hr:{title:'Razumijte njemačko pismo.',intro:'Fotografirajte službeno pismo i primite detaljno objašnjenje na svom jeziku.',cardTitle:'Jedna aplikacija, uvijek ažurna',cardBody:'Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljatelja, primatelja, iznos, rok i hitnost.',open:'Otvori BriefAI',android:'Android aplikacija',ios:'iPhone i iPad',note:'Poveznica za trgovinu može biti nedostupna dok Google ili Apple ne dovrše pregled.',platform:'Salvesca platforma',privacy:'Privatnost',terms:'Uvjeti korištenja',support:'Podrška',launch:'Pokretanje aplikacije',language:'Odaberite jezik',pageTitle:'BriefAI Germany — Razumijte njemačko pismo'},
@@ -134,6 +134,17 @@
         if (!window.google || !google.translate) return;
         new google.translate.TranslateElement({ pageLanguage:'sr', autoDisplay:false }, 'google_translate_element');
       };
+      // The translation service injects a browser-style toolbar. The language
+      // control above remains the only visible control in the product UI.
+      function hideTranslationChrome() {
+        document.querySelectorAll('iframe.goog-te-banner-frame, .goog-te-banner-frame, .goog-te-balloon-frame').forEach(node => {
+          node.style.setProperty('display', 'none', 'important');
+          node.style.setProperty('visibility', 'hidden', 'important');
+        });
+        document.documentElement.style.setProperty('margin-top', '0px', 'important');
+        document.body.style.setProperty('top', '0px', 'important');
+      }
+      setInterval(hideTranslationChrome, 300);
       // A language explicitly included in a shared link must override an
       // earlier choice saved in this browser.
       selector.value = languages[queryLanguage]
