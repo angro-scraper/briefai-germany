@@ -7,43 +7,65 @@
     <meta name="description" content="BriefAI Germany prepoznaje nemačka pisma, objašnjava ih na vašem jeziku i čuva rokove." />
     <title>BriefAI Germany — Razumi nemačko pismo</title>
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-      body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: radial-gradient(circle at 20% 0%, #1e5bd8 0, transparent 38%), #071126; color: #f8fbff; }
-      main { width: min(760px, calc(100% - 40px)); padding: 52px 0; }
-      .badge { display: inline-block; color: #9fc4ff; letter-spacing: .12em; font-size: .75rem; font-weight: 700; text-transform: uppercase; }
-      h1 { font-size: clamp(2.5rem, 9vw, 4.8rem); letter-spacing: -.06em; margin: 14px 0; line-height: .98; }
-      p { color: #c9d6ec; max-width: 57ch; line-height: 1.6; font-size: 1.05rem; }
-      .card { margin-top: 34px; padding: 28px; background: #0e2148cc; border: 1px solid #3765ab; border-radius: 22px; box-shadow: 0 22px 80px #0007; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
-      a.button { display: inline-block; padding: 15px 20px; border-radius: 12px; background: #ffffff; color: #08204b; font-weight: 800; text-decoration: none; }
-      a.secondary { background: transparent; color: #dceaff; border: 1px solid #668bc8; }
-      small { display: block; margin-top: 18px; color: #9bb0d2; line-height: 1.5; }
-      footer { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 16px; }
-      footer a { color: #bcd4ff; }
-      .language { float: right; padding: 10px 12px; border-radius: 10px; color: #fff; background: #102a59; border: 1px solid #668bc8; }
+      :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #17223f; background: #f6f8fc; }
+      * { box-sizing: border-box; } body { margin: 0; background: #f6f8fc; color: #17223f; } a { color: inherit; }
+      main { max-width: 1180px; margin: auto; padding: 22px 28px 44px; }
+      .site-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding: 8px 0 36px; }
+      .brand { text-decoration:none; display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.03em; font-size:1.12rem; }
+      .brand-mark { width:34px; height:34px; display:grid; place-items:center; border-radius:11px; background:#172b62; color:white; box-shadow:0 8px 22px #1a39702a; }
+      .brand small { display:block; font-size:.67rem; letter-spacing:.08em; color:#63708c; text-transform:uppercase; margin:0; }
+      .nav-tools { display:flex; align-items:center; gap:10px; } .language { padding:10px 12px; border-radius:10px; color:#263653; background:white; border:1px solid #dbe1ed; font:inherit; }
+      .nav-link { color:#475675; font-size:.92rem; font-weight:700; text-decoration:none; } .nav-link:hover { color:#234bd4; }
+      .hero { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(350px,.92fr); gap:64px; align-items:center; padding:58px 0 62px; }
+      .eyebrow { display:inline-flex; align-items:center; gap:8px; color:#315bca; background:#e8eeff; padding:8px 11px; border-radius:999px; letter-spacing:.08em; font-weight:800; font-size:.72rem; text-transform:uppercase; }
+      .eyebrow::before { content:''; width:7px; height:7px; background:#5278ff; border-radius:50%; box-shadow:0 0 0 4px #cfd9ff; }
+      h1 { max-width:750px; font-size:clamp(3rem,6vw,5.6rem); letter-spacing:-.07em; line-height:.93; margin:18px 0; }
+      .lead { max-width:58ch; color:#52617d; line-height:1.65; font-size:1.12rem; margin:0 0 26px; }
+      .actions { display:flex; flex-wrap:wrap; gap:12px; } a.button { display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:14px 18px; border-radius:11px; background:#173b9b; color:#fff; font-weight:800; text-decoration:none; box-shadow:0 10px 22px #173b9b30; } a.button:hover { background:#102e7b; } a.secondary { color:#263653; background:white; border:1px solid #dbe1ed; box-shadow:none; }
+      .microcopy { margin-top:15px; color:#75819a; font-size:.84rem; }
+      .preview-shell { position:relative; min-height:500px; border-radius:28px; background:linear-gradient(145deg,#10275d,#182d63 54%,#3157bb); padding:22px; box-shadow:0 28px 70px #13275a32; overflow:hidden; }
+      .preview-shell::after { content:''; position:absolute; width:310px; height:310px; border:1px solid #9eb4ff55; border-radius:50%; right:-130px; top:-130px; }
+      .preview-top { display:flex; align-items:center; justify-content:space-between; color:#dbe6ff; font-size:.78rem; position:relative; z-index:1; } .preview-top b { color:white; font-size:.92rem; }
+      .letter-card { position:relative; z-index:1; margin:28px 10px 0; background:#fff; border-radius:17px; padding:23px; box-shadow:0 18px 30px #06183b50; }
+      .letter-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:19px; } .letter-logo { font-weight:800; color:#1e3770; font-size:.86rem; } .letter-date { color:#8a95a9; font-size:.73rem; }
+      .letter-line { height:8px; border-radius:999px; background:#e5e9f1; margin:9px 0; } .letter-line.dark { background:#71819f; width:48%; } .letter-line.wide { width:92%; } .letter-line.mid { width:76%; }
+      .analysis-card { position:absolute; z-index:2; left:0; right:0; bottom:0; margin:0 28px 25px; padding:17px 18px; border-radius:15px; background:#f7faff; border:1px solid #d7e2ff; box-shadow:0 12px 28px #06183b3b; }
+      .analysis-label { color:#315bca; font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; } .analysis-title { margin:5px 0 8px; font-weight:800; font-size:.94rem; } .analysis-tags { display:flex; gap:8px; flex-wrap:wrap; } .tag { color:#24545a; background:#e1f5f3; padding:5px 8px; border-radius:999px; font-size:.7rem; font-weight:700; } .tag.urgent { color:#a3451b; background:#ffeddc; }
+      .proof { border-top:1px solid #e0e5ef; border-bottom:1px solid #e0e5ef; display:grid; grid-template-columns:repeat(3,1fr); padding:24px 0; gap:20px; } .proof div { padding:0 20px; border-left:1px solid #e0e5ef; } .proof div:first-child { border-left:0; } .proof strong { display:block; font-size:1rem; } .proof span { display:block; margin-top:5px; color:#68758e; font-size:.86rem; line-height:1.45; }
+      .section { padding:82px 0; } .section-kicker { color:#315bca; letter-spacing:.1em; text-transform:uppercase; font-weight:800; font-size:.72rem; } h2 { max-width:690px; margin:10px 0 12px; letter-spacing:-.045em; font-size:clamp(2rem,4vw,3.25rem); line-height:1.02; } .section-copy { color:#62708a; max-width:62ch; line-height:1.65; }
+      .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:34px; } .step { background:#fff; border:1px solid #e3e7ef; border-radius:18px; padding:24px; min-height:220px; } .step-number { color:#315bca; font-weight:800; font-size:.78rem; letter-spacing:.08em; } .step h3 { font-size:1.12rem; margin:42px 0 9px; } .step p { margin:0; color:#65738d; line-height:1.55; font-size:.93rem; }
+      .privacy-band { background:#172b62; color:#fff; padding:46px; border-radius:24px; display:grid; grid-template-columns:1.1fr .9fr; gap:42px; align-items:center; } .privacy-band h2 { margin:8px 0 12px; } .privacy-band p { color:#c7d6ff; line-height:1.65; } .privacy-list { display:grid; gap:13px; } .privacy-list div { padding:13px 15px; border:1px solid #ffffff25; border-radius:12px; color:#e8efff; font-size:.92rem; }
+      .download { padding:58px 0 22px; text-align:center; } .download h2 { margin:0 auto 13px; } .download p { color:#65738d; margin:0 auto 24px; max-width:57ch; } .download .actions { justify-content:center; } small { display:block; margin-top:17px; color:#7b879d; line-height:1.5; }
+      footer { margin-top:34px; border-top:1px solid #e0e5ef; padding:25px 0 0; display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; color:#6d7890; font-size:.88rem; } .footer-links { display:flex; flex-wrap:wrap; gap:17px; } footer a { color:#52617d; text-decoration:none; } footer a:hover { color:#234bd4; }
+      @media (max-width:800px) { main { padding:18px 18px 32px; } .site-header { padding-bottom:24px; } .nav-link { display:none; } .hero { grid-template-columns:1fr; gap:32px; padding:35px 0 48px; } .preview-shell { min-height:430px; max-width:540px; } .proof { grid-template-columns:1fr; gap:16px; } .proof div { padding:0; border-left:0; } .steps { grid-template-columns:1fr; } .step h3 { margin-top:25px; } .privacy-band { grid-template-columns:1fr; padding:30px; gap:22px; } .section { padding:58px 0; } }
     </style>
   </head>
   <body>
     <main>
-      <select class="language" id="language" aria-label="Language"></select>
-      <span class="badge">BriefAI Germany</span>
-      <h1 data-i18n="title">Razumi nemačko pismo.</h1>
-      <p data-i18n="intro">Fotografiši službeno pismo, dobij detaljno objašnjenje na svom jeziku, proveri ko šalje račun i ne propusti rok za odgovor ili plaćanje.</p>
-      <section class="card" id="launch-card" aria-label="Pokretanje aplikacije">
-        <h2 data-i18n="cardTitle">Jedna aplikacija, uvek najnovija</h2>
-        <p data-i18n="cardBody">Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost, a zatim zakazuje podsetnike 7, 3 i 1 dan ranije.</p>
-        <div class="actions">
-          <a class="button" id="open-app" href="/app/" data-i18n="open">Otvori BriefAI</a>
-          <a class="button secondary" href="https://play.google.com/store/apps/details?id=com.briefai.briefai_germany" data-i18n="android">Android</a>
-          <a class="button secondary" href="https://apps.apple.com/app/id6794959959" data-i18n="ios">iPhone i iPad</a>
+      <header class="site-header">
+        <a class="brand" href="/" aria-label="BriefAI Germany"><span class="brand-mark">✦</span><span>BriefAI Germany<small>Salvesca platform</small></span></a>
+        <div class="nav-tools"><a class="nav-link" href="#how">Kako radi</a><a class="nav-link" href="#privacy">Privatnost</a><select class="language" id="language" aria-label="Language"></select></div>
+      </header>
+      <section class="hero">
+        <div>
+          <span class="eyebrow">German letter intelligence</span>
+          <h1 data-i18n="title">Razumi nemačko pismo.</h1>
+          <p class="lead" data-i18n="intro">Fotografiši službeno pismo, dobij detaljno objašnjenje na svom jeziku, proveri ko šalje račun i ne propusti rok za odgovor ili plaćanje.</p>
+          <div class="actions"><a class="button" id="open-app" href="/app/" data-i18n="open">Otvori BriefAI</a><a class="button secondary" href="#download">Preuzmi aplikaciju</a></div>
+          <p class="microcopy">Bez slanja originalnih fotografija ili PDF dokumenata u cloud arhivu.</p>
         </div>
-        <small data-i18n="note">Store link može privremeno prikazati da aplikacija nije dostupna dok Google ili Apple ne završe pregled aktuelne verzije.</small>
+        <div class="preview-shell" aria-label="Primer BriefAI analize">
+          <div class="preview-top"><b>BriefAI</b><span>Analiza pisma</span></div>
+          <div class="letter-card"><div class="letter-head"><span class="letter-logo">FAMILIENKASSE</span><span class="letter-date">08.09.2026</span></div><div class="letter-line dark"></div><div class="letter-line wide"></div><div class="letter-line"></div><div class="letter-line mid"></div><div class="letter-line wide"></div><div class="letter-line"></div></div>
+          <div class="analysis-card"><span class="analysis-label">AI sažetak</span><div class="analysis-title">Zahtev za dostavljanje dokumenata</div><div class="analysis-tags"><span class="tag urgent">Rok: 18.09.</span><span class="tag">Familienkasse</span></div></div>
+        </div>
       </section>
+      <section class="proof"><div><strong>Jasno objašnjenje</strong><span>Na jeziku koji korisnik izabere.</span></div><div><strong>Rokovi i iznosi</strong><span>Važni podaci izdvojeni za sledeći korak.</span></div><div><strong>Lokalna arhiva</strong><span>Originalna pisma ostaju na uređaju.</span></div></section>
+      <section class="section" id="how"><span class="section-kicker">Od fotografije do odgovora</span><h2>Nema više pogađanja šta nemačko pismo zapravo traži.</h2><p class="section-copy">BriefAI spaja OCR, strukturisanu AI analizu i praktične sledeće korake — da bi korisnik znao šta je hitno, šta treba pripremiti i kako da odgovori.</p><div class="steps"><article class="step"><span class="step-number">01 — UČITAJ</span><h3>Fotografiši ili učitaj PDF</h3><p>Prepoznaj tekst iz službenog pisma, računa, opomene ili odluke.</p></article><article class="step"><span class="step-number">02 — RAZUMI</span><h3>Dobij konkretan sažetak</h3><p>Pošiljalac, primalac, iznos, rok, hitnost i jasna lista narednih koraka.</p></article><article class="step"><span class="step-number">03 — REAGUJ</span><h3>Odgovori na nemačkom</h3><p>Generiši formalni nacrt odgovora i postavi podsetnike pre roka.</p></article></div></section>
+      <section class="privacy-band" id="privacy"><div><span class="section-kicker" style="color:#aac1ff">PRIVATNOST PO DIZAJNU</span><h2>Vaša pisma nisu naša baza podataka.</h2><p>Originalni dokumenti, OCR sadržaj, analiza i arhiva čuvaju se lokalno na korisnikovom uređaju. Za AI analizu se, uz saglasnost, šalje samo neophodan tekst za aktuelni zahtev.</p></div><div class="privacy-list"><div>✓ Originalne fotografije i PDF ostaju lokalno</div><div>✓ Arhiva se ne deli sa admin panelom</div><div>✓ Korisnik kontroliše brisanje i izvoz podataka</div></div></section>
+      <section class="download" id="download"><span class="section-kicker">BriefAI Germany</span><h2 data-i18n="cardTitle">Jedna aplikacija, uvek najnovija</h2><p data-i18n="cardBody">Dokumenti i arhiva ostaju lokalno na uređaju. BriefAI izdvaja pošiljaoca, primaoca, iznos, rok i hitnost.</p><div class="actions"><a class="button" href="https://play.google.com/store/apps/details?id=com.briefai.briefai_germany" data-i18n="android">Android aplikacija</a><a class="button secondary" href="https://apps.apple.com/app/id6794959959" data-i18n="ios">iPhone i iPad</a></div><small data-i18n="note">Store link može biti nedostupan dok Google ili Apple ne završe pregled.</small></section>
       <footer>
-        <a id="platform-link" href="https://salvesca.com" data-i18n="platform">Salvesca platforma</a>
-        <a id="privacy-link" href="/privacy.html" data-i18n="privacy">Privatnost</a>
-        <a id="terms-link" href="/terms.html" data-i18n="terms">Uslovi korišćenja</a>
-        <a id="support-link" href="/support.html" data-i18n="support">Podrška</a>
+        <span>© 2026 BriefAI Germany</span><div class="footer-links"><a id="platform-link" href="https://salvesca.com" data-i18n="platform">Salvesca platforma</a><a id="privacy-link" href="/privacy.html" data-i18n="privacy">Privatnost</a><a id="terms-link" href="/terms.html" data-i18n="terms">Uslovi korišćenja</a><a id="support-link" href="/support.html" data-i18n="support">Podrška</a></div>
       </footer>
     </main>
     <script>
@@ -90,7 +112,7 @@
           element.textContent = values[element.dataset.i18n] || copy.en[element.dataset.i18n];
         });
         selector.setAttribute('aria-label', values.language);
-        document.getElementById('launch-card').setAttribute('aria-label', values.launch);
+        document.getElementById('download').setAttribute('aria-label', values.launch);
         document.getElementById('open-app').href = `/app/?lang=${encodeURIComponent(code)}`;
         ['privacy-link','terms-link','support-link'].forEach(id => {
           const link = document.getElementById(id);
