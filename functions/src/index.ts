@@ -1010,18 +1010,21 @@ export const askLifeInGermanyAssistant = onCall(
       : "No earlier conversation is available.";
     const reservation = await reserveAiBudget(
       uid,
-      estimateTokens(question + recentContext) + 1700,
-      2100,
+      estimateTokens(question + recentContext) + 2500,
+      3000,
       founder,
     );
     let providerResponded = false;
     try {
       const response = await new OpenAI({apiKey: openAiApiKey.value()}).responses.create({
         model: activeAiModel(),
-        reasoning: {effort: "low"},
+        // This is a formatting-heavy guidance task.  Reserving output for
+        // hidden reasoning caused long valid guides to be truncated before
+        // their closing JSON brace.
+        reasoning: {effort: "none"},
         // A complete structured guide has nine fields.  The previous limit
         // could cut the JSON off mid-response for longer questions.
-        max_output_tokens: 2200,
+        max_output_tokens: 3200,
         store: false,
         safety_identifier: safetyIdentifier(uid),
         instructions: `You are "Asistent za život u Nemačkoj", a careful general-information guide for people from the Balkans living in Germany. Answer in the requested BCP-47 language code "${language}" using clear everyday language.
