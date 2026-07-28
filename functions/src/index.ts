@@ -1198,16 +1198,30 @@ export const generateLifeInGermanyEmail = onCall(
     const facts = requireString(request.data?.facts, "facts", 2400);
     const language = requireString(request.data?.language ?? "sr", "language", 16);
     const city = typeof request.data?.city === "string" ? request.data.city.trim().slice(0, 120) : "";
-    const reservation = await reserveAiBudget(uid, estimateTokens(purpose + facts) + 600, 800, founder);
+    const reservation = await reserveAiBudget(uid, estimateTokens(purpose + facts) + 850, 1250, founder);
     let providerResponded = false;
     try {
       const response = await new OpenAI({apiKey: openAiApiKey.value()}).responses.create({
         model: activeAiModel(),
         reasoning: {effort: "none"},
-        max_output_tokens: 1300,
+        max_output_tokens: 1600,
         store: false,
         safety_identifier: safetyIdentifier(uid),
-        instructions: `Draft a complete, professional German administrative email based only on the user's stated facts. Use a clear Betreff, formal greeting, concise context, the specific request, a courteous closing and square-bracket placeholders for all missing personal details. When relevant, include a short list of stated or requested attachments, but never invent attachments, names, file numbers, dates, claims or rights. The email may request an appointment, documents, a status update, contact with a landlord or insurer, or another ordinary administrative communication. Never make a legal claim, threaten, or admit facts not supplied. If a city is given, phrase the message for the competent office in that city without inventing its address. Also provide an accurate explanation/translation in the requested BCP-47 language "${language}". State that the user must review all facts before sending and that this is not legal advice. Return only JSON.`,
+        instructions: `You draft professional German administrative correspondence. Produce a complete, polished German email that a user can send after reviewing the bracketed placeholders. This is not a short template or chat answer.
+
+Use only the user's stated facts. Never invent names, file numbers, dates, attachments, laws, claims, payments, deadlines, rights, addresses, telephone numbers or prior communication. Where a necessary fact is missing, insert a short precise square-bracket placeholder in German, for example "[Aktenzeichen ergänzen]" or "[vollständigen Namen ergänzen]".
+
+German email requirements:
+- Return a specific, factual Betreff without the word "Betreff:".
+- Start the email with a formal German salutation. Use "Sehr geehrte Damen und Herren," unless a recipient name is supplied.
+- Write 3-6 concise, logically ordered paragraphs: identify the matter; give the supplied context; state the exact request or question; list only supported documents/attachments where useful; and ask for a concrete next action or written confirmation when appropriate.
+- Use calm, respectful, confident German administrative style. It should read like careful correspondence prepared by an experienced office professional, not like a generic AI note.
+- Use around 180-380 German words when the supplied facts support that length. Do not pad it; a simple appointment request may be shorter.
+- End with "Mit freundlichen Grüßen" and a sender placeholder when the sender is not supplied.
+- If the user supplied an actual deadline, mention it accurately. Otherwise do not create one.
+- Do not make legal threats, admissions, guarantees, or legal conclusions.
+
+If a city is given, refer to the competent office in that city only generically; never invent an office address or local rule. Provide an accurate, concise explanation of what the German email says in requested BCP-47 language "${language}". The disclaimer must say the user must verify facts and placeholders before sending and that this is general information, not legal advice. Return only JSON.`,
         input: `City / municipality: ${city || "Not provided"}\n\nPurpose: ${purpose}\n\nUser facts: ${facts}`,
         text: {verbosity: "medium", format: {type: "json_schema", name: "life_email", strict: true, schema: lifeEmailSchema}},
       });
