@@ -770,14 +770,16 @@ export const generateReply = onCall(
     requireString(request.data?.letterId, "letterId", 128);
     const sourceText = requireString(request.data?.sourceText, "sourceText", 20000);
     const facts = requireString(request.data?.facts, "facts", 10000);
-    const language = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
     if (!await hasAiFeatureAccess(uid, accessOverride)) {
       throw new HttpsError(
         "permission-denied",
         "Analizirajte prvo probno pismo ili aktivirajte Premium.",
       );
     }
-    const input = `Source letter text:\n${sourceText}\n\nUser-supplied facts:\n${facts}\n\nPreferred explanation language: ${language}`;
+    // Reply drafts are correspondence sent to German institutions. They must
+    // always be written in German; the user's chosen language is used only for
+    // the app UI, analysis explanation, reminders, and assistant conversation.
+    const input = `Source letter text:\n${sourceText}\n\nUser-supplied facts:\n${facts}`;
     const maxOutputTokens = 2800;
     const reservation = await reserveAiBudget(
       uid,

@@ -698,7 +698,6 @@ class AiService {
     required String letterId,
     required String sourceText,
     required String facts,
-    required String language,
   }) async {
     if (!kCloudAiEnabled ||
         !cloudEnabled ||
@@ -712,7 +711,6 @@ class AiService {
             'letterId': letterId,
             'sourceText': sourceText,
             'facts': facts,
-            'preferredLanguage': language,
           });
       final reply = result.data['reply'];
       if (reply is! Map) {

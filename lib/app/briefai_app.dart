@@ -1239,12 +1239,10 @@ class ResponseScreen extends StatefulWidget {
 
 class _ResponseScreenState extends State<ResponseScreen> {
   late final Future<GeneratedReply> _response = () async {
-    final language = widget.state.localeCode;
     return widget.services.ai.generateReply(
       letterId: widget.letter.id,
       sourceText: widget.letter.sourceText,
       facts: 'No additional user-supplied facts.',
-      language: language,
     );
   }();
   bool _emailVersion = false;
