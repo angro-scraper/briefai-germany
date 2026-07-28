@@ -21,7 +21,8 @@ val signingProperties = Properties().apply {
 
 android {
     namespace = "com.briefai.briefai_germany"
-    compileSdk = flutter.compileSdkVersion
+    // Google Play requires Android 16 / API 36 for new updates from Aug 2026.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -37,7 +38,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // Firebase, ML Kit and modern encrypted storage require Android 23+.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
