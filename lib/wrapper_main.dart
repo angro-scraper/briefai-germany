@@ -21,8 +21,18 @@ import 'package:timezone/timezone.dart' as tz;
 import 'core/app_config.dart';
 import 'firebase_options.dart';
 
-const _appUrl = 'https://briefai.salvesca.com/app/';
-const _appHost = 'briefai.salvesca.com';
+const _appUrl = String.fromEnvironment(
+  'APP_URL',
+  defaultValue: 'https://briefai.salvesca.com/app/',
+);
+const _appHost = String.fromEnvironment(
+  'APP_HOST',
+  defaultValue: 'briefai.salvesca.com',
+);
+const _appTitle = String.fromEnvironment(
+  'APP_TITLE',
+  defaultValue: 'BriefAI Germany',
+);
 const _wrapperImageMaxSide = 2200;
 
 int _nativeNotificationId(String letterId, int days) {
@@ -106,7 +116,7 @@ class BriefAiWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BriefAI Germany',
+      title: _appTitle,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -413,7 +423,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
       if (!target.isAfter(DateTime.now())) continue;
       await _notifications.zonedSchedule(
         id: _nativeNotificationId(letterId, days),
-        title: 'BriefAI Germany',
+        title: _appTitle,
         body: _nativeReminderBody(language, days, isPayment),
         scheduledDate: tz.TZDateTime.from(target, tz.local),
         notificationDetails: details,

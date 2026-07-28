@@ -41,6 +41,21 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLabel"] = "BriefAI Germany"
+    }
+
+    flavorDimensions += "salvescaApp"
+    productFlavors {
+        create("briefai") {
+            dimension = "salvescaApp"
+            applicationId = "com.briefai.briefai_germany"
+            manifestPlaceholders["appLabel"] = "BriefAI Germany"
+        }
+        create("lifeassistant") {
+            dimension = "salvescaApp"
+            applicationId = "com.salvesca.lifeassistant"
+            manifestPlaceholders["appLabel"] = "Asistent za život u Nemačkoj"
+        }
     }
 
     buildTypes {

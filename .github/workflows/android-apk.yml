@@ -29,7 +29,7 @@ jobs:
         with:
           name: BriefAI-Germany-web
           path: build/web
-      - run: flutter build apk --debug --target lib/wrapper_main.dart
+      - run: flutter build apk --debug --flavor briefai --target lib/wrapper_main.dart
       - uses: actions/upload-artifact@v4
         with:
           name: BriefAI-Germany-debug-apk

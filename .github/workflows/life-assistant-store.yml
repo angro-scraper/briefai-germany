@@ -1,0 +1,55 @@
+name: Life Assistant Android Store Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_name:
+        description: Store version, for example 1.0.0
+        required: true
+        default: 1.0.0
+        type: string
+      build_number:
+        description: Increasing Android build number
+        required: true
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  android-app-bundle:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Restore Android signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE" | sed -e 's/^\"//' -e 's/\"$//' -e 's#^data:[^,]*,##' -e 'y#-_#+/#' | base64 --decode --ignore-garbage > android/life-assistant-release.jks
+          keytool -list -keystore android/life-assistant-release.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          printf 'storeFile=../life-assistant-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - name: Build signed Android App Bundle
+        run: >
+          flutter build appbundle --release --flavor lifeassistant --target lib/wrapper_main.dart
+          --build-name=${{ inputs.build_name }} --build-number=${{ inputs.build_number }}
+          --dart-define=APP_URL=https://salvesca.com/asistent/
+          --dart-define=APP_HOST=salvesca.com
+          --dart-define=APP_TITLE=Asistent za život u Nemačkoj
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Life-Assistant-${{ inputs.build_name }}-${{ inputs.build_number }}.aab
+          path: build/app/outputs/bundle/lifeassistantRelease/app-lifeassistant-release.aab
+          if-no-files-found: error
+          retention-days: 14
