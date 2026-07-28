@@ -442,6 +442,26 @@ const lifeEmailSchema = {
   },
 };
 
+/**
+ * Structured Outputs normally returns a JSON object directly.  This small
+ * normalizer also accepts a fenced object, which protects the user-facing
+ * guide from a provider formatting regression without attempting to guess or
+ * repair incomplete content.
+ */
+function parseAiJson<T>(value: string): T {
+  const trimmed = value.trim();
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1];
+    if (fenced) return JSON.parse(fenced) as T;
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(trimmed.slice(start, end + 1)) as T;
+    throw new SyntaxError("Provider response did not contain a complete JSON object.");
+  }
+}
+
 const replyDraftInstructions = `Role: You are a senior German legal-correspondence drafting specialist. Write with the precision, structure, restraint, and professional tone expected from an experienced German lawyer or Rechtsanwaltsfachangestellte, but never state or imply that you are a lawyer and never add a law-firm identity.
 
 Goal: Produce two complete German drafts that the user can review, personalize, and send: (1) a detailed formal letter and (2) a substantive formal email. These are not summaries.
@@ -990,8 +1010,8 @@ export const askLifeInGermanyAssistant = onCall(
       : "No earlier conversation is available.";
     const reservation = await reserveAiBudget(
       uid,
-      estimateTokens(question + recentContext) + 900,
-      1100,
+      estimateTokens(question + recentContext) + 1700,
+      2100,
       founder,
     );
     let providerResponded = false;
@@ -999,7 +1019,9 @@ export const askLifeInGermanyAssistant = onCall(
       const response = await new OpenAI({apiKey: openAiApiKey.value()}).responses.create({
         model: activeAiModel(),
         reasoning: {effort: "low"},
-        max_output_tokens: 1600,
+        // A complete structured guide has nine fields.  The previous limit
+        // could cut the JSON off mid-response for longer questions.
+        max_output_tokens: 2200,
         store: false,
         safety_identifier: safetyIdentifier(uid),
         instructions: `You are "Asistent za život u Nemačkoj", a careful general-information guide for people from the Balkans living in Germany. Answer in the requested BCP-47 language code "${language}" using clear everyday language.
@@ -1016,9 +1038,9 @@ Official-source catalog: ${JSON.stringify(officialLifeSources)}. Return sourceKe
       await reconcileAiBudget(reservation, response.usage);
       const output = response.output_text;
       if (!output) throw new HttpsError("internal", "AI asistent nije vratio odgovor.");
-      const answer = JSON.parse(output) as {
+      const answer = parseAiJson<{
         sourceKeys: Array<keyof typeof officialLifeSources>;
-      };
+      }>(output);
       const sources = answer.sourceKeys
         .filter((key) => key in officialLifeSources)
         .map((key) => ({key, ...officialLifeSources[key]}));
@@ -1063,7 +1085,7 @@ export const generateLifeInGermanyEmail = onCall(
       await reconcileAiBudget(reservation, response.usage);
       const output = response.output_text;
       if (!output) throw new HttpsError("internal", "Generator e-maila nije vratio odgovor.");
-      return {email: JSON.parse(output)};
+      return {email: parseAiJson(output)};
     } catch (error) {
       if (!providerResponded) await reconcileAiBudget(reservation);
       if (error instanceof SyntaxError) throw new HttpsError("internal", "E-mail nije validan format.");
