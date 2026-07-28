@@ -544,6 +544,46 @@ function immediateLifeGuide(question: string): LifeAssistantAnswer | undefined {
     steps: ["Pronađite zvanični obrazac i nadležnu Familienkasse.", "Pripremite tražene podatke bez nagađanja.", "Predajte zahtev zvaničnim kanalom.", "Sačuvajte kopiju i dokaz predaje.", "Odmah odgovorite ako se traži dopuna."],
     sourceKeys: ["kindergeld"], nextGuides: ["anmeldung", "health_insurance"],
   };
+  if (/ummeldung|promen[aiu] adres|nova adresa|selidb/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Nakon selidbe obično treba da prijavite novu adresu u nadležnom Bürgeramt-u i ažurirate važne ugovore.",
+    explanation: "Ummeldung je promena već prijavljene adrese. Nadležni Bürgeramt i rok zavise od nove opštine, zato lokalnu stranicu proverite pre rezervacije termina.",
+    documents: ["Pasoš ili lična karta", "Nova Wohnungsgeberbestätigung", "Postojeća Meldebescheinigung — ako je lokalno traže"],
+    steps: ["Pronađite Bürgeramt nadležan za novu adresu.", "Proverite lokalni rok i rezervišite termin.", "Ponesite potvrdu novog stanodavca u originalu ako se to traži.", "Sačuvajte novu Meldebescheinigung.", "Ažurirajte adresu kod banke, osiguranja, poslodavca i drugih institucija."],
+    sourceKeys: ["anmeldung"], nextGuides: ["health_insurance", "residence_extension"],
+  };
+  if (/elterngeld|roditeljsk[io] dodatak|roditeljsk[io] odsustv/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Elterngeld se podnosi nadležnom Elterngeldstelle-u, a iznos i trajanje zavise od prihoda i izabranog modela.",
+    explanation: "Za Elterngeld su bitni period pre rođenja deteta, raspodela roditeljskog odsustva i potpuni dokazi o prihodima. Pravila i obrazac proveravaju se kod nadležnog tela vaše pokrajine.",
+    documents: ["Izvod rođenih namenjen za Elterngeld", "Dokazi o prihodima pre rođenja", "Podaci o roditeljskom odsustvu", "IBAN i identifikacioni podaci"],
+    steps: ["Pronađite nadležni Elterngeldstelle prema mestu stanovanja.", "Proverite koji model Elterngeld-a odgovara vašoj porodici.", "Prikupite tražene dokaze o prihodima i rođenju.", "Predajte zahtev što pre nakon rođenja.", "Sačuvajte potvrdu predaje i odmah odgovorite na dopune."],
+    sourceKeys: ["elterngeld"], nextGuides: ["kindergeld", "health_insurance", "anmeldung"],
+  };
+  if (/produžim boravak|produzenje boravka|boravišn[ao] dozvol|aufenthalt.*verlänger|verlänger.*aufenthalt/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Ne čekajte istek dozvole: što pre kontaktirajte nadležnu Ausländerbehörde i proverite listu dokumenata za svoju vrstu boravka.",
+    explanation: "Produženje zavisi od osnova boravka, na primer rada, studija ili porodice. Lokalna Ausländerbehörde određuje postupak, termin i dokumenta.",
+    documents: ["Važeći pasoš i postojeća boravišna dozvola", "Dokaz o adresi", "Dokaz o prihodu, radu ili studijama prema vašem statusu", "Dokaz o zdravstvenom osiguranju", "Dodatna dokumenta sa lokalne liste"],
+    steps: ["Zapišite datum isteka dozvole odmah.", "Proverite nadležnu Ausländerbehörde i njen način zakazivanja.", "Preuzmite lokalnu listu dokumenata za vašu vrstu dozvole.", "Predajte kompletan zahtev pre isteka i sačuvajte dokaz predaje.", "Ako nedostaje termin, tražite pisanu potvrdu da ste se javili na vreme."],
+    sourceKeys: ["residence"], nextGuides: ["anmeldung", "health_insurance", "family_reunification"],
+  };
+  if (/vozačk|vozačk[aie] dozvol|führerschein|fuehrerschein/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Zamena vozačke dozvole zavisi od države koja ju je izdala; prvo proverite Führerscheinstelle u mestu prebivališta.",
+    explanation: "Rok, potreban prevod i eventualni teorijski ili praktični ispit nisu isti za svaku državu izdavanja. Ne oslanjajte se na neformalne savete — tražite lokalnu zvaničnu listu.",
+    documents: ["Originalna vozačka dozvola", "Pasoš ili lična karta", "Biometrijska fotografija", "Prevod ili dokaz o izdavanju ako ga lokalna služba traži"],
+    steps: ["Obratite se Führerscheinstelle prema mestu prebivališta.", "Navedite državu i datum izdavanja dozvole.", "Tražite pisanu listu dokumenata i proveru eventualnog ispita.", "Predajte zahtev i sačuvajte potvrdu.", "Proverite rok do kog smete da vozite sa stranom dozvolom."],
+    sourceKeys: ["driving"], nextGuides: ["anmeldung"],
+  };
+  if (/zdravstven[oa] osiguranj|krankenkasse|health insurance/.test(normalized)) return {
+    ...base,
+    shortAnswer: "Pre izbora ili promene zdravstvenog osiguranja proverite svoj status zaposlenja i da li za vas važi zakonsko ili privatno osiguranje.",
+    explanation: "Vrsta osiguranja zavisi od vaše situacije. Osiguravač i poslodavac mogu tražiti različite dokaze, pa odluku ne donosite samo po ceni.",
+    documents: ["Pasoš ili lična karta", "Adresa u Nemačkoj", "Ugovor o radu ili dokaz o statusu", "Podaci o prethodnom osiguranju ako postoje"],
+    steps: ["Proverite svoj status kod izabranog osiguravača.", "Uporedite uslove i potvrdu o pokriću.", "Pošaljite samo tražene podatke.", "Sačuvajte potvrdu osiguranja.", "Ako menjate osiguranje, proverite datum prelaska pre otkazivanja starog."],
+    sourceKeys: ["health"], nextGuides: ["anmeldung", "residence_extension"],
+  };
   return undefined;
 }
 
