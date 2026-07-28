@@ -1453,6 +1453,7 @@ class AssistantScreen extends StatefulWidget {
 class _AssistantScreenState extends State<AssistantScreen> {
   final _question = TextEditingController();
   final List<_ChatMessage> _messages = [];
+  String? _selectedLetterId;
   bool _sending = false;
 
   @override
@@ -1464,13 +1465,77 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final letters = widget.state.letters;
+    final selectedLetter = letters.where((letter) => letter.id == _selectedLetterId).firstOrNull ??
+        (letters.isEmpty ? null : letters.first);
+    final archiveCopy = _assistantArchiveCopy(widget.state.localeCode);
     final visibleMessages = _messages.isEmpty
-        ? [_ChatMessage(text: strings.text('assistantHello'), fromUser: false)]
+        ? [
+            _ChatMessage(
+              text: selectedLetter == null
+                  ? strings.text('assistantHello')
+                  : '${archiveCopy.ready}\n${selectedLetter.title}',
+              fromUser: false,
+            ),
+          ]
         : _messages;
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('assistantTitle'))),
       body: Column(
         children: [
+          if (letters.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    archiveCopy.label,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedLetter?.id,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: letters
+                        .map(
+                          (letter) => DropdownMenuItem(
+                            value: letter.id,
+                            child: Text(
+                              '${letter.title} · ${letter.category.label}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _sending
+                        ? null
+                        : (id) => setState(() {
+                              _selectedLetterId = id;
+                              // Questions about one letter must never be used as
+                              // context for another locally archived letter.
+                              _messages.clear();
+                            }),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _sending || selectedLetter == null
+                        ? null
+                        : () {
+                            _question.text = archiveCopy.explainAgain;
+                            _ask();
+                          },
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: Text(archiveCopy.explainButton),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -1533,9 +1598,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
     if (!await _ensureCloudAiAccess(context, widget.services) || !mounted) {
       return;
     }
-    final letter = widget.state.letters.isEmpty
-        ? null
-        : widget.state.letters.first;
+    final letter = widget.state.letters
+            .where((candidate) => candidate.id == _selectedLetterId)
+            .firstOrNull ??
+        (widget.state.letters.isEmpty ? null : widget.state.letters.first);
     final conversation = _messages
         .take(8)
         .map(
@@ -1575,6 +1641,81 @@ class _AssistantScreenState extends State<AssistantScreen> {
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+}
+
+class _AssistantArchiveCopy {
+  const _AssistantArchiveCopy({
+    required this.label,
+    required this.ready,
+    required this.explainButton,
+    required this.explainAgain,
+  });
+
+  final String label;
+  final String ready;
+  final String explainButton;
+  final String explainAgain;
+}
+
+_AssistantArchiveCopy _assistantArchiveCopy(String language) {
+  switch (language) {
+    case 'hr':
+      return const _AssistantArchiveCopy(
+        label: 'Pismo iz arhive',
+        ready: 'Odabrano pismo iz lokalne arhive:',
+        explainButton: 'Ponovno objasni ovo pismo',
+        explainAgain: 'Objasni mi ovo pismo ponovno detaljno i jednostavnim jezikom. Što se točno traži od mene i koji je sljedeći korak?',
+      );
+    case 'bs':
+      return const _AssistantArchiveCopy(
+        label: 'Pismo iz arhive',
+        ready: 'Izabrano pismo iz lokalne arhive:',
+        explainButton: 'Ponovo objasni ovo pismo',
+        explainAgain: 'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sljedeći korak?',
+      );
+    case 'mk':
+      return const _AssistantArchiveCopy(
+        label: 'Писмо од архивата',
+        ready: 'Избрано писмо од локалната архива:',
+        explainButton: 'Објасни го писмово повторно',
+        explainAgain: 'Објасни ми го ова писмо повторно детално и со едноставен јазик. Што точно се бара од мене и кој е следниот чекор?',
+      );
+    case 'bg':
+      return const _AssistantArchiveCopy(
+        label: 'Писмо от архива',
+        ready: 'Избрано писмо от локалния архив:',
+        explainButton: 'Обясни отново това писмо',
+        explainAgain: 'Обясни ми това писмо отново подробно и на разбираем език. Какво точно се иска от мен и каква е следващата стъпка?',
+      );
+    case 'de':
+      return const _AssistantArchiveCopy(
+        label: 'Brief aus dem Archiv',
+        ready: 'Ausgewählter Brief aus dem lokalen Archiv:',
+        explainButton: 'Diesen Brief erneut erklären',
+        explainAgain: 'Erkläre mir diesen Brief noch einmal ausführlich und einfach. Was wird genau von mir verlangt und was ist mein nächster Schritt?',
+      );
+    case 'en':
+      return const _AssistantArchiveCopy(
+        label: 'Letter from archive',
+        ready: 'Selected letter from the local archive:',
+        explainButton: 'Explain this letter again',
+        explainAgain: 'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
+      );
+    case 'tr':
+      return const _AssistantArchiveCopy(
+        label: 'Arşivdeki mektup',
+        ready: 'Yerel arşivden seçilen mektup:',
+        explainButton: 'Bu mektubu yeniden açıkla',
+        explainAgain: 'Bu mektubu tekrar ayrıntılı ve sade bir dille açıkla. Benden tam olarak ne isteniyor ve sonraki adımım nedir?',
+      );
+    default:
+      return const _AssistantArchiveCopy(
+        label: 'Pismo iz arhive',
+        ready: 'Izabrano pismo iz lokalne arhive:',
+        explainButton: 'Objasni ovo pismo ponovo',
+        explainAgain: 'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sledeći korak?',
+      );
   }
 }
 
