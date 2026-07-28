@@ -1,5 +1,4 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-import {initializeAppCheck, ReCaptchaV3Provider} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js';
 import {
   getAuth,
   browserLocalPersistence,
@@ -18,38 +17,46 @@ const firebaseConfig = {
   projectId: 'briefai-germany',
   appId: '1:891432357321:web:6d3baed44fa3bb77dbac18',
   messagingSenderId: '891432357321',
-  // Firebase Console -> App Check -> web app -> reCAPTCHA v3 site key.
-  appCheckSiteKey: '6Ldic2YtAAAAAEbpq8I88FwXyTHNXkd6iO53J1cg',
 };
 
 const status = document.querySelector('#status');
 let functions;
+let auth;
+let completingSignIn;
 const configured = Object.values(firebaseConfig).every((value) => value !== 'REPLACE_ME' && value.length > 0);
 if (configured) {
   const app = initializeApp(firebaseConfig);
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(firebaseConfig.appCheckSiteKey),
-    isTokenAutoRefreshEnabled: true,
-  });
-  const auth = getAuth(app);
+  // Admin callable functions verify the Firebase admin custom claim directly.
+  // Do not initialize App Check here: reCAPTCHA is not needed for this private
+  // back office and a blocked CAPTCHA used to make otherwise valid logins fail.
+  auth = getAuth(app);
   await setPersistence(auth, browserLocalPersistence);
   functions = getFunctions(app, 'europe-west3');
   const completeSignIn = async () => {
+    if (!auth.currentUser) return;
+    if (completingSignIn) return completingSignIn;
+    completingSignIn = (async () => {
+      try {
+        await loadMetrics();
+      } catch (error) {
+        // The authorized founder can safely self-claim the admin role. The
+        // callable function compares the authenticated email with a server-side
+        // Firebase Secret, so changing this page cannot grant access to anyone
+        // else.
+        if (error.code !== 'functions/permission-denied') throw error;
+        const result = await httpsCallable(functions, 'claimFounderAccess')();
+        if (result.data?.admin !== true) throw error;
+        await auth.currentUser?.getIdToken(true);
+        await loadMetrics();
+      }
+      status.textContent =
+        'Signed in. Metrics are visible only to users with the Firebase admin custom claim.';
+    })();
     try {
-      await loadMetrics();
-    } catch (error) {
-      // The authorized founder can safely self-claim the admin role. The
-      // callable function compares the authenticated email with a server-side
-      // Firebase Secret, so changing this page cannot grant access to anyone
-      // else.
-      if (error.code !== 'functions/permission-denied') throw error;
-      const result = await httpsCallable(functions, 'claimFounderAccess')();
-      if (result.data?.admin !== true) throw error;
-      await auth.currentUser?.getIdToken(true);
-      await loadMetrics();
+      await completingSignIn;
+    } finally {
+      completingSignIn = undefined;
     }
-    status.textContent =
-      'Signed in. Metrics are visible only to users with the Firebase admin custom claim.';
   };
   document.querySelector('#google-sign-in').addEventListener('click', async () => {
     try {
@@ -88,7 +95,7 @@ if (configured) {
     .forEach((element) => {
       element.disabled = true;
     });
-  status.textContent = 'Add Firebase web configuration and the App Check reCAPTCHA v3 site key in app.js.';
+  status.textContent = 'Add Firebase web configuration in app.js.';
 }
 
 async function loadMetrics() {
