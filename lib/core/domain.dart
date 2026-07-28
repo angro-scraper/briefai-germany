@@ -170,12 +170,7 @@ class LetterAnalysis {
     final deadlineValue = map['deadline'] as String?;
     final paymentDueDateValue = map['paymentDueDate'] as String?;
     final amountValues = map['amounts'];
-    final dynamic rawCreatedAt = map['createdAt'];
-    final createdAt = rawCreatedAt is DateTime
-        ? rawCreatedAt
-        : rawCreatedAt?.toDate() as DateTime? ??
-              DateTime.tryParse(rawCreatedAt?.toString() ?? '') ??
-              DateTime.now();
+    final createdAt = _readCreatedAt(map['createdAt']);
     return LetterAnalysis(
       id: id,
       title: map['title'] as String? ?? 'Službeno pismo',
@@ -215,6 +210,23 @@ class LetterAnalysis {
       sourceText: sourceText ?? map['sourceText'] as String? ?? '',
     );
   }
+}
+
+/// Local Sembast records serialize dates as ISO strings, while the optional
+/// cloud-compatible format can expose a Timestamp-like value with `toDate()`.
+/// Never call `toDate()` on a local String: doing so stopped the complete
+/// archive stream when the app reopened after a successful local save.
+DateTime _readCreatedAt(Object? value) {
+  if (value is DateTime) return value;
+  if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+  try {
+    final dynamic timestampLike = value;
+    final date = timestampLike?.toDate();
+    if (date is DateTime) return date;
+  } on Object {
+    // A local malformed legacy value must not hide every other letter.
+  }
+  return DateTime.now();
 }
 
 String? _nonEmptyString(dynamic value) {

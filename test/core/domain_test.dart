@@ -57,6 +57,24 @@ void main() {
     expect(analysis.toMap()['status'], 'inProgress');
   });
 
+  test('local archive records reload when createdAt is an ISO string', () {
+    final createdAt = DateTime.utc(2026, 7, 28, 19, 45);
+    final restored = LetterAnalysis.fromMap(
+      id: 'local-letter',
+      map: {
+        'title': 'Lokalno sačuvano pismo',
+        'createdAt': createdAt.toIso8601String(),
+        'category': 'Ostalo',
+        'urgency': 'LOW',
+        'suggestedAction': 'Sačuvajte dokument.',
+        'status': 'newLetter',
+      },
+    );
+
+    expect(restored.createdAt, createdAt);
+    expect(restored.title, 'Lokalno sačuvano pismo');
+  });
+
   test('app state replaces the local archive with synced archive', () {
     final state = AppState();
     state.addAnalysis(
