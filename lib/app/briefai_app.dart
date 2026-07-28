@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -627,7 +628,10 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _create = false;
+  // Most people arriving here from the public landing page are new.  Starting
+  // with registration prevents them from mistaking the sign-in form for a
+  // broken registration flow; returning users can switch to sign-in directly.
+  bool _create = true;
   bool _loading = false;
 
   @override
@@ -654,6 +658,25 @@ class _SignInScreenState extends State<SignInScreen> {
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment<bool>(
+                value: true,
+                label: Text(strings.text('createAccount')),
+                icon: const Icon(Icons.person_add_alt_1_outlined),
+              ),
+              ButtonSegment<bool>(
+                value: false,
+                label: Text(strings.text('signIn')),
+                icon: const Icon(Icons.login),
+              ),
+            ],
+            selected: {_create},
+            onSelectionChanged: _loading
+                ? null
+                : (selection) => setState(() => _create = selection.single),
           ),
           const SizedBox(height: 20),
           TextField(
@@ -724,6 +747,11 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) {
         Navigator.of(context).pop();
       }
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_authenticationError(error))),
+      );
     } on FirebaseFunctionsException catch (error) {
       if (!mounted) return;
       if (error.code == 'unauthenticated') {
@@ -760,6 +788,27 @@ class _SignInScreenState extends State<SignInScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  String _authenticationError(FirebaseAuthException error) {
+    // Firebase's raw messages are inconsistent between Android, iOS and web.
+    // Give the user a concrete next step for the common registration cases.
+    return switch (error.code) {
+      'email-already-in-use' =>
+        'Ovaj email već ima nalog. Izaberite „Prijavi se“.',
+      'invalid-email' => 'Unesite ispravnu email adresu.',
+      'weak-password' => 'Lozinka mora imati najmanje 6 znakova.',
+      'wrong-password' || 'invalid-credential' =>
+        'Email ili lozinka nisu ispravni.',
+      'network-request-failed' =>
+        'Nema veze sa internetom. Proverite vezu i pokušajte ponovo.',
+      'too-many-requests' =>
+        'Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.',
+      'operation-not-allowed' =>
+        'Registracija emailom trenutno nije dostupna. Pokušajte Google prijavu.',
+      _ => '${context.strings.text('signInFailed')}: '
+          '${error.message ?? error.code}',
+    };
   }
 }
 
