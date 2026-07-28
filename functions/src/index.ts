@@ -270,7 +270,7 @@ async function reserveAiBudget(
     const subscriptionActive = ["active", "trialing"].includes(
       subscription.data()?.status,
     );
-    const userLimit = subscriptionActive
+    const defaultUserLimit = subscriptionActive
       ? Math.round(
         subscriptionPlans[
           subscriptionPlanKey(subscription.data())
@@ -280,6 +280,9 @@ async function reserveAiBudget(
         aiUserMonthlyBudgetUsd.value(),
         "AI_USER_MONTHLY_BUDGET_USD",
       );
+    const configuredUserLimit = Number(profile.data()?.aiMonthlyCapMicros);
+    const hasCustomUserLimit = Number.isFinite(configuredUserLimit) && configuredUserLimit > 0;
+    const userLimit = hasCustomUserLimit ? configuredUserLimit : defaultUserLimit;
     const globalSpent = Number(globalUsage.data()?.costMicros ?? 0);
     const userSpent = Number(userUsage.data()?.aiCostMicros ?? 0);
     if (!Number.isFinite(globalSpent) || globalSpent + reservedMicros > globalLimit) {
@@ -288,7 +291,7 @@ async function reserveAiBudget(
         "Mesečni AI budžet aplikacije je dostignut. Pokušajte ponovo kasnije.",
       );
     }
-    if (!founder &&
+    if ((!founder || hasCustomUserLimit) &&
         (!Number.isFinite(userSpent) || userSpent + reservedMicros > userLimit)) {
       throw new HttpsError(
         "resource-exhausted",
@@ -447,6 +450,21 @@ async function requireAdmin(uid: string | undefined): Promise<string> {
     throw new HttpsError("permission-denied", "Administratorski pristup je obavezan.");
   }
   return authenticatedUid;
+}
+
+async function writeAdminAudit(
+  actorUid: string,
+  action: string,
+  targetUid?: string,
+  details?: Record<string, string | number | boolean | null>,
+): Promise<void> {
+  await db.collection("adminAudit").add({
+    actorUid,
+    targetUid: targetUid ?? null,
+    action,
+    details: details ?? {},
+    createdAt: FieldValue.serverTimestamp(),
+  });
 }
 
 function timestampToIso(value: unknown): string | null {
@@ -1151,6 +1169,7 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
     aiInputTokens: aiMetrics.data()?.inputTokens ?? 0,
     aiOutputTokens: aiMetrics.data()?.outputTokens ?? 0,
     aiMonthlyBudgetUsd: Number(aiMonthlyBudgetUsd.value()),
+    aiDefaultUserMonthlyBudgetUsd: Number(aiUserMonthlyBudgetUsd.value()),
     aiModel: activeAiModel(),
     freeAnalysisLimit,
     plans: Object.entries(subscriptionPlans).map(([key, plan]) => ({
@@ -1196,6 +1215,7 @@ export const adminListAccounts = onCall({region: "europe-west3", enforceAppCheck
         countryOfOrigin: profile.countryOfOrigin ?? null,
         disabled: user.disabled,
         aiBlocked: profile.aiBlocked === true,
+        aiMonthlyCapMicros: Number(profile.aiMonthlyCapMicros ?? 0),
         createdAt: user.metadata.creationTime ?? null,
         lastSignInAt: user.metadata.lastSignInTime ?? null,
         lastActiveAt: timestampToIso(profile.lastActiveAt),
@@ -1233,6 +1253,7 @@ export const adminSetAccountDisabled = onCall({region: "europe-west3", enforceAp
     targetUid,
     actorUid: adminUid,
   }, {merge: true});
+  await writeAdminAudit(adminUid, disabled ? "account-disabled" : "account-enabled", targetUid);
   return {uid: targetUid, disabled};
 });
 
@@ -1258,20 +1279,82 @@ export const adminSetAccountAiBlocked = onCall({region: "europe-west3", enforceA
     targetUid,
     actorUid: adminUid,
   }, {merge: true});
+  await writeAdminAudit(adminUid, aiBlocked ? "ai-blocked" : "ai-restored", targetUid);
   return {uid: targetUid, aiBlocked};
 });
 
-export const sendAdminNotification = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+export const adminSetAccountAiLimit = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  const adminUid = await requireAdmin(request.auth?.uid);
+  const targetUid = requireString(request.data?.uid, "uid", 128);
+  if (targetUid === adminUid) {
+    throw new HttpsError("failed-precondition", "Ne možete menjati AI limit za sopstveni administratorski nalog.");
+  }
+  const requestedUsd = request.data?.maxMonthlyAiUsd;
+  const removeLimit = requestedUsd === null || requestedUsd === "";
+  const amount = removeLimit ? 0 : Number(requestedUsd);
+  if (!removeLimit && (!Number.isFinite(amount) || amount < 0.01 || amount > 1000)) {
+    throw new HttpsError("invalid-argument", "Mesečni AI limit mora biti između 0,01 i 1.000 USD.");
+  }
+  await db.collection("users").doc(targetUid).set({
+    aiMonthlyCapMicros: removeLimit ? FieldValue.delete() : Math.round(amount * 1_000_000),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+  await writeAdminAudit(
+    adminUid,
+    removeLimit ? "ai-limit-removed" : "ai-limit-set",
+    targetUid,
+    {maxMonthlyAiUsd: removeLimit ? null : amount},
+  );
+  return {uid: targetUid, maxMonthlyAiUsd: removeLimit ? null : amount};
+});
+
+export const adminListAudit = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
   await requireAdmin(request.auth?.uid);
+  const requestedLimit = Number(request.data?.limit ?? 50);
+  const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 100)) : 50;
+  const snapshot = await db.collection("adminAudit").orderBy("createdAt", "desc").limit(limit).get();
+  return {
+    entries: snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        action: data.action ?? "unknown",
+        actorUid: data.actorUid ?? null,
+        targetUid: data.targetUid ?? null,
+        details: data.details ?? {},
+        createdAt: timestampToIso(data.createdAt),
+      };
+    }),
+  };
+});
+
+export const sendAdminNotification = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  const adminUid = await requireAdmin(request.auth?.uid);
   const title = requireString(request.data?.title, "title", 80);
   const body = requireString(request.data?.body, "body", 240);
+  const audience = request.data?.audience === "active" || request.data?.audience === "premium" ?
+    request.data.audience : "all";
+  let eligibleUsers: Set<string> | null = null;
+  if (audience === "active") {
+    const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const users = await db.collection("users").where("lastActiveAt", ">=", activeSince).get();
+    eligibleUsers = new Set(users.docs.map((doc) => doc.id));
+  }
+  if (audience === "premium") {
+    const subscriptions = await db.collection("subscriptions").where("status", "in", ["active", "trialing"]).get();
+    eligibleUsers = new Set(subscriptions.docs.map((doc) => doc.id));
+  }
   const tokensSnapshot = await db.collection("deviceTokens").get();
-  const tokens = tokensSnapshot.docs.map((doc) => doc.get("token")).filter((token): token is string => typeof token === "string");
+  const tokens = tokensSnapshot.docs
+    .filter((doc) => eligibleUsers === null || eligibleUsers.has(String(doc.get("uid") ?? "")))
+    .map((doc) => doc.get("token"))
+    .filter((token): token is string => typeof token === "string");
   let delivered = 0;
   for (let index = 0; index < tokens.length; index += 500) {
     const result = await getMessaging().sendEachForMulticast({tokens: tokens.slice(index, index + 500), notification: {title, body}});
     delivered += result.successCount;
   }
   await db.collection("adminMetrics").doc("notifications").set({lastSentAt: FieldValue.serverTimestamp(), lastTitle: title, delivered}, {merge: true});
-  return {delivered};
+  await writeAdminAudit(adminUid, "notification-sent", undefined, {delivered, title, audience});
+  return {delivered, audience};
 });

@@ -55,6 +55,7 @@ if (configured) {
         await loadMetrics();
       }
       await loadAccounts({reset: true});
+      await loadAudit();
       document.body.classList.add('is-signed-in');
       document.querySelector('#sign-out').hidden = false;
       document.querySelector('#google-sign-in').hidden = true;
@@ -147,6 +148,16 @@ if (configured) {
     }
   });
   document.querySelector('#account-search').addEventListener('input', renderAccounts);
+  document.querySelector('#account-plan-filter').addEventListener('change', renderAccounts);
+  document.querySelector('#account-state-filter').addEventListener('change', renderAccounts);
+  document.querySelector('#refresh-audit').addEventListener('click', async () => {
+    try {
+      await loadAudit();
+      status.textContent = 'Audit log refreshed.';
+    } catch (error) {
+      status.textContent = `Could not load audit log: ${error.message}`;
+    }
+  });
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       document.body.classList.remove('is-signed-in');
@@ -256,8 +267,15 @@ function formatUsdFromMicros(value) {
 function renderAccounts() {
   const table = document.querySelector('#accounts-table');
   const query = document.querySelector('#account-search').value.trim().toLowerCase();
+  const planFilter = document.querySelector('#account-plan-filter').value;
+  const stateFilter = document.querySelector('#account-state-filter').value;
   const filtered = accounts.filter((account) =>
-    !query || `${account.email || ''} ${account.displayName || ''}`.toLowerCase().includes(query),
+    (!query || `${account.email || ''} ${account.displayName || ''}`.toLowerCase().includes(query)) &&
+    (!planFilter || String(account.plan || 'trial') === planFilter) &&
+    (!stateFilter ||
+      (stateFilter === 'active' && !account.disabled) ||
+      (stateFilter === 'suspended' && account.disabled) ||
+      (stateFilter === 'ai-stopped' && account.aiBlocked)),
   );
   table.replaceChildren();
   if (!filtered.length) {
@@ -274,7 +292,7 @@ function renderAccounts() {
     row.append(textCell(String(account.plan || 'trial').toUpperCase(), account.subscriptionStatus || 'no subscription'));
     row.append(textCell(
       `${account.analysesLifetime || 0} total · ${account.analysesThisMonth || 0} this month`,
-      `AI: ${formatUsdFromMicros(account.aiCostMicros)} · ${account.aiRequests || 0} requests · ${new Intl.NumberFormat('de-DE').format((account.aiInputTokens || 0) + (account.aiOutputTokens || 0))} tokens`,
+      `AI: ${formatUsdFromMicros(account.aiCostMicros)} · ${account.aiRequests || 0} requests · ${new Intl.NumberFormat('de-DE').format((account.aiInputTokens || 0) + (account.aiOutputTokens || 0))} tokens · cap: ${account.aiMonthlyCapMicros ? formatUsdFromMicros(account.aiMonthlyCapMicros) : 'default'}`,
     ));
     row.append(textCell(formatDate(account.lastActiveAt), `Signed in: ${formatDate(account.lastSignInAt)}`));
     const stateCell = document.createElement('td');
@@ -300,13 +318,22 @@ function renderAccounts() {
     aiAction.className = account.aiBlocked ? 'secondary-action' : 'danger-action';
     aiAction.textContent = account.aiBlocked ? 'Enable AI' : 'Stop AI';
     aiAction.addEventListener('click', () => setAccountAiBlocked(account));
-    actions.append(action, aiAction);
+    const capAction = document.createElement('button');
+    capAction.className = 'secondary-action';
+    capAction.textContent = 'Set AI cap';
+    capAction.addEventListener('click', () => setAccountAiLimit(account));
+    actions.append(action, aiAction, capAction);
     controlCell.append(actions);
     row.append(controlCell);
     table.append(row);
   }
   document.querySelector('#accounts-summary').textContent = `${filtered.length} shown · ${accounts.length} loaded`;
   document.querySelector('#load-more-accounts').disabled = !nextAccountsPageToken;
+  const alerts = accounts.filter((account) => account.aiMonthlyCapMicros > 0 &&
+    (Number(account.aiCostMicros) || 0) >= Number(account.aiMonthlyCapMicros) * 0.8);
+  document.querySelector('#cost-alerts').textContent = alerts.length
+    ? `Cost alert: ${alerts.length} account(s) reached at least 80% of their personal AI cap.`
+    : 'No account has reached 80% of a personal AI cap.';
 }
 
 async function setAccountDisabled(account) {
@@ -337,11 +364,54 @@ async function setAccountAiBlocked(account) {
   }
 }
 
+async function setAccountAiLimit(account) {
+  const current = account.aiMonthlyCapMicros ? String(account.aiMonthlyCapMicros / 1_000_000) : '';
+  const value = window.prompt('Maximum AI cost for this account this month (USD). Leave empty to use the default limit.', current);
+  if (value === null) return;
+  try {
+    await httpsCallable(functions, 'adminSetAccountAiLimit')({
+      uid: account.uid,
+      maxMonthlyAiUsd: value.trim() === '' ? null : Number(value),
+    });
+    document.querySelector('#service-state').textContent = value.trim() === ''
+      ? `Default AI cap restored for ${account.email || account.uid}.`
+      : `Monthly AI cap set to $${value.trim()} for ${account.email || account.uid}.`;
+    await Promise.all([loadAccounts({reset: true}), loadAudit()]);
+  } catch (error) {
+    status.textContent = `AI cap update failed: ${error.message}`;
+  }
+}
+
+async function loadAudit() {
+  const result = await httpsCallable(functions, 'adminListAudit')({limit: 50});
+  const entries = Array.isArray(result.data?.entries) ? result.data.entries : [];
+  const table = document.querySelector('#audit-table');
+  table.replaceChildren();
+  if (!entries.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.textContent = 'No admin actions have been recorded yet.';
+    row.append(cell);
+    table.append(row);
+    return;
+  }
+  for (const entry of entries) {
+    const row = document.createElement('tr');
+    row.append(textCell(formatDate(entry.createdAt)));
+    row.append(textCell(String(entry.action || 'unknown')));
+    row.append(textCell(entry.targetUid || '—'));
+    row.append(textCell(JSON.stringify(entry.details || {})));
+    table.append(row);
+  }
+}
+
 document.querySelector('#notification-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!functions) return;
   try {
     const result = await httpsCallable(functions, 'sendAdminNotification')({
+      audience: document.querySelector('#notification-audience').value,
       title: document.querySelector('#title').value,
       body: document.querySelector('#body').value,
     });

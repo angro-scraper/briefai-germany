@@ -46,7 +46,11 @@
             <h2>Accounts</h2>
             <p>Account, plan and usage metadata. Local documents are never shown here.</p>
           </div>
-          <label class="search-label">Search accounts<input id="account-search" type="search" placeholder="Email or name" /></label>
+          <div class="account-filters">
+            <label class="search-label">Search accounts<input id="account-search" type="search" placeholder="Email or name" /></label>
+            <label>Plan<select id="account-plan-filter"><option value="">All plans</option><option value="basic">Basic</option><option value="plus">Plus</option><option value="pro">Pro</option><option value="trial">Trial</option></select></label>
+            <label>Status<select id="account-state-filter"><option value="">All states</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="ai-stopped">AI stopped</option></select></label>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -69,12 +73,18 @@
         <section class="card">
           <h2>Service controls</h2>
           <p>Use the account list to suspend or restore access. Suspending immediately revokes active sessions.</p>
+          <p id="cost-alerts">No account cost alerts loaded yet.</p>
           <p id="service-state">No operational action recorded in this session.</p>
         </section>
+      </section>
+      <section class="card wide-card">
+        <div class="section-heading"><div><h2>Admin audit log</h2><p>Recent account, AI-limit and notification actions.</p></div><button id="refresh-audit" class="secondary-action" type="button">Refresh log</button></div>
+        <div class="table-wrap"><table><thead><tr><th>When</th><th>Action</th><th>Target</th><th>Details</th></tr></thead><tbody id="audit-table"><tr><td colspan="4">Sign in to load audit history.</td></tr></tbody></table></div>
       </section>
       <section class="card">
         <h2>Send service notification</h2>
         <form id="notification-form">
+          <label>Audience<select id="notification-audience"><option value="all">All users</option><option value="active">Active in last 30 days</option><option value="premium">Premium users</option></select></label>
           <label>Title<input id="title" maxlength="80" required /></label>
           <label>Message<textarea id="body" maxlength="240" required></textarea></label>
           <button type="submit">Send notification</button>
