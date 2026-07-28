@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   setPersistence,
+  signOut,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
@@ -54,6 +55,9 @@ if (configured) {
         await loadMetrics();
       }
       await loadAccounts({reset: true});
+      document.body.classList.add('is-signed-in');
+      document.querySelector('#sign-out').hidden = false;
+      document.querySelector('#google-sign-in').hidden = true;
       status.textContent =
         'Signed in. You can now manage accounts and view operational metrics.';
     })();
@@ -70,6 +74,10 @@ if (configured) {
     } catch (error) {
       status.textContent = `Access failed: ${error.message}`;
     }
+  });
+  document.querySelector('#sign-out').addEventListener('click', async () => {
+    await signOut(auth);
+    status.textContent = 'Signed out.';
   });
   document.querySelector('#email-sign-in').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -140,7 +148,12 @@ if (configured) {
   });
   document.querySelector('#account-search').addEventListener('input', renderAccounts);
   onAuthStateChanged(auth, async (user) => {
-    if (!user) return;
+    if (!user) {
+      document.body.classList.remove('is-signed-in');
+      document.querySelector('#sign-out').hidden = true;
+      document.querySelector('#google-sign-in').hidden = false;
+      return;
+    }
     try {
       await completeSignIn();
     } catch (error) {
