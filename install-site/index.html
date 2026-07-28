@@ -109,6 +109,13 @@
       function getGoogleCookie() {
         return document.cookie.split('; ').find(cookie => cookie.startsWith('googtrans=')) || '';
       }
+      function setGoogleCookie(value, maxAge) {
+        const attributes = `path=/; max-age=${maxAge}; SameSite=Lax`;
+        document.cookie = `googtrans=${value}; ${attributes}`;
+        if (location.hostname === 'salvesca.com' || location.hostname.endsWith('.salvesca.com')) {
+          document.cookie = `googtrans=${value}; ${attributes}; domain=.salvesca.com`;
+        }
+      }
       function applyLanguage(code) {
         // Keep the source document Serbian so the translation engine can translate
         // every visible section, including the realistic letter preview.
@@ -155,16 +162,16 @@
         const code = event.target.value;
         localStorage.setItem('briefai.platform-language', code);
         const googleCode = googleLanguageCode[code] || code;
-        document.cookie = `googtrans=/sr/${googleCode}; path=/; max-age=31536000; SameSite=Lax`;
+        setGoogleCookie(`/sr/${googleCode}`, 31536000);
         location.search = `?lang=${encodeURIComponent(code)}`;
       });
       const activeGoogleCode = googleLanguageCode[selector.value] || selector.value;
       const expectedCookie = `googtrans=/sr/${activeGoogleCode}`;
       if (selector.value === 'sr' && getGoogleCookie()) {
-        document.cookie = 'googtrans=; path=/; max-age=0; SameSite=Lax';
+        setGoogleCookie('', 0);
         if (location.search.includes('lang=')) location.replace(location.pathname);
       } else if (selector.value !== 'sr' && !getGoogleCookie().includes(expectedCookie)) {
-        document.cookie = `${expectedCookie}; path=/; max-age=31536000; SameSite=Lax`;
+        setGoogleCookie(`/sr/${activeGoogleCode}`, 31536000);
         location.reload();
       }
     </script>
