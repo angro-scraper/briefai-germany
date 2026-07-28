@@ -432,6 +432,27 @@ function requireUser(uid: string | undefined): string {
   return uid;
 }
 
+async function requireAdmin(uid: string | undefined): Promise<string> {
+  const authenticatedUid = requireUser(uid);
+  const account = await getAuth().getUser(authenticatedUid);
+  if (account.customClaims?.admin !== true) {
+    throw new HttpsError("permission-denied", "Administratorski pristup je obavezan.");
+  }
+  return authenticatedUid;
+}
+
+function timestampToIso(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || !("toDate" in value)) return null;
+  const toDate = (value as {toDate?: unknown}).toDate;
+  if (typeof toDate !== "function") return null;
+  try {
+    const date = toDate.call(value);
+    return date instanceof Date && Number.isFinite(date.getTime()) ? date.toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export const claimFounderAccess = onCall(
   {
     region: "europe-west3",
@@ -1102,9 +1123,7 @@ export const exportAccountData = onCall(
 );
 
 export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
-  const uid = requireUser(request.auth?.uid);
-  const account = await getAuth().getUser(uid);
-  if (account.customClaims?.admin !== true) throw new HttpsError("permission-denied", "Administratorski pristup je obavezan.");
+  await requireAdmin(request.auth?.uid);
   const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const monthKey = berlinDate(new Date()).slice(0, 7);
   const [users, activeUsers, premiumUsers, metrics, aiMetrics] = await Promise.all([
@@ -1125,13 +1144,83 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
     aiOutputTokens: aiMetrics.data()?.outputTokens ?? 0,
     aiMonthlyBudgetUsd: Number(aiMonthlyBudgetUsd.value()),
     aiModel: activeAiModel(),
+    freeAnalysisLimit,
+    plans: Object.entries(subscriptionPlans).map(([key, plan]) => ({
+      key,
+      monthlyAnalysisLimit: plan.monthlyAnalysisLimit,
+      aiBudgetUsd: plan.aiBudgetUsd,
+    })),
   };
 });
 
+// Operational metadata only: original letters, OCR text, AI answers and chat
+// deliberately never leave the device and are therefore not visible here.
+export const adminListAccounts = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  await requireAdmin(request.auth?.uid);
+  const requestedLimit = Number(request.data?.limit ?? 50);
+  const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 100)) : 50;
+  const pageToken = typeof request.data?.pageToken === "string" && request.data.pageToken.length <= 4096 ?
+    request.data.pageToken : undefined;
+  const page = await getAuth().listUsers(limit, pageToken);
+  const userIds = page.users.map((user) => user.uid);
+  const profileRefs = userIds.map((uid) => db.collection("users").doc(uid));
+  const subscriptionRefs = userIds.map((uid) => db.collection("subscriptions").doc(uid));
+  const usageRefs = userIds.map((uid) => db.collection("users").doc(uid).collection("usage").doc("current"));
+  const [profiles, subscriptions, usage] = userIds.length === 0 ? [[], [], []] : await Promise.all([
+    db.getAll(...profileRefs),
+    db.getAll(...subscriptionRefs),
+    db.getAll(...usageRefs),
+  ]);
+  return {
+    accounts: page.users.map((user, index) => {
+      const profile = profiles[index]?.data() ?? {};
+      const subscription = subscriptions[index]?.data() ?? {};
+      const currentUsage = usage[index]?.data() ?? {};
+      return {
+        uid: user.uid,
+        email: user.email ?? null,
+        displayName: profile.displayName ?? user.displayName ?? null,
+        preferredLanguage: profile.preferredLanguage ?? null,
+        countryOfOrigin: profile.countryOfOrigin ?? null,
+        disabled: user.disabled,
+        createdAt: user.metadata.creationTime ?? null,
+        lastSignInAt: user.metadata.lastSignInTime ?? null,
+        lastActiveAt: timestampToIso(profile.lastActiveAt),
+        providers: user.providerData.map((provider) => provider.providerId),
+        plan: subscriptionPlanKey(subscription),
+        subscriptionStatus: subscription.status ?? "none",
+        subscriptionProvider: subscription.provider ?? null,
+        analysesLifetime: Number(currentUsage.analysesLifetime ?? 0),
+        analysesThisMonth: Number(currentUsage.analysesThisMonth ?? 0),
+      };
+    }),
+    nextPageToken: page.pageToken ?? null,
+  };
+});
+
+export const adminSetAccountDisabled = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  const adminUid = await requireAdmin(request.auth?.uid);
+  const targetUid = requireString(request.data?.uid, "uid", 128);
+  if (targetUid === adminUid) {
+    throw new HttpsError("failed-precondition", "Ne možete onemogućiti sopstveni administratorski nalog.");
+  }
+  if (typeof request.data?.disabled !== "boolean") {
+    throw new HttpsError("invalid-argument", "Polje disabled mora biti true ili false.");
+  }
+  const disabled = request.data.disabled;
+  await getAuth().updateUser(targetUid, {disabled});
+  if (disabled) await getAuth().revokeRefreshTokens(targetUid);
+  await db.collection("adminMetrics").doc("account-actions").set({
+    lastActionAt: FieldValue.serverTimestamp(),
+    lastAction: disabled ? "disabled" : "enabled",
+    targetUid,
+    actorUid: adminUid,
+  }, {merge: true});
+  return {uid: targetUid, disabled};
+});
+
 export const sendAdminNotification = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
-  const uid = requireUser(request.auth?.uid);
-  const account = await getAuth().getUser(uid);
-  if (account.customClaims?.admin !== true) throw new HttpsError("permission-denied", "Administratorski pristup je obavezan.");
+  await requireAdmin(request.auth?.uid);
   const title = requireString(request.data?.title, "title", 80);
   const body = requireString(request.data?.body, "body", 240);
   const tokensSnapshot = await db.collection("deviceTokens").get();

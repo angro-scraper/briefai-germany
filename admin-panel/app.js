@@ -25,6 +25,8 @@ const status = document.querySelector('#status');
 let functions;
 let auth;
 let completingSignIn;
+let accounts = [];
+let nextAccountsPageToken = null;
 const configured = Object.values(firebaseConfig).every((value) => value !== 'REPLACE_ME' && value.length > 0);
 if (configured) {
   const app = initializeApp(firebaseConfig);
@@ -51,8 +53,9 @@ if (configured) {
         await auth.currentUser?.getIdToken(true);
         await loadMetrics();
       }
+      await loadAccounts({reset: true});
       status.textContent =
-        'Signed in. Metrics are visible only to users with the Firebase admin custom claim.';
+        'Signed in. You can now manage accounts and view operational metrics.';
     })();
     try {
       await completingSignIn;
@@ -115,6 +118,27 @@ if (configured) {
       status.textContent = `Password setup failed: ${error.message}`;
     }
   });
+  document.querySelector('#refresh-dashboard').addEventListener('click', async () => {
+    if (!auth.currentUser) {
+      status.textContent = 'Sign in before refreshing the dashboard.';
+      return;
+    }
+    try {
+      await Promise.all([loadMetrics(), loadAccounts({reset: true})]);
+      status.textContent = 'Dashboard refreshed.';
+    } catch (error) {
+      status.textContent = `Refresh failed: ${error.message}`;
+    }
+  });
+  document.querySelector('#load-more-accounts').addEventListener('click', async () => {
+    if (!nextAccountsPageToken) return;
+    try {
+      await loadAccounts({reset: false});
+    } catch (error) {
+      status.textContent = `Could not load more accounts: ${error.message}`;
+    }
+  });
+  document.querySelector('#account-search').addEventListener('input', renderAccounts);
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     try {
@@ -130,6 +154,8 @@ if (configured) {
     .forEach((element) => {
       element.disabled = true;
     });
+  document.querySelector('#create-account').disabled = true;
+  document.querySelector('#password-reset').disabled = true;
   status.textContent = 'Add Firebase web configuration in app.js.';
 }
 
@@ -147,6 +173,119 @@ async function loadMetrics() {
   document.querySelector('#ai-tokens').textContent =
     new Intl.NumberFormat('de-DE').format((metric.aiInputTokens ?? 0) + (metric.aiOutputTokens ?? 0));
   document.querySelector('#ai-model').textContent = metric.aiModel ?? '—';
+  renderPlans(metric);
+}
+
+function renderPlans(metric) {
+  const container = document.querySelector('#plan-list');
+  container.replaceChildren();
+  const trial = document.createElement('div');
+  trial.className = 'plan-row';
+  trial.innerHTML = `<strong>Test trial</strong><span>${metric.freeAnalysisLimit ?? '—'} analyses</span>`;
+  container.append(trial);
+  for (const plan of metric.plans ?? []) {
+    const row = document.createElement('div');
+    row.className = 'plan-row';
+    const title = document.createElement('strong');
+    title.textContent = String(plan.key).toUpperCase();
+    const details = document.createElement('span');
+    details.textContent = `${plan.monthlyAnalysisLimit} analyses / month · AI cap $${plan.aiBudgetUsd}`;
+    row.append(title, details);
+    container.append(row);
+  }
+}
+
+async function loadAccounts({reset}) {
+  const result = await httpsCallable(functions, 'adminListAccounts')({
+    limit: 50,
+    ...(reset ? {} : {pageToken: nextAccountsPageToken}),
+  });
+  const incoming = Array.isArray(result.data?.accounts) ? result.data.accounts : [];
+  accounts = reset ? incoming : [...accounts, ...incoming];
+  nextAccountsPageToken = result.data?.nextPageToken ?? null;
+  renderAccounts();
+}
+
+function formatDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('de-DE', {dateStyle: 'medium'}).format(date);
+}
+
+function accountCell(account) {
+  const cell = document.createElement('td');
+  const name = document.createElement('strong');
+  name.textContent = account.displayName || account.email || 'No name';
+  const email = document.createElement('small');
+  email.textContent = account.email || account.uid;
+  const provider = document.createElement('small');
+  provider.textContent = (account.providers || []).join(', ') || 'email/password';
+  cell.append(name, email, provider);
+  return cell;
+}
+
+function textCell(main, sub) {
+  const cell = document.createElement('td');
+  cell.textContent = main;
+  if (sub) {
+    const detail = document.createElement('small');
+    detail.textContent = sub;
+    cell.append(detail);
+  }
+  return cell;
+}
+
+function renderAccounts() {
+  const table = document.querySelector('#accounts-table');
+  const query = document.querySelector('#account-search').value.trim().toLowerCase();
+  const filtered = accounts.filter((account) =>
+    !query || `${account.email || ''} ${account.displayName || ''}`.toLowerCase().includes(query),
+  );
+  table.replaceChildren();
+  if (!filtered.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.textContent = accounts.length ? 'No accounts match this search.' : 'No accounts loaded yet.';
+    row.append(cell);
+    table.append(row);
+  }
+  for (const account of filtered) {
+    const row = document.createElement('tr');
+    row.append(accountCell(account));
+    row.append(textCell(String(account.plan || 'trial').toUpperCase(), account.subscriptionStatus || 'no subscription'));
+    row.append(textCell(`${account.analysesLifetime || 0} total`, `${account.analysesThisMonth || 0} this month`));
+    row.append(textCell(formatDate(account.lastActiveAt), `Signed in: ${formatDate(account.lastSignInAt)}`));
+    const stateCell = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `status-pill ${account.disabled ? 'disabled' : 'active'}`;
+    badge.textContent = account.disabled ? 'Suspended' : 'Active';
+    stateCell.append(badge);
+    row.append(stateCell);
+    const controlCell = document.createElement('td');
+    const action = document.createElement('button');
+    action.className = account.disabled ? 'secondary-action' : 'danger-action';
+    action.textContent = account.disabled ? 'Restore' : 'Suspend';
+    action.addEventListener('click', () => setAccountDisabled(account));
+    controlCell.append(action);
+    row.append(controlCell);
+    table.append(row);
+  }
+  document.querySelector('#accounts-summary').textContent = `${filtered.length} shown · ${accounts.length} loaded`;
+  document.querySelector('#load-more-accounts').disabled = !nextAccountsPageToken;
+}
+
+async function setAccountDisabled(account) {
+  const disabled = !account.disabled;
+  const label = account.email || account.uid;
+  if (!window.confirm(`${disabled ? 'Suspend' : 'Restore'} ${label}?`)) return;
+  try {
+    await httpsCallable(functions, 'adminSetAccountDisabled')({uid: account.uid, disabled});
+    document.querySelector('#service-state').textContent = `${label} was ${disabled ? 'suspended and signed out' : 'restored'}.`;
+    await loadAccounts({reset: true});
+  } catch (error) {
+    status.textContent = `Account control failed: ${error.message}`;
+  }
 }
 
 document.querySelector('#notification-form').addEventListener('submit', async (event) => {

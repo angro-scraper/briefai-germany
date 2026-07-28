@@ -23,6 +23,10 @@
         <button id="password-reset" class="secondary-action" type="button">Send password setup link</button>
       </section>
       <p id="status">Sign in with an account that has the Firebase admin claim.</p>
+      <section class="toolbar" aria-label="Admin controls">
+        <button id="refresh-dashboard" type="button">Refresh dashboard</button>
+        <span id="privacy-note">Privacy: letters, OCR, analyses and chats stay only on user devices and cannot be opened in admin.</span>
+      </section>
       <section class="metrics" aria-label="Current metrics">
         <article><span>Users</span><strong id="users">—</strong></article>
         <article><span>Active users</span><strong id="active-users">—</strong></article>
@@ -32,6 +36,38 @@
         <article><span>AI spend / limit</span><strong id="ai-spend">—</strong></article>
         <article><span>AI tokens</span><strong id="ai-tokens">—</strong></article>
         <article><span>AI model</span><strong id="ai-model">—</strong></article>
+      </section>
+      <section class="card wide-card">
+        <div class="section-heading">
+          <div>
+            <h2>Accounts</h2>
+            <p>Account, plan and usage metadata. Local documents are never shown here.</p>
+          </div>
+          <label class="search-label">Search accounts<input id="account-search" type="search" placeholder="Email or name" /></label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Account</th><th>Plan</th><th>Usage</th><th>Last active</th><th>Status</th><th>Control</th></tr>
+            </thead>
+            <tbody id="accounts-table"><tr><td colspan="6">Sign in to load accounts.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="accounts-summary">—</span>
+          <button id="load-more-accounts" class="secondary-action" type="button" disabled>Load more</button>
+        </div>
+      </section>
+      <section class="settings-grid">
+        <section class="card">
+          <h2>Plans and trial</h2>
+          <div id="plan-list" class="plan-list">Sign in to load plan limits.</div>
+        </section>
+        <section class="card">
+          <h2>Service controls</h2>
+          <p>Use the account list to suspend or restore access. Suspending immediately revokes active sessions.</p>
+          <p id="service-state">No operational action recorded in this session.</p>
+        </section>
       </section>
       <section class="card">
         <h2>Send service notification</h2>
