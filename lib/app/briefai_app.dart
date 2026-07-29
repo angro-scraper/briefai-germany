@@ -749,9 +749,9 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_authenticationError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_authenticationError(error))));
     } on FirebaseFunctionsException catch (error) {
       if (!mounted) return;
       if (error.code == 'unauthenticated') {
@@ -798,16 +798,17 @@ class _SignInScreenState extends State<SignInScreen> {
         'Ovaj email već ima nalog. Izaberite „Prijavi se“.',
       'invalid-email' => 'Unesite ispravnu email adresu.',
       'weak-password' => 'Lozinka mora imati najmanje 6 znakova.',
-      'wrong-password' || 'invalid-credential' =>
-        'Email ili lozinka nisu ispravni.',
+      'wrong-password' ||
+      'invalid-credential' => 'Email ili lozinka nisu ispravni.',
       'network-request-failed' =>
         'Nema veze sa internetom. Proverite vezu i pokušajte ponovo.',
       'too-many-requests' =>
         'Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.',
       'operation-not-allowed' =>
         'Registracija emailom trenutno nije dostupna. Pokušajte Google prijavu.',
-      _ => '${context.strings.text('signInFailed')}: '
-          '${error.message ?? error.code}',
+      _ =>
+        '${context.strings.text('signInFailed')}: '
+            '${error.message ?? error.code}',
     };
   }
 }
@@ -1515,7 +1516,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final letters = widget.state.letters;
-    final selectedLetter = letters.where((letter) => letter.id == _selectedLetterId).firstOrNull ??
+    final selectedLetter =
+        letters.where((letter) => letter.id == _selectedLetterId).firstOrNull ??
         (letters.isEmpty ? null : letters.first);
     final archiveCopy = _assistantArchiveCopy(widget.state.localeCode);
     final visibleMessages = _messages.isEmpty
@@ -1565,11 +1567,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     onChanged: _sending
                         ? null
                         : (id) => setState(() {
-                              _selectedLetterId = id;
-                              // Questions about one letter must never be used as
-                              // context for another locally archived letter.
-                              _messages.clear();
-                            }),
+                            _selectedLetterId = id;
+                            // Questions about one letter must never be used as
+                            // context for another locally archived letter.
+                            _messages.clear();
+                          }),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
@@ -1647,7 +1649,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
     if (!await _ensureCloudAiAccess(context, widget.services) || !mounted) {
       return;
     }
-    final letter = widget.state.letters
+    final letter =
+        widget.state.letters
             .where((candidate) => candidate.id == _selectedLetterId)
             .firstOrNull ??
         (widget.state.letters.isEmpty ? null : widget.state.letters.first);
@@ -1714,56 +1717,64 @@ _AssistantArchiveCopy _assistantArchiveCopy(String language) {
         label: 'Pismo iz arhive',
         ready: 'Odabrano pismo iz lokalne arhive:',
         explainButton: 'Ponovno objasni ovo pismo',
-        explainAgain: 'Objasni mi ovo pismo ponovno detaljno i jednostavnim jezikom. Što se točno traži od mene i koji je sljedeći korak?',
+        explainAgain:
+            'Objasni mi ovo pismo ponovno detaljno i jednostavnim jezikom. Što se točno traži od mene i koji je sljedeći korak?',
       );
     case 'bs':
       return const _AssistantArchiveCopy(
         label: 'Pismo iz arhive',
         ready: 'Izabrano pismo iz lokalne arhive:',
         explainButton: 'Ponovo objasni ovo pismo',
-        explainAgain: 'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sljedeći korak?',
+        explainAgain:
+            'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sljedeći korak?',
       );
     case 'mk':
       return const _AssistantArchiveCopy(
         label: 'Писмо од архивата',
         ready: 'Избрано писмо од локалната архива:',
         explainButton: 'Објасни го писмово повторно',
-        explainAgain: 'Објасни ми го ова писмо повторно детално и со едноставен јазик. Што точно се бара од мене и кој е следниот чекор?',
+        explainAgain:
+            'Објасни ми го ова писмо повторно детално и со едноставен јазик. Што точно се бара од мене и кој е следниот чекор?',
       );
     case 'bg':
       return const _AssistantArchiveCopy(
         label: 'Писмо от архива',
         ready: 'Избрано писмо от локалния архив:',
         explainButton: 'Обясни отново това писмо',
-        explainAgain: 'Обясни ми това писмо отново подробно и на разбираем език. Какво точно се иска от мен и каква е следващата стъпка?',
+        explainAgain:
+            'Обясни ми това писмо отново подробно и на разбираем език. Какво точно се иска от мен и каква е следващата стъпка?',
       );
     case 'de':
       return const _AssistantArchiveCopy(
         label: 'Brief aus dem Archiv',
         ready: 'Ausgewählter Brief aus dem lokalen Archiv:',
         explainButton: 'Diesen Brief erneut erklären',
-        explainAgain: 'Erkläre mir diesen Brief noch einmal ausführlich und einfach. Was wird genau von mir verlangt und was ist mein nächster Schritt?',
+        explainAgain:
+            'Erkläre mir diesen Brief noch einmal ausführlich und einfach. Was wird genau von mir verlangt und was ist mein nächster Schritt?',
       );
     case 'en':
       return const _AssistantArchiveCopy(
         label: 'Letter from archive',
         ready: 'Selected letter from the local archive:',
         explainButton: 'Explain this letter again',
-        explainAgain: 'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
+        explainAgain:
+            'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
       );
     case 'tr':
       return const _AssistantArchiveCopy(
         label: 'Arşivdeki mektup',
         ready: 'Yerel arşivden seçilen mektup:',
         explainButton: 'Bu mektubu yeniden açıkla',
-        explainAgain: 'Bu mektubu tekrar ayrıntılı ve sade bir dille açıkla. Benden tam olarak ne isteniyor ve sonraki adımım nedir?',
+        explainAgain:
+            'Bu mektubu tekrar ayrıntılı ve sade bir dille açıkla. Benden tam olarak ne isteniyor ve sonraki adımım nedir?',
       );
     default:
       return const _AssistantArchiveCopy(
         label: 'Pismo iz arhive',
         ready: 'Izabrano pismo iz lokalne arhive:',
         explainButton: 'Objasni ovo pismo ponovo',
-        explainAgain: 'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sledeći korak?',
+        explainAgain:
+            'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sledeći korak?',
       );
   }
 }
