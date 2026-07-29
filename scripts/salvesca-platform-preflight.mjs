@@ -66,6 +66,7 @@ const translation = source('prevod');
 check('prevod: AI failure leaves a usable local fallback', translation.includes("const localDraft=fallback[kind].replace") && translation.includes("catch(error){query('#result').textContent=localDraft"));
 check('prevod: selected interface language is passed to AI', translation.includes('salvescaTranslationLanguage') && translation.includes('language:window.salvescaTranslationLanguage()'));
 check('prevod: keeps local drafts available after refresh', translation.includes('salvescaTranslationDrafts') && translation.includes('const renderHistory'));
+check('prevod: exports and safely restores private drafts', translation.includes('salvesca-prevod-backup.json') && translation.includes('validTranslationBackup'));
 
 check('usluge: validates local saved-request storage shape', services.includes('Array.isArray(value)?value.filter(Boolean)') && services.includes('salvescaServiceRequests'));
 check('usluge: keeps service-request progress and reminders local', services.includes('requestStatuses') && services.includes('text/calendar'));
