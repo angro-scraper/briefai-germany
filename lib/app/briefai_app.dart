@@ -1544,7 +1544,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: selectedLetter?.id,
+                    initialValue: selectedLetter?.id,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
