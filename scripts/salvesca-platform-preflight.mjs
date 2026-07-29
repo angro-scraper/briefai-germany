@@ -27,6 +27,10 @@ for (const locale of ['sr:', 'de:', 'en:', 'tr:']) {
 }
 check('usluge: German service categories', services.includes('germanCategories'));
 
+const platformHome = readFileSync(resolve(root, 'index.html'), 'utf8');
+check('platform home: persists selected interface language', platformHome.includes('salvescaPlatformLanguage'));
+check('platform home: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => platformHome.includes(`value="${locale}"`)));
+
 const assistant = source('asistent');
 check('asistent: stores the selected interface language', assistant.includes('salvescaLifeLanguage'));
 check('asistent: applies the selected interface language', assistant.includes('applyInterfaceLanguage'));

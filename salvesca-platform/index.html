@@ -31,5 +31,38 @@
       <section class="shell platform"><div><span class="section-label">Naš pristup</span><h2>Manje nejasnoća. Više kontrole.</h2><p>Nemački sistem može biti zahtevan čak i kada već znate jezik. Salvesca proizvodi pretvaraju složene informacije u praktične odluke koje možete doneti svojim tempom.</p></div><div class="principles"><div class="principle"><b>Jasno</b>Bez nepotrebno stručnog jezika.</div><div class="principle"><b>Praktično</b>Od pitanja do konkretnog sledećeg koraka.</div><div class="principle"><b>Privatno</b>Podaci ostaju pod kontrolom korisnika.</div><div class="principle"><b>U razvoju</b>Platforma raste sa potrebama zajednice.</div></div></section>
     </main>
     <footer class="shell"><span>© 2026 Salvesca. Sva prava zadržana.</span><span><a href="https://briefai.salvesca.com/support.html">Podrška</a> · <a href="https://briefai.salvesca.com/privacy.html">Privatnost</a> · Napravljeno za ljude u dijaspori.</span></footer>
+    <script>
+      (() => {
+        const key = 'salvescaPlatformLanguage';
+        const select = document.createElement('select');
+        select.setAttribute('aria-label', 'Jezik platforme');
+        select.style.cssText = 'border:1px solid #bfcce1;border-radius:9px;padding:9px 11px;background:#fff;color:#0b1730;font:inherit;font-weight:700';
+        select.innerHTML = '<option value="sr">Srpski</option><option value="de">Deutsch</option><option value="en">English</option><option value="tr">Türkçe</option>';
+        document.querySelector('header nav').append(select);
+        const copy = {
+          sr:{nav:['Aplikacije','Podrška','Privatnost','Istraži alate'],kicker:'Digitalni alati za dijasporu',title:'Važan život.<br><span>Jasni alati.</span>',lead:'Salvesca gradi pouzdane digitalne proizvode za ljude koji žive i rade u Nemačkoj — od razumevanja službenih pisama do sigurnijeg pronalaska doma.',primary:'Pogledaj aplikacije',secondary:'Upoznaj BriefAI',section:'Proizvodi koji rešavaju konkretne stvari.',sectionText:'Salvesca nije jedna velika, zbunjujuća aplikacija. To je pažljivo organizovana platforma specijalizovanih digitalnih alata.'},
+          de:{nav:['Apps','Support','Datenschutz','Tools entdecken'],kicker:'Digitale Werkzeuge für die Diaspora',title:'Wichtiges Leben.<br><span>Klare Werkzeuge.</span>',lead:'Salvesca entwickelt verlässliche digitale Produkte für Menschen, die in Deutschland leben und arbeiten — vom Verständnis amtlicher Briefe bis zur sichereren Wohnungssuche.',primary:'Apps ansehen',secondary:'BriefAI entdecken',section:'Produkte für konkrete Aufgaben.',sectionText:'Salvesca ist keine große, unübersichtliche App. Es ist eine sorgfältig organisierte Plattform spezialisierter digitaler Werkzeuge.'},
+          en:{nav:['Apps','Support','Privacy','Explore tools'],kicker:'Digital tools for the diaspora',title:'Important life.<br><span>Clear tools.</span>',lead:'Salvesca builds reliable digital products for people living and working in Germany — from understanding official letters to finding a home with more confidence.',primary:'View apps',secondary:'Meet BriefAI',section:'Products that solve concrete tasks.',sectionText:'Salvesca is not one large, confusing application. It is a carefully organised platform of specialised digital tools.'},
+          tr:{nav:['Uygulamalar','Destek','Gizlilik','Araçları keşfet'],kicker:'Diaspora için dijital araçlar',title:'Önemli yaşam.<br><span>Net araçlar.</span>',lead:'Salvesca Almanya’da yaşayan ve çalışan insanlar için güvenilir dijital ürünler geliştirir — resmi mektupları anlamaktan daha güvenli ev bulmaya kadar.',primary:'Uygulamaları gör',secondary:'BriefAI’ı tanı',section:'Somut işleri çözen ürünler.',sectionText:'Salvesca büyük ve karmaşık tek bir uygulama değildir. Uzmanlaşmış dijital araçlardan oluşan özenle düzenlenmiş bir platformdur.'}
+        };
+        let language = localStorage.getItem(key) || 'sr';
+        function applyLanguage() {
+          const text = copy[language] || copy.sr;
+          const nav = [...document.querySelectorAll('header nav a')];
+          document.documentElement.lang = language;
+          select.value = language;
+          nav.forEach((node, index) => node.textContent = text.nav[index]);
+          document.querySelector('.hero .kicker').textContent = text.kicker;
+          document.querySelector('.hero h1').innerHTML = text.title;
+          document.querySelector('.hero .lead').textContent = text.lead;
+          document.querySelector('.hero-actions .primary').textContent = text.primary;
+          document.querySelector('.hero-actions .ghost').textContent = text.secondary;
+          document.querySelector('.products .section-head h2').textContent = text.section;
+          document.querySelector('.products .section-head p').textContent = text.sectionText;
+        }
+        select.onchange = () => { language = select.value; localStorage.setItem(key, language); applyLanguage(); };
+        applyLanguage();
+      })();
+    </script>
   </body>
 </html>
