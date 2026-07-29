@@ -41,7 +41,17 @@ for (const module of ['posao', 'prevod']) {
   const html = source(module);
   check(`${module}: Firebase professional email integration`, html.includes('generateLifeInGermanyEmail'));
   check(`${module}: authenticated professional draft`, html.includes('auth.currentUser'));
+  check(`${module}: one reliable email submission handler`, (html.match(/\.onsubmit=/g) ?? []).length === 1);
 }
+
+const jobs = source('posao');
+check('posao: local email draft remains available without sign-in', jobs.includes('window.createLocalJobDraft') && jobs.includes("if(!auth.currentUser){q('#draft').textContent=localDraft"));
+check('posao: validates local checklist storage shape', jobs.includes('Array.isArray(value)?value:[]'));
+
+const translation = source('prevod');
+check('prevod: AI failure leaves a usable local fallback', translation.includes("const localDraft=fallback[kind].replace") && translation.includes("catch(error){query('#result').textContent=localDraft"));
+
+check('usluge: validates local saved-request storage shape', services.includes('Array.isArray(value)?value:[]'));
 
 for (const module of ['finansije', 'prevoz']) {
   const html = source(module);
