@@ -61,6 +61,7 @@ for (const module of ['finansije', 'prevoz']) {
   check(`${module}: one local workflow script`, (html.match(/<script>/g) ?? []).length === 1);
   check(`${module}: one form submission handler`, (html.match(/\.onsubmit=/g) ?? []).length === 1);
   check(`${module}: validates local storage shape`, html.includes('Array.isArray(value)?value:[]'));
+  check(`${module}: exports private 7/3/1-day calendar reminders`, html.includes('BEGIN:VALARM') && html.includes('TRIGGER:-P7D') && html.includes('TRIGGER:-P3D') && html.includes('TRIGGER:-P1D'));
 }
 
 if (failures.length) {
