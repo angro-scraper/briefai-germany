@@ -69,6 +69,11 @@ check('finansije: persists the chosen interface language', finance.includes('sal
 check('finansije: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => finance.includes(`value="${locale}"`)));
 check('finansije: applies language changes immediately', finance.includes('function applyLanguage') && finance.includes('language.onchange'));
 
+const transport = source('prevoz');
+check('prevoz: persists the chosen interface language', transport.includes('salvescaTransportLanguage'));
+check('prevoz: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => transport.includes(`value="${locale}"`)));
+check('prevoz: applies language changes immediately', transport.includes('function applyLanguage') && transport.includes('language.onchange'));
+
 if (failures.length) {
   console.error(`Salvesca platform preflight failed:\n- ${failures.join('\n- ')}`);
   process.exit(1);
