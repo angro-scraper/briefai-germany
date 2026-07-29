@@ -20,6 +20,7 @@ function text(path) {
 
 const firebaseRc = JSON.parse(text('.firebaserc'));
 const lifeAssistantStoreWorkflow = text('.github/workflows/life-assistant-store.yml');
+const lifeAssistantWrapper = text('life_assistant_wrapper/lib/main.dart');
 check(
   'Firebase target is briefai-germany',
   firebaseRc.projects?.default === 'briefai-germany',
@@ -50,15 +51,18 @@ check(
   'Declare OPENAI_API_KEY with defineSecret.',
 );
 check(
-  'Life Assistant Android wrapper targets its public subdomain',
-  lifeAssistantStoreWorkflow.includes(
-    '--dart-define=APP_URL=https://asistent.salvesca.com/',
-  ) &&
-    lifeAssistantStoreWorkflow.includes(
-      '--dart-define=APP_HOST=asistent.salvesca.com',
-    ) &&
-    !lifeAssistantStoreWorkflow.includes('APP_URL=https://salvesca.com/asistent/'),
-  'Point the Life Assistant Android wrapper at https://asistent.salvesca.com/.',
+  'Life Assistant Android package uses the dedicated wrapper',
+  lifeAssistantStoreWorkflow.includes('working-directory: life_assistant_wrapper') &&
+    lifeAssistantStoreWorkflow.includes('flutter build appbundle --release') &&
+    !lifeAssistantStoreWorkflow.includes('--flavor lifeassistant') &&
+    !lifeAssistantStoreWorkflow.includes('lib/wrapper_main.dart'),
+  'Build the dedicated life_assistant_wrapper package, not the BriefAI wrapper.',
+);
+check(
+  'Life Assistant dedicated wrapper targets its public subdomain',
+  lifeAssistantWrapper.includes("const _assistantUrl = 'https://asistent.salvesca.com/'") &&
+    lifeAssistantWrapper.includes("const _assistantHost = 'asistent.salvesca.com'"),
+  'Point the dedicated Life Assistant wrapper at https://asistent.salvesca.com/.',
 );
 if (mode !== 'static') {
   check(
