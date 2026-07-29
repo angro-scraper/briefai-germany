@@ -59,7 +59,9 @@ jobs:
           echo "Restored and validated Android signing keystore"
           printf 'storeFile=../briefai-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
       - run: flutter pub get
-      - run: flutter analyze
+      # Analyze the BriefAI package only. The repository also contains an
+      # independent wrapper under life_assistant_wrapper/ with its own pubspec.
+      - run: flutter analyze lib test
       - run: flutter test
       - name: Build signed AAB
         run: flutter build appbundle --release --flavor briefai --target lib/wrapper_main.dart --build-name=${{ inputs.build_name }} --build-number=${{ inputs.build_number }}
