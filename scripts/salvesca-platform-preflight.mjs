@@ -63,7 +63,8 @@ check('prevod: AI failure leaves a usable local fallback', translation.includes(
 check('prevod: selected interface language is passed to AI', translation.includes('salvescaTranslationLanguage') && translation.includes('language:window.salvescaTranslationLanguage()'));
 check('prevod: keeps local drafts available after refresh', translation.includes('salvescaTranslationDrafts') && translation.includes('const renderHistory'));
 
-check('usluge: validates local saved-request storage shape', services.includes('Array.isArray(value)?value:[]'));
+check('usluge: validates local saved-request storage shape', services.includes('Array.isArray(value)?value.filter(Boolean)') && services.includes('salvescaServiceRequests'));
+check('usluge: keeps service-request progress and reminders local', services.includes('requestStatuses') && services.includes('text/calendar'));
 
 for (const module of ['finansije', 'prevoz']) {
   const html = source(module);
