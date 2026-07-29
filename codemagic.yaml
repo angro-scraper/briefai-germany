@@ -4,8 +4,8 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     integrations:
-      # This name must match the App Store Connect integration in Codemagic.
-      app_store_connect: salvesca-app-store
+      # Existing personal-account App Store Connect integration in Codemagic.
+      app_store_connect: "Sacuvaj Hranu App Store Connect"
     environment:
       flutter: stable
       xcode: latest
