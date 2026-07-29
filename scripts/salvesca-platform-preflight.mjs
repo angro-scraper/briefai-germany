@@ -45,7 +45,12 @@ for (const module of ['posao', 'prevod']) {
   const html = source(module);
   check(`${module}: Firebase professional email integration`, html.includes('generateLifeInGermanyEmail'));
   check(`${module}: authenticated professional draft`, html.includes('auth.currentUser'));
-  check(`${module}: one reliable email submission handler`, (html.match(/\.onsubmit=/g) ?? []).length === 1);
+  // Posao may also have a separate, purely local application tracker form.
+  // Guard the AI e-mail flow specifically instead of rejecting independent
+  // local workflows that legitimately have their own submit handler.
+  check(`${module}: one reliable email submission handler`,
+    (html.match(/#applicationForm'\)\.onsubmit=/g) ?? []).length === 1 ||
+    (html.match(/#form'\)\.onsubmit=/g) ?? []).length === 1);
 }
 
 const jobs = source('posao');
