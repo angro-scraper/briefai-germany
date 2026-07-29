@@ -1237,7 +1237,15 @@ If a city is given, refer to the competent office in that city only generically;
       return {email: parseAiJson(output)};
     } catch (error) {
       if (!providerResponded) await reconcileAiBudget(reservation);
-      if (error instanceof SyntaxError) throw new HttpsError("internal", "E-mail nije validan format.");
+      // A malformed upstream response is a temporary provider failure, not a
+      // user error.  It must not spend the reserved quota and the client
+      // should be able to retry without seeing a misleading validation error.
+      if (error instanceof SyntaxError) {
+        throw new HttpsError(
+          "unavailable",
+          "AI servis trenutno nije vratio čitljiv nacrt. Vaša AI kvota nije potrošena.",
+        );
+      }
       throw error;
     }
   },
