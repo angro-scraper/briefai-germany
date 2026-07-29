@@ -87,6 +87,7 @@ const transport = source('prevoz');
 check('prevoz: persists the chosen interface language', transport.includes('salvescaTransportLanguage'));
 check('prevoz: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => transport.includes(`value="${locale}"`)));
 check('prevoz: applies language changes immediately', transport.includes('function applyLanguage') && transport.includes('language.onchange'));
+check('prevoz: translates guidance and safety sections after a language switch', transport.includes('extendedCopy') && transport.includes('applyExtendedContent'));
 
 if (failures.length) {
   console.error(`Salvesca platform preflight failed:\n- ${failures.join('\n- ')}`);
