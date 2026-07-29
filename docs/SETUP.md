@@ -146,6 +146,13 @@ Set-Location functions
 npm run build
 ```
 
+Za javnu proveru Salvesca modula nakon objave (HTTP dostupnost i marker
+trenutne verzije):
+
+```powershell
+node scripts/salvesca-public-smoke.mjs
+```
+
 Za potpisane Store pakete pratiti [STORE_RELEASE.md](STORE_RELEASE.md).
 Pre potpisivanja pokrenuti `node scripts/production-preflight.mjs --store`;
 komanda mora završiti bez ijednog failure zapisa.
