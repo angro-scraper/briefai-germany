@@ -48,6 +48,8 @@ for (const module of ['finansije', 'prevoz']) {
   check(`${module}: durable local status`, html.includes("status:'open'"));
   check(`${module}: deadline urgency`, html.includes('Rok je') || html.includes('urgency('));
   check(`${module}: completion state`, html.includes("status:'paid'") || html.includes("status:'done'"));
+  check(`${module}: one local workflow script`, (html.match(/<script>/g) ?? []).length === 1);
+  check(`${module}: one form submission handler`, (html.match(/\.onsubmit=/g) ?? []).length === 1);
 }
 
 if (failures.length) {
