@@ -69,6 +69,7 @@ check('prevod: keeps local drafts available after refresh', translation.includes
 
 check('usluge: validates local saved-request storage shape', services.includes('Array.isArray(value)?value.filter(Boolean)') && services.includes('salvescaServiceRequests'));
 check('usluge: keeps service-request progress and reminders local', services.includes('requestStatuses') && services.includes('text/calendar'));
+check('usluge: exports and safely restores private requests', services.includes('salvesca-usluge-backup.json') && services.includes('isValidServicesBackup'));
 
 for (const module of ['finansije', 'prevoz']) {
   const html = source(module);
