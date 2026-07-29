@@ -30,6 +30,8 @@ check('usluge: German service categories', services.includes('germanCategories')
 const platformHome = readFileSync(resolve(root, 'index.html'), 'utf8');
 check('platform home: persists selected interface language', platformHome.includes('salvescaPlatformLanguage'));
 check('platform home: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => platformHome.includes(`value="${locale}"`)));
+check('platform home: translates product cards after a language switch', platformHome.includes('const content =') && platformHome.includes("document.querySelectorAll('.product').forEach"));
+check('platform home: translates privacy and platform principles', platformHome.includes("document.querySelectorAll('.principle').forEach") && platformHome.includes("const footerLinks=document.querySelectorAll('footer a')"));
 
 const assistant = source('asistent');
 check('asistent: stores the selected interface language', assistant.includes('salvescaLifeLanguage'));
