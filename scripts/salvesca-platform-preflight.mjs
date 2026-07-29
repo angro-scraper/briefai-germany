@@ -50,6 +50,7 @@ check('posao: validates local checklist storage shape', jobs.includes('Array.isA
 
 const translation = source('prevod');
 check('prevod: AI failure leaves a usable local fallback', translation.includes("const localDraft=fallback[kind].replace") && translation.includes("catch(error){query('#result').textContent=localDraft"));
+check('prevod: selected interface language is passed to AI', translation.includes('salvescaTranslationLanguage') && translation.includes('language:window.salvescaTranslationLanguage()'));
 
 check('usluge: validates local saved-request storage shape', services.includes('Array.isArray(value)?value:[]'));
 
