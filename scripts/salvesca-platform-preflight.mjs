@@ -27,6 +27,10 @@ for (const locale of ['sr:', 'de:', 'en:', 'tr:']) {
 }
 check('usluge: German service categories', services.includes('germanCategories'));
 
+const assistant = source('asistent');
+check('asistent: stores the selected interface language', assistant.includes('salvescaLifeLanguage'));
+check('asistent: applies the selected interface language', assistant.includes('applyInterfaceLanguage'));
+
 for (const module of ['posao', 'prevod']) {
   const html = source(module);
   check(`${module}: Firebase professional email integration`, html.includes('generateLifeInGermanyEmail'));
