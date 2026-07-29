@@ -81,6 +81,7 @@ const finance = source('finansije');
 check('finansije: persists the chosen interface language', finance.includes('salvescaFinanceLanguage'));
 check('finansije: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => finance.includes(`value="${locale}"`)));
 check('finansije: applies language changes immediately', finance.includes('function applyLanguage') && finance.includes('language.onchange'));
+check('finansije: translates guidance and safety sections after a language switch', finance.includes('extendedCopy') && finance.includes('applyExtendedContent'));
 
 const transport = source('prevoz');
 check('prevoz: persists the chosen interface language', transport.includes('salvescaTransportLanguage'));
