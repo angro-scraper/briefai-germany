@@ -31,6 +31,8 @@ const assistant = source('asistent');
 check('asistent: stores the selected interface language', assistant.includes('salvescaLifeLanguage'));
 check('asistent: applies the selected interface language', assistant.includes('applyInterfaceLanguage'));
 check('asistent: handles malformed AI answer payloads safely', assistant.includes('normalizeAnswer'));
+check('asistent: sends municipality separately to AI guidance', assistant.includes('askApi({question,city,language'));
+check('asistent: survives malformed local browser storage', assistant.includes('function readLocalJson'));
 for (const locale of ['sr:', 'hr:', 'bs:', 'mk:', 'bg:', 'de:', 'en:', 'tr:', 'ru:', 'uk:', 'ro:', 'pl:', 'ar:']) {
   check(`asistent: ${locale} interface copy`, assistant.includes(locale));
 }
