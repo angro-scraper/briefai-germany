@@ -1132,7 +1132,12 @@ export const askLifeInGermanyAssistant = onCall(
       ? requireString(request.data.recentContext, "recentContext", 5000)
       : "No earlier conversation is available.";
     const instantGuide = immediateLifeGuide(question);
-    if (instantGuide) {
+    // The deterministic guides are authored in Serbian.  Returning one while
+    // a user selected another language silently breaks the product promise.
+    // In that case use the structured AI path, which is explicitly instructed
+    // to respond in the selected language.  Serbian keeps the zero-token,
+    // immediate path for the most common questions.
+    if (instantGuide && language === "sr") {
       const sources = instantGuide.sourceKeys.map((key) => ({key, ...officialLifeSources[key]}));
       return {answer: {...instantGuide, sources}, mode: "instant-guide"};
     }
