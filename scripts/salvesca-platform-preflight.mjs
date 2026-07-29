@@ -64,6 +64,11 @@ for (const module of ['finansije', 'prevoz']) {
   check(`${module}: exports private 7/3/1-day calendar reminders`, html.includes('BEGIN:VALARM') && html.includes('TRIGGER:-P7D') && html.includes('TRIGGER:-P3D') && html.includes('TRIGGER:-P1D'));
 }
 
+const finance = source('finansije');
+check('finansije: persists the chosen interface language', finance.includes('salvescaFinanceLanguage'));
+check('finansije: offers Serbian, German, English and Turkish', ['sr','de','en','tr'].every(locale => finance.includes(`value="${locale}"`)));
+check('finansije: applies language changes immediately', finance.includes('function applyLanguage') && finance.includes('language.onchange'));
+
 if (failures.length) {
   console.error(`Salvesca platform preflight failed:\n- ${failures.join('\n- ')}`);
   process.exit(1);
