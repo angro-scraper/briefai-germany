@@ -50,6 +50,7 @@ for (const module of ['finansije', 'prevoz']) {
   check(`${module}: completion state`, html.includes("status:'paid'") || html.includes("status:'done'"));
   check(`${module}: one local workflow script`, (html.match(/<script>/g) ?? []).length === 1);
   check(`${module}: one form submission handler`, (html.match(/\.onsubmit=/g) ?? []).length === 1);
+  check(`${module}: validates local storage shape`, html.includes('Array.isArray(value)?value:[]'));
 }
 
 if (failures.length) {
