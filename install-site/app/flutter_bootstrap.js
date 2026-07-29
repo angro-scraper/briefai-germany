@@ -35,7 +35,8 @@ if (!window._flutter) {
 }
 _flutter.buildConfig = {"engineRevision":"83675ed27633283e7fc296c8bca22e841224c096","builds":[{"compileTarget":"dart2js","renderer":"canvaskit","mainJsPath":"main.dart.js"},{}]};
 
-// The native wrappers deliberately fetch the hosted app fresh on every launch.
-// Do not register a service worker here: a cached Flutter bundle can keep a
-// fixed archive bug alive after the server has been updated.
-_flutter.loader.load();
+_flutter.loader.load({
+  serviceWorkerSettings: {
+    serviceWorkerVersion: "582344601" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */
+  }
+});
