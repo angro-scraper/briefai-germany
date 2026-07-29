@@ -47,6 +47,7 @@ for (const module of ['posao', 'prevod']) {
 const jobs = source('posao');
 check('posao: local email draft remains available without sign-in', jobs.includes('window.createLocalJobDraft') && jobs.includes("if(!auth.currentUser){q('#draft').textContent=localDraft"));
 check('posao: validates local checklist storage shape', jobs.includes('Array.isArray(value)?value:[]'));
+check('posao: selected interface language is passed to AI', jobs.includes('salvescaJobLanguage') && jobs.includes('language:window.salvescaJobLanguage()'));
 
 const translation = source('prevod');
 check('prevod: AI failure leaves a usable local fallback', translation.includes("const localDraft=fallback[kind].replace") && translation.includes("catch(error){query('#result').textContent=localDraft"));
