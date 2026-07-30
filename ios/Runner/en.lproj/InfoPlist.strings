@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "BriefAI uses the camera to read a German official letter.";
+"NSPhotoLibraryUsageDescription" = "BriefAI accesses photos only when you choose a document to analyze.";

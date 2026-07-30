@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -12,6 +14,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -34,6 +37,12 @@ const _appTitle = String.fromEnvironment(
   defaultValue: 'BriefAI Germany',
 );
 const _wrapperImageMaxSide = 2200;
+
+String _appleNonce() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+  return base64UrlEncode(bytes).replaceAll('=', '');
+}
 
 int _nativeNotificationId(String letterId, int days) {
   var hash = 0x811c9dc5;
@@ -256,8 +265,29 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           }
           await _resolveNative(requestId, {'ok': true, 'idToken': idToken});
         case 'authApple':
-          final credential = await FirebaseAuth.instance.signInWithProvider(
-            AppleAuthProvider(),
+          if (!Platform.isIOS && !Platform.isMacOS) {
+            throw StateError('Apple prijava je dostupna samo na Apple uređaju.');
+          }
+          if (!await SignInWithApple.isAvailable()) {
+            throw StateError('Apple prijava trenutno nije dostupna na uređaju.');
+          }
+          final rawNonce = _appleNonce();
+          final appleCredential = await SignInWithApple.getAppleIDCredential(
+            scopes: const [
+              AppleIDAuthorizationScopes.email,
+              AppleIDAuthorizationScopes.fullName,
+            ],
+            nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+          );
+          final identityToken = appleCredential.identityToken;
+          if (identityToken == null || identityToken.isEmpty) {
+            throw StateError('Apple prijava nije vratila identitet korisnika.');
+          }
+          final credential = await FirebaseAuth.instance.signInWithCredential(
+            OAuthProvider('apple.com').credential(
+              idToken: identityToken,
+              rawNonce: rawNonce,
+            ),
           );
           final idToken = await credential.user?.getIdToken(true);
           if (idToken == null || idToken.isEmpty) {

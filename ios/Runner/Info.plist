@@ -8,6 +8,17 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>BriefAI Germany</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>sr</string>
+		<string>hr</string>
+		<string>bs</string>
+		<string>mk</string>
+		<string>bg</string>
+		<string>tr</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleExecutable</key>
@@ -67,9 +78,9 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>NSCameraUsageDescription</key>
-	<string>BriefAI koristi kameru da pročita nemačko službeno pismo.</string>
+	<string>BriefAI uses the camera to read a German official letter.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>BriefAI pristupa fotografijama samo kada izaberete dokument za analizu.</string>
+	<string>BriefAI accesses photos only when you choose a document to analyze.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
