@@ -29,7 +29,10 @@ workflows:
           flutter test
       - name: Build signed IPA for TestFlight
         script: |
-          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1))
+          # App Store Connect can report a stale latest build while a prior
+          # TestFlight upload is still processing. A UTC timestamp is a valid
+          # numeric CFBundleVersion and prevents a duplicate upload.
+          BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"
           flutter build ipa --release \
             --target lib/wrapper_main.dart \
             --build-name="$BUILD_NAME" \
