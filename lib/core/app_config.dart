@@ -17,9 +17,9 @@ const bool kCloudAiEnabled = bool.fromEnvironment(
   defaultValue: true,
 );
 
-/// Store-review and closed-testing accounts can analyse fifteen letters
+/// Store-review and closed-testing accounts can analyse five letters
 /// without payment. This is a lifetime testing allowance, not a monthly one.
-const int kFreeAnalysisLimit = 15;
+const int kFreeAnalysisLimit = 5;
 
 class SubscriptionPlan {
   const SubscriptionPlan({

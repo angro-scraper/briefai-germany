@@ -536,7 +536,7 @@ class HomeScreen extends StatelessWidget {
                 label: Text(
                   state.canAnalyse
                       ? strings.text('addDocument')
-                      : strings.text('activatePremium'),
+                      : strings.text('choosePlanButton'),
                 ),
               ),
             ],
@@ -2275,7 +2275,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Tokom zatvorenog testiranja svaki nalog dobija 15 test analiza bez naplate. Kada komercijalna naplata bude aktivirana, korisnik će moći da izabere mesečni paket od 50, 100 ili 150 novih analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
+    'Tokom zatvorenog testiranja svaki nalog dobija 5 test analiza bez naplate. Posle toga korisnik bira mesečni paket od 50, 100 ili 150 analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
   ),
   (
     '4. Prihvatljivo korišćenje',
