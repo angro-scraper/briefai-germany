@@ -15,6 +15,9 @@ analyzer:
     - distribution/**
     - functions/node_modules/**
     - install-site/**
+    # This is a separately packaged Salvesca wrapper that lives in the repo
+    # for distribution purposes. It has its own pubspec and analysis settings.
+    - life_assistant_wrapper/**
     - outputs/**
     - work/**
 

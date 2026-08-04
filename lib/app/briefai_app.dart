@@ -599,11 +599,12 @@ class _AnalyticsConsentCardState extends State<AnalyticsConsentCard> {
 
   Future<void> _load() async {
     final choice = await widget.analytics.consentChoice();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _loading = false;
         _visible = choice == null;
       });
+    }
   }
 
   Future<void> _choose(bool allowed) async {
