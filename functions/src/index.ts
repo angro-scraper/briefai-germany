@@ -895,6 +895,37 @@ export const publicAnalytics = onRequest(
   },
 );
 
+// Closed testing requires us to know which Google accounts can join. This
+// consented form intentionally stores only the tester's email, source and
+// operational status. It never stores letters, OCR, analysis or chat content.
+export const submitTesterLead = onRequest(
+  {region: "europe-west3", cors: ["https://briefai.salvesca.com"]},
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send("Method not allowed");
+      return;
+    }
+    const rawEmail = typeof request.body?.email === "string" ? request.body.email.trim().toLowerCase() : "";
+    const source = analyticsSource(request.body?.source);
+    const consent = request.body?.consent === true;
+    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) && rawEmail.length <= 254;
+    if (!validEmail || !consent) {
+      response.status(400).json({ok: false, message: "Unesite važeću email adresu i potvrdite saglasnost."});
+      return;
+    }
+    const leadId = createHash("sha256").update(rawEmail).digest("hex");
+    await db.collection("testerLeads").doc(leadId).set({
+      email: rawEmail,
+      source,
+      consentedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      status: "new",
+      consentVersion: "2026-08-04",
+    }, {merge: true});
+    response.status(200).json({ok: true});
+  },
+);
+
 async function verifyGooglePlaySubscription(purchaseToken: string, productId: string) {
   let credentials: Record<string, unknown>;
   try {
@@ -1662,6 +1693,40 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
     })),
     analytics,
   };
+});
+
+export const adminListTesterLeads = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  await requireAdmin(request.auth?.uid);
+  const snapshot = await db.collection("testerLeads").orderBy("updatedAt", "desc").limit(200).get();
+  return {
+    leads: snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: typeof data.email === "string" ? data.email : null,
+        source: typeof data.source === "string" ? data.source : "direct",
+        status: typeof data.status === "string" ? data.status : "new",
+        consentedAt: timestampToIso(data.consentedAt),
+        updatedAt: timestampToIso(data.updatedAt),
+      };
+    }),
+  };
+});
+
+export const adminUpdateTesterLead = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
+  await requireAdmin(request.auth?.uid);
+  const leadId = requireString(request.data?.leadId, "leadId", 128);
+  const status = requireString(request.data?.status, "status", 32);
+  const allowed = new Set(["new", "added_to_play", "installed", "not_eligible"]);
+  if (!allowed.has(status)) {
+    throw new HttpsError("invalid-argument", "Nepoznat status testera.");
+  }
+  const leadRef = db.collection("testerLeads").doc(leadId);
+  const lead = await leadRef.get();
+  if (!lead.exists) throw new HttpsError("not-found", "Tester nije pronađen.");
+  await leadRef.set({status, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+  await writeAdminAudit(request.auth!.uid, "tester_lead_status", leadId, {status});
+  return {ok: true};
 });
 
 // Operational metadata only: original letters, OCR text, AI answers and chat

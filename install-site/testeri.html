@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>BriefAI Germany — Android testiranje</title>
+    <style>
+      :root{color-scheme:light;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#122044;background:#f4f7fc}
+      *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 82% 12%,#e0e8ff 0,transparent 32rem),#f4f7fc}
+      main{width:min(100%,680px);background:#fff;border:1px solid #e1e7f2;border-radius:26px;padding:clamp(28px,6vw,54px);box-shadow:0 22px 64px #172b6220}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#10235b;font-weight:800;font-size:1.08rem}.brand img{width:46px;height:46px;border-radius:14px}.eyebrow{margin:40px 0 10px;color:#315bca;font-size:.75rem;font-weight:800;letter-spacing:.11em}.tag{display:inline-block;border-radius:99px;background:#e7eeff;color:#2851bb;font-size:.78rem;font-weight:700;padding:7px 11px}h1{margin:14px 0;font-size:clamp(2.1rem,7vw,3.55rem);line-height:1.02;letter-spacing:-.055em}p{color:#5c6a83;line-height:1.65}form{margin-top:28px;padding:22px;border-radius:18px;background:#f7f9fe;border:1px solid #e1e8f7}label{display:grid;gap:8px;font-weight:750;color:#1b2b52}input[type=email]{width:100%;font:inherit;padding:14px;border:1px solid #bdc9de;border-radius:10px;color:#15244a}.consent{grid-template-columns:20px 1fr;align-items:start;font-weight:500;font-size:.9rem;line-height:1.45;margin:15px 0}.consent input{margin-top:3px}button{width:100%;border:0;border-radius:11px;padding:15px;background:#2856cf;color:#fff;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 10px 20px #2856cf30}button:hover{background:#1f47b4}button:disabled{opacity:.65;cursor:wait}.status{min-height:24px;margin:13px 0 0;color:#455877;font-weight:650}.status.success{color:#217041}.steps{margin:30px 0 0;padding:0;list-style:none;display:grid;gap:11px}.steps li{display:flex;gap:10px;color:#41526e}.steps b{color:#2856cf}.fine{font-size:.82rem;margin-top:25px}.fine a{color:#244eb9}@media(max-width:480px){body{padding:14px}main{border-radius:20px;padding:28px 22px}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="brand" href="/"><img src="/briefai-logo.svg" alt="BriefAI Germany" />BriefAI Germany</a>
+      <p class="eyebrow">ANDROID · ZATVORENO TESTIRANJE</p>
+      <span class="tag">Besplatno za testere</span>
+      <h1>Prijavi se za BriefAI testiranje.</h1>
+      <p>Ostavi Gmail adresu koju koristiš na Android telefonu. Dodajemo je na Google Play listu testera, a zatim ti šaljemo link za instalaciju.</p>
+      <form id="tester-form" novalidate>
+        <label for="email">Tvoj Gmail za Google Play
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="ime@gmail.com" />
+        </label>
+        <label class="consent"><input id="consent" type="checkbox" required />
+          <span>Saglasan/na sam da BriefAI Germany sačuva ovu email adresu isključivo radi pristupa zatvorenom Android testiranju i komunikacije o testu. <a href="/privacy.html" target="_blank" rel="noopener">Politika privatnosti</a>.</span>
+        </label>
+        <button id="submit" type="submit">Prijavi se za testiranje</button>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </form>
+      <ol class="steps"><li><b>1.</b><span>Prijaviš Gmail adresu.</span></li><li><b>2.</b><span>Dodajemo te u Google Play zatvoreno testiranje.</span></li><li><b>3.</b><span>Dobijaš link, prihvatiš test i instaliraš BriefAI.</span></li></ol>
+      <p class="fine">Ne šalji nam lozinku, dokumente ili osetljive podatke. Testiranje je namenjeno Android korisnicima.</p>
+    </main>
+    <script>
+      (() => {
+        const form = document.querySelector('#tester-form');
+        const status = document.querySelector('#status');
+        const button = document.querySelector('#submit');
+        const endpoint = 'https://europe-west3-briefai-germany.cloudfunctions.net/submitTesterLead';
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          const email = document.querySelector('#email').value.trim();
+          const consent = document.querySelector('#consent').checked;
+          if (!email || !consent) { status.textContent = 'Unesi Gmail adresu i potvrdi saglasnost.'; status.className = 'status'; return; }
+          button.disabled = true; button.textContent = 'Šaljemo prijavu…'; status.textContent = '';
+          try {
+            const response = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, consent:true, source:new URLSearchParams(location.search).get('utm_source') || 'facebook'})});
+            if (!response.ok) throw new Error('request_failed');
+            form.reset(); status.textContent = 'Prijava je primljena. Dodajemo te na test listu i zatim možeš instalirati aplikaciju.'; status.className = 'status success';
+          } catch { status.textContent = 'Prijava trenutno nije poslata. Pokušaj ponovo za minut.'; status.className = 'status'; }
+          finally { button.disabled = false; button.textContent = 'Prijavi se za testiranje'; }
+        });
+      })();
+    </script>
+  </body>
+</html>

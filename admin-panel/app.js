@@ -27,6 +27,7 @@ let functions;
 let auth;
 let completingSignIn;
 let accounts = [];
+let testerLeads = [];
 let nextAccountsPageToken = null;
 const configured = Object.values(firebaseConfig).every((value) => value !== 'REPLACE_ME' && value.length > 0);
 if (configured) {
@@ -55,6 +56,7 @@ if (configured) {
         await loadMetrics();
       }
       await loadAccounts({reset: true});
+      await loadTesterLeads();
       await loadAudit();
       document.body.classList.add('is-signed-in');
       document.querySelector('#sign-out').hidden = false;
@@ -133,7 +135,7 @@ if (configured) {
       return;
     }
     try {
-      await Promise.all([loadMetrics(), loadAccounts({reset: true})]);
+      await Promise.all([loadMetrics(), loadAccounts({reset: true}), loadTesterLeads()]);
       status.textContent = 'Dashboard refreshed.';
     } catch (error) {
       status.textContent = `Refresh failed: ${error.message}`;
@@ -156,6 +158,14 @@ if (configured) {
       status.textContent = 'Audit log refreshed.';
     } catch (error) {
       status.textContent = `Could not load audit log: ${error.message}`;
+    }
+  });
+  document.querySelector('#refresh-tester-leads').addEventListener('click', async () => {
+    try {
+      await loadTesterLeads();
+      status.textContent = 'Tester applications refreshed.';
+    } catch (error) {
+      status.textContent = `Could not load tester applications: ${error.message}`;
     }
   });
   onAuthStateChanged(auth, async (user) => {
@@ -253,6 +263,70 @@ function renderPlans(metric) {
     details.textContent = `${plan.monthlyAnalysisLimit} analyses / month · AI cap $${plan.aiBudgetUsd}`;
     row.append(title, details);
     container.append(row);
+  }
+}
+
+async function loadTesterLeads() {
+  const result = await httpsCallable(functions, 'adminListTesterLeads')();
+  testerLeads = Array.isArray(result.data?.leads) ? result.data.leads : [];
+  renderTesterLeads();
+}
+
+function renderTesterLeads() {
+  const table = document.querySelector('#tester-leads-table');
+  table.replaceChildren();
+  if (!testerLeads.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 5;
+    cell.textContent = 'No tester applications yet.';
+    row.append(cell);
+    table.append(row);
+    return;
+  }
+  for (const lead of testerLeads) {
+    const row = document.createElement('tr');
+    row.append(
+      textCell(lead.email || '—'),
+      textCell(lead.source || 'direct'),
+      textCell(formatDate(lead.consentedAt)),
+    );
+    const statusCell = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `status-pill ${lead.status === 'installed' ? 'active' : lead.status === 'not_eligible' ? 'disabled' : ''}`;
+    badge.textContent = String(lead.status || 'new').replaceAll('_', ' ');
+    statusCell.append(badge);
+    row.append(statusCell);
+    const control = document.createElement('td');
+    const select = document.createElement('select');
+    const labels = {new: 'New', added_to_play: 'Added to Play', installed: 'Installed', not_eligible: 'Not eligible'};
+    for (const [value, label] of Object.entries(labels)) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      option.selected = value === lead.status;
+      select.append(option);
+    }
+    select.addEventListener('change', () => updateTesterLead(lead, select.value));
+    control.append(select);
+    row.append(control);
+    table.append(row);
+  }
+}
+
+async function updateTesterLead(lead, nextStatus) {
+  if (nextStatus === lead.status) return;
+  if (!window.confirm(`Set ${lead.email} to “${nextStatus.replaceAll('_', ' ')}”?`)) {
+    renderTesterLeads();
+    return;
+  }
+  try {
+    await httpsCallable(functions, 'adminUpdateTesterLead')({leadId: lead.id, status: nextStatus});
+    await Promise.all([loadTesterLeads(), loadAudit()]);
+    status.textContent = `Tester status updated for ${lead.email}.`;
+  } catch (error) {
+    status.textContent = `Tester update failed: ${error.message}`;
+    await loadTesterLeads();
   }
 }
 
