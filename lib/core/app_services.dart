@@ -250,9 +250,13 @@ class PrivacyAnalyticsService {
         ? (Uri.base.queryParameters['utm_source'] ?? 'direct')
         : 'native';
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
-          .httpsCallable('recordAnalyticsEvent')
-          .call<void>({'event': event, 'visitorId': visitorId, 'source': source});
+      await FirebaseFunctions.instanceFor(
+        region: 'europe-west3',
+      ).httpsCallable('recordAnalyticsEvent').call<void>({
+        'event': event,
+        'visitorId': visitorId,
+        'source': source,
+      });
     } on Object {
       // Metrics are optional and must never block the primary product flow.
     }
