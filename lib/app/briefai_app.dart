@@ -346,6 +346,7 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _bindLocalVault();
+    unawaited(widget.services.analytics.trackPageView());
     if (widget.services.cloudEnabled) {
       _authSubscription = widget.services.auth.authChanges.listen((user) {
         _bindLocalVault();
@@ -460,6 +461,7 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(strings.text('homeSubtitle')),
+        AnalyticsConsentCard(analytics: services.analytics),
         if (services.cloudEnabled && !services.auth.isSignedIn) ...[
           const SizedBox(height: 18),
           Card(
@@ -573,6 +575,76 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
       ],
+    );
+  }
+}
+
+class AnalyticsConsentCard extends StatefulWidget {
+  const AnalyticsConsentCard({super.key, required this.analytics});
+  final PrivacyAnalyticsService analytics;
+
+  @override
+  State<AnalyticsConsentCard> createState() => _AnalyticsConsentCardState();
+}
+
+class _AnalyticsConsentCardState extends State<AnalyticsConsentCard> {
+  bool _loading = true;
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final choice = await widget.analytics.consentChoice();
+    if (mounted) setState(() {
+      _loading = false;
+      _visible = choice == null;
+    });
+  }
+
+  Future<void> _choose(bool allowed) async {
+    await widget.analytics.setConsent(allowed);
+    if (mounted) setState(() => _visible = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading || !_visible) return const SizedBox.shrink();
+    final code = Localizations.localeOf(context).languageCode;
+    final copy = switch (code) {
+      'de' => ('Datenschutz-Einstellung', 'Dürfen wir anonyme Besuchs- und Installationsmetriken erfassen? Keine Briefe, OCR-Texte, Chats oder E-Mail-Adressen werden dafür gespeichert.', 'Ablehnen', 'Akzeptieren'),
+      'en' => ('Privacy choice', 'May we measure anonymous visits and installation clicks? We never store letters, OCR text, chats or email addresses for this.', 'Decline', 'Accept'),
+      'tr' => ('Gizlilik seçimi', 'Anonim ziyaret ve kurulum tıklamalarını ölçmemize izin veriyor musunuz? Mektuplar, OCR metinleri, sohbetler veya e-posta adresleri saklanmaz.', 'Reddet', 'Kabul et'),
+      'bg' => ('Поверителност', 'Позволявате ли анонимно измерване на посещения и кликвания за инсталация? Не се съхраняват писма, OCR текстове, чатове или имейл адреси.', 'Отказ', 'Приемам'),
+      'mk' => ('Приватност', 'Дали дозволувате анонимно мерење на посети и кликови за инсталација? Не се чуваат писма, OCR текстови, разговори или е-пошта.', 'Одбиј', 'Прифати'),
+      _ => ('Izbor privatnosti', 'Da li dozvoljavate anonimno merenje poseta i klikova za instalaciju? Ne čuvamo pisma, OCR tekst, chat ni email adresu.', 'Odbij', 'Prihvatam'),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(copy.$1, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Text(copy.$2),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  TextButton(onPressed: () => unawaited(_choose(false)), child: Text(copy.$3)),
+                  const Spacer(),
+                  FilledButton(onPressed: () => unawaited(_choose(true)), child: Text(copy.$4)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -736,6 +808,7 @@ class _SignInScreenState extends State<SignInScreen> {
       _password.text,
       create: _create,
     );
+    if (_create) unawaited(widget.services.analytics.trackRegistration());
   });
   Future<void> _google() => _run(widget.services.auth.signInWithGoogle);
   Future<void> _apple() => _run(widget.services.auth.signInWithApple);

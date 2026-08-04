@@ -65,6 +65,7 @@ class AppServices {
     required this.cloudEnabled,
     required this.configurationError,
     required this.auth,
+    required this.analytics,
     required this.documents,
     required this.ai,
     required this.letters,
@@ -77,6 +78,7 @@ class AppServices {
   final bool cloudEnabled;
   final String? configurationError;
   final AuthService auth;
+  final PrivacyAnalyticsService analytics;
   final DocumentService documents;
   final AiService ai;
   final LetterRepository letters;
@@ -89,6 +91,7 @@ class AppServices {
     cloudEnabled: false,
     configurationError: configurationError,
     auth: AuthService(cloudEnabled: false),
+    analytics: PrivacyAnalyticsService(cloudEnabled: false),
     documents: DocumentService(cloudEnabled: false),
     ai: AiService(cloudEnabled: false),
     letters: LetterRepository(cloudEnabled: false),
@@ -175,6 +178,7 @@ class AppServices {
       cloudEnabled: cloudEnabled,
       configurationError: configurationError,
       auth: AuthService(cloudEnabled: cloudEnabled),
+      analytics: PrivacyAnalyticsService(cloudEnabled: cloudEnabled),
       documents: DocumentService(cloudEnabled: cloudEnabled),
       ai: AiService(cloudEnabled: cloudEnabled),
       letters: letters,
@@ -200,6 +204,57 @@ class AppServices {
       );
     } catch (error, stackTrace) {
       debugPrint('Firebase App Check activation skipped: $error\n$stackTrace');
+    }
+  }
+}
+
+/// Privacy-first product analytics. Tracking is disabled until the user makes
+/// an explicit choice. The server receives only a pseudonymous device UUID hash,
+/// an event type and an optional UTM source; it never receives document text,
+/// chat, email address, IP address or a browsing history.
+class PrivacyAnalyticsService {
+  PrivacyAnalyticsService({required this.cloudEnabled});
+
+  static const _consentKey = 'briefai.analytics-consent';
+  static const _visitorKey = 'briefai.analytics-visitor-id';
+
+  final bool cloudEnabled;
+
+  Future<bool?> consentChoice() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.containsKey(_consentKey)
+        ? preferences.getBool(_consentKey)
+        : null;
+  }
+
+  Future<void> setConsent(bool allowed) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_consentKey, allowed);
+    if (allowed) await trackPageView();
+  }
+
+  Future<void> trackPageView() => _track('page_view');
+  Future<void> trackInstallClick() => _track('install_click');
+  Future<void> trackRegistration() => _track('registration');
+
+  Future<void> _track(String event) async {
+    if (!cloudEnabled) return;
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(_consentKey) != true) return;
+    var visitorId = preferences.getString(_visitorKey);
+    if (visitorId == null || visitorId.isEmpty) {
+      visitorId = const Uuid().v4();
+      await preferences.setString(_visitorKey, visitorId);
+    }
+    final source = kIsWeb
+        ? (Uri.base.queryParameters['utm_source'] ?? 'direct')
+        : 'native';
+    try {
+      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('recordAnalyticsEvent')
+          .call<void>({'event': event, 'visitorId': visitorId, 'source': source});
+    } on Object {
+      // Metrics are optional and must never block the primary product flow.
     }
   }
 }

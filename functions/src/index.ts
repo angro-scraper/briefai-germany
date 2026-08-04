@@ -773,6 +773,128 @@ function berlinDate(value: Date): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+type ProductAnalyticsEvent = "page_view" | "install_click" | "registration";
+
+const productAnalyticsEvents = new Set<ProductAnalyticsEvent>([
+  "page_view",
+  "install_click",
+  "registration",
+]);
+
+function analyticsSource(value: unknown): string {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "direct";
+  // Keep the admin dashboard useful without turning arbitrary campaign text
+  // into Firestore field names. Referrers and URLs are intentionally never
+  // stored; this is only a short UTM-style source label.
+  return /^[a-z0-9_-]{1,32}$/.test(normalized) ? normalized : "direct";
+}
+
+function analyticsVisitorHash(value: unknown): string {
+  const visitorId = requireString(value, "visitorId", 128);
+  if (!/^[a-f0-9-]{16,128}$/i.test(visitorId)) {
+    throw new HttpsError("invalid-argument", "Neispravan anonimni identifikator.");
+  }
+  return createHash("sha256").update(visitorId).digest("hex");
+}
+
+async function recordProductAnalyticsEvent({
+  event,
+  visitorId,
+  source,
+  uid,
+}: {
+  event: ProductAnalyticsEvent;
+  visitorId: unknown;
+  source: unknown;
+  uid?: string;
+}): Promise<void> {
+  const visitorHash = analyticsVisitorHash(visitorId);
+  const day = berlinDate(new Date());
+  const sourceKey = analyticsSource(source);
+  const dailyRef = db.collection("productAnalyticsDaily").doc(day);
+  const visitorRef = dailyRef.collection("visitors").doc(visitorHash);
+  // Registrations are deduplicated globally by Firebase UID. We never save
+  // the raw anonymous identifier, email, IP address, OCR text or document data.
+  const registrationRef = event === "registration" && uid
+    ? db.collection("productAnalyticsRegistrations").doc(uid)
+    : null;
+
+  await db.runTransaction(async (transaction) => {
+    const [visitor, registration] = await Promise.all([
+      transaction.get(visitorRef),
+      registrationRef ? transaction.get(registrationRef) : Promise.resolve(null),
+    ]);
+    const increments: Record<string, unknown> = {
+      [event === "page_view" ? "pageViews" : event === "install_click" ? "installClicks" : "registrations"]:
+        FieldValue.increment(1),
+      [`sources.${sourceKey}.${event}`]: FieldValue.increment(1),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (!visitor.exists) {
+      transaction.set(visitorRef, {firstSeenAt: FieldValue.serverTimestamp()}, {merge: true});
+      increments.uniqueVisitors = FieldValue.increment(1);
+    }
+    if (registrationRef) {
+      if (registration?.exists) return;
+      transaction.set(registrationRef, {
+        firstRegisteredAt: FieldValue.serverTimestamp(),
+        day,
+      }, {merge: true});
+    }
+    transaction.set(dailyRef, increments, {merge: true});
+  });
+}
+
+export const recordAnalyticsEvent = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const event = request.data?.event;
+    if (typeof event !== "string" || !productAnalyticsEvents.has(event as ProductAnalyticsEvent)) {
+      throw new HttpsError("invalid-argument", "Nepoznat analytics događaj.");
+    }
+    if (event === "registration" && !request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Prijava je obavezna za registraciju.");
+    }
+    await recordProductAnalyticsEvent({
+      event: event as ProductAnalyticsEvent,
+      visitorId: request.data?.visitorId,
+      source: request.data?.source,
+      uid: request.auth?.uid,
+    });
+    return {recorded: true};
+  },
+);
+
+// Lightweight endpoint for the public landing page. It is intentionally
+// limited to anonymous page views and store-link clicks; registrations use
+// the authenticated callable above.
+export const publicAnalytics = onRequest(
+  {region: "europe-west3", cors: ["https://briefai.salvesca.com"]},
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send("Method not allowed");
+      return;
+    }
+    const event = request.body?.event;
+    if (event !== "page_view" && event !== "install_click") {
+      response.status(400).send("Invalid event");
+      return;
+    }
+    try {
+      await recordProductAnalyticsEvent({
+        event,
+        visitorId: request.body?.visitorId,
+        source: request.body?.source,
+      });
+      response.status(204).end();
+    } catch {
+      // Analytics is best effort. Avoid echoing submitted values or exposing
+      // implementation details to a public, cookie-consent endpoint.
+      response.status(400).send("Invalid analytics request");
+    }
+  },
+);
+
 async function verifyGooglePlaySubscription(purchaseToken: string, productId: string) {
   let credentials: Record<string, unknown>;
   try {
@@ -1466,16 +1588,59 @@ export const exportAccountData = onCall(
   },
 );
 
+async function productAnalyticsOverview() {
+  const now = new Date();
+  const days = Array.from({length: 30}, (_, index) => berlinDate(
+    new Date(now.getTime() - index * 24 * 60 * 60 * 1000),
+  ));
+  const snapshots = await db.getAll(
+    ...days.map((day) => db.collection("productAnalyticsDaily").doc(day)),
+  );
+  const totals = {pageViews: 0, uniqueVisitors: 0, installClicks: 0, registrations: 0};
+  const last7 = {pageViews: 0, uniqueVisitors: 0, installClicks: 0, registrations: 0};
+  const sources: Record<string, {pageViews: number; installClicks: number; registrations: number}> = {};
+  for (const [index, snapshot] of snapshots.entries()) {
+    const data = snapshot.data() ?? {};
+    const target = index < 7 ? [totals, last7] : [totals];
+    for (const aggregate of target) {
+      aggregate.pageViews += Number(data.pageViews ?? 0);
+      aggregate.uniqueVisitors += Number(data.uniqueVisitors ?? 0);
+      aggregate.installClicks += Number(data.installClicks ?? 0);
+      aggregate.registrations += Number(data.registrations ?? 0);
+    }
+    if (data.sources && typeof data.sources === "object") {
+      for (const [source, raw] of Object.entries(data.sources as Record<string, unknown>)) {
+        if (!raw || typeof raw !== "object") continue;
+        const eventCounts = raw as Record<string, unknown>;
+        const bucket = sources[source] ??= {pageViews: 0, installClicks: 0, registrations: 0};
+        bucket.pageViews += Number(eventCounts.page_view ?? 0);
+        bucket.installClicks += Number(eventCounts.install_click ?? 0);
+        bucket.registrations += Number(eventCounts.registration ?? 0);
+      }
+    }
+  }
+  return {
+    today: snapshots[0]?.data() ?? {},
+    last7,
+    last30: totals,
+    sources: Object.entries(sources)
+      .map(([source, values]) => ({source, ...values}))
+      .sort((left, right) => right.pageViews - left.pageViews)
+      .slice(0, 12),
+  };
+}
+
 export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
   await requireAdmin(request.auth?.uid);
   const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const monthKey = berlinDate(new Date()).slice(0, 7);
-  const [users, activeUsers, premiumUsers, metrics, aiMetrics] = await Promise.all([
+  const [users, activeUsers, premiumUsers, metrics, aiMetrics, analytics] = await Promise.all([
     db.collection("users").count().get(),
     db.collection("users").where("lastActiveAt", ">=", activeSince).count().get(),
     db.collection("subscriptions").where("status", "in", ["active", "trialing"]).count().get(),
     db.collection("adminMetrics").doc("current").get(),
     db.collection("adminMetrics").doc(`ai-${monthKey}`).get(),
+    productAnalyticsOverview(),
   ]);
   return {
     users: users.data().count,
@@ -1495,6 +1660,7 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
       monthlyAnalysisLimit: plan.monthlyAnalysisLimit,
       aiBudgetUsd: plan.aiBudgetUsd,
     })),
+    analytics,
   };
 });
 

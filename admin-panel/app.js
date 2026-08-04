@@ -197,7 +197,44 @@ async function loadMetrics() {
   document.querySelector('#ai-tokens').textContent =
     new Intl.NumberFormat('de-DE').format((metric.aiInputTokens ?? 0) + (metric.aiOutputTokens ?? 0));
   document.querySelector('#ai-model').textContent = metric.aiModel ?? '—';
+  renderAnalytics(metric.analytics);
   renderPlans(metric);
+}
+
+function renderAnalytics(analytics) {
+  const period = analytics?.last30 ?? {};
+  const number = new Intl.NumberFormat('de-DE');
+  const pageViews = Number(period.pageViews ?? 0);
+  const registrations = Number(period.registrations ?? 0);
+  document.querySelector('#page-views').textContent = number.format(pageViews);
+  document.querySelector('#unique-visitors').textContent = number.format(Number(period.uniqueVisitors ?? 0));
+  document.querySelector('#install-clicks').textContent = number.format(Number(period.installClicks ?? 0));
+  document.querySelector('#analytics-registrations').textContent = number.format(registrations);
+  document.querySelector('#visit-conversion').textContent = pageViews
+    ? `${((registrations / pageViews) * 100).toFixed(1)}%`
+    : '—';
+  const table = document.querySelector('#analytics-sources-table');
+  table.replaceChildren();
+  const sources = Array.isArray(analytics?.sources) ? analytics.sources : [];
+  if (!sources.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.textContent = 'No consented traffic recorded yet.';
+    row.append(cell);
+    table.append(row);
+    return;
+  }
+  for (const source of sources) {
+    const row = document.createElement('tr');
+    row.append(
+      textCell(String(source.source ?? 'direct')),
+      textCell(number.format(Number(source.pageViews ?? 0))),
+      textCell(number.format(Number(source.installClicks ?? 0))),
+      textCell(number.format(Number(source.registrations ?? 0))),
+    );
+    table.append(row);
+  }
 }
 
 function renderPlans(metric) {
