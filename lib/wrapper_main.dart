@@ -252,7 +252,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           await _resolveNative(requestId, {
             'ok': true,
             'nativeAuth': true,
-            'wrapperBuild': 30,
+            'wrapperBuild': 31,
           });
         case 'authGoogle':
           final credential = await FirebaseAuth.instance.signInWithProvider(
@@ -283,13 +283,23 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           if (identityToken == null || identityToken.isEmpty) {
             throw StateError('Apple prijava nije vratila identitet korisnika.');
           }
+          // Apple returns this code for every successful authorization. Checking
+          // it here prevents a half-complete authorization from being sent to
+          // Firebase and produces a recoverable error instead of a silent loop.
+          if (appleCredential.authorizationCode.isEmpty) {
+            throw StateError('Apple prijava nije završena. Pokušajte ponovo.');
+          }
           final credential = await FirebaseAuth.instance.signInWithCredential(
             OAuthProvider('apple.com').credential(
               idToken: identityToken,
               rawNonce: rawNonce,
             ),
           );
-          final idToken = await credential.user?.getIdToken(true);
+          final signedInUser = credential.user;
+          if (signedInUser == null) {
+            throw StateError('Apple prijava nije vratila korisnički nalog.');
+          }
+          final idToken = await signedInUser.getIdToken(true);
           if (idToken == null || idToken.isEmpty) {
             throw StateError('Apple prijava nije vratila token.');
           }

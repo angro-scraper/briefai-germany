@@ -15,7 +15,10 @@ workflows:
         bundle_identifier: com.briefai.briefaiGermany
       vars:
         APP_STORE_APPLE_ID: "6794959959"
-        BUILD_NAME: "1.0.31"
+        # Keep the marketing version aligned with the rejected App Store
+        # submission. The timestamp build number below creates a newer build
+        # that can be selected on the existing 1.0 review page.
+        BUILD_NAME: "1.0"
     scripts:
       - name: Set up iOS signing
         script: xcode-project use-profiles

@@ -1,2 +1,3 @@
 "NSCameraUsageDescription" = "BriefAI uses the camera to read a German official letter.";
 "NSPhotoLibraryUsageDescription" = "BriefAI accesses photos only when you choose a document to analyze.";
+"NSPhotoLibraryAddUsageDescription" = "BriefAI saves an exported response only when you explicitly choose to save it to Photos.";

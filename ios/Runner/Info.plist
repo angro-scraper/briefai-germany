@@ -5,7 +5,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>BriefAI Germany</string>
 	<key>CFBundleLocalizations</key>
@@ -81,6 +81,8 @@
 	<string>BriefAI uses the camera to read a German official letter.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>BriefAI accesses photos only when you choose a document to analyze.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>BriefAI saves an exported response only when you explicitly choose to save it to Photos.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

@@ -1,2 +1,3 @@
 "NSCameraUsageDescription" = "BriefAI koristi kameru da pročita nemačko službeno pismo.";
 "NSPhotoLibraryUsageDescription" = "BriefAI pristupa fotografijama samo kada izaberete dokument za analizu.";
+"NSPhotoLibraryAddUsageDescription" = "BriefAI čuva izvezeni sadržaj u fotografijama samo kada to izričito izaberete.";
