@@ -55,6 +55,9 @@ bool get _isNativeWebViewWrapper =>
         defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.android);
 
+bool get _nativeWrapperRequested =>
+    kIsWeb && Uri.base.queryParameters['nativeWrapper'] == '1';
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -325,6 +328,11 @@ class AuthService {
       await _ensureProfile();
       return;
     }
+    if (_nativeWrapperRequested) {
+      throw StateError(
+        'Native prijava još nije spremna. Zatvorite aplikaciju i pokušajte ponovo.',
+      );
+    }
     await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
     await _ensureProfile();
   }
@@ -335,12 +343,23 @@ class AuthService {
       await _ensureProfile();
       return;
     }
+    // Embedded WKWebViews cannot complete Firebase's browser popup flow
+    // reliably.  Falling back to it used to return an Apple user straight to
+    // this registration screen.  A real native wrapper must use its secure
+    // Apple sheet; ordinary browsers still use Firebase's provider flow.
+    if (_nativeWrapperRequested) {
+      throw StateError(
+        'Apple prijava još nije spremna. Zatvorite aplikaciju i pokušajte ponovo.',
+      );
+    }
     await FirebaseAuth.instance.signInWithProvider(AppleAuthProvider());
     await _ensureProfile();
   }
 
   Future<bool> _signInThroughNativeWrapper(String action) async {
-    if (!kIsWeb || !await nativeStoreAvailable()) return false;
+    if (!kIsWeb) return false;
+    final bridgeAvailable = await _waitForNativeStoreBridge();
+    if (!bridgeAvailable) return false;
     try {
       final capabilities = await nativeStoreRequest('capabilities');
       if (capabilities['nativeAuth'] != true) return false;
@@ -350,6 +369,14 @@ class AuthService {
       return false;
     }
     final response = await nativeStoreRequest(action);
+    final nativeCustomToken = response['customToken'];
+    if (nativeCustomToken is String && nativeCustomToken.isNotEmpty) {
+      await _adoptNativeWebSession(nativeCustomToken);
+      return true;
+    }
+
+    // Store builds released before the native custom-token bridge returned an
+    // ID token. Keep them usable while the App Store update propagates.
     final idToken = response['idToken'];
     if (idToken is! String || idToken.isEmpty) {
       throw StateError('Native prijava nije vratila bezbednosni token.');
@@ -357,12 +384,44 @@ class AuthService {
     final exchange = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('exchangeNativeAuth')
         .call<Map<Object?, Object?>>({'idToken': idToken});
-    final customToken = exchange.data['customToken'];
-    if (customToken is! String || customToken.isEmpty) {
+    final webCustomToken = exchange.data['customToken'];
+    if (webCustomToken is! String || webCustomToken.isEmpty) {
       throw StateError('Firebase nije završio native prijavu.');
     }
-    await FirebaseAuth.instance.signInWithCustomToken(customToken);
+    await _adoptNativeWebSession(webCustomToken);
     return true;
+  }
+
+  Future<bool> _waitForNativeStoreBridge() async {
+    // On a cold iPad launch the WebView can begin rendering Flutter before
+    // its JavaScript channel is exposed.  Wait briefly instead of treating
+    // this as a browser and starting the incompatible popup flow.
+    for (var attempt = 0; attempt < 12; attempt++) {
+      try {
+        if (await nativeStoreAvailable()) return true;
+      } on Object {
+        // The bridge script is still loading.
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+    return false;
+  }
+
+  Future<void> _adoptNativeWebSession(String customToken) async {
+    final credential = await FirebaseAuth.instance.signInWithCustomToken(
+      customToken,
+    );
+    final user = credential.user ?? FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Prijava nije sačuvala korisničku sesiju.');
+    }
+    // Force a token read before returning to the UI. This confirms that the
+    // WKWebView owns the Firebase session and prevents a successful Apple
+    // sheet from immediately rendering the registration screen again.
+    final token = await user.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Prijava nije sačuvala bezbednosnu sesiju.');
+    }
   }
 
   Future<void> signOut() async {
@@ -548,12 +607,9 @@ class AuthService {
           result.data['playReviewer'] == true) {
         await user.getIdToken(true);
       }
-    } on FirebaseFunctionsException catch (error) {
-      if (error.code != 'permission-denied' &&
-          error.code != 'not-found' &&
-          error.code != 'unimplemented') {
-        rethrow;
-      }
+    } on FirebaseFunctionsException {
+      // Founder entitlement is best-effort. Authentication must remain
+      // successful even if this auxiliary Function is temporarily offline.
     }
     final preferences = await SharedPreferences.getInstance();
     final languageKey = _profileKey(user.uid, 'preferredLanguage');

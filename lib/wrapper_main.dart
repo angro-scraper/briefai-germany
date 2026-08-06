@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -259,11 +260,10 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             GoogleAuthProvider()
               ..setCustomParameters({'prompt': 'select_account'}),
           );
-          final idToken = await credential.user?.getIdToken(true);
-          if (idToken == null || idToken.isEmpty) {
-            throw StateError('Google prijava nije vratila token.');
-          }
-          await _resolveNative(requestId, {'ok': true, 'idToken': idToken});
+          await _resolveNative(
+            requestId,
+            await _webSessionForNativeUser(credential.user),
+          );
         case 'authApple':
           if (!Platform.isIOS && !Platform.isMacOS) {
             throw StateError('Apple prijava je dostupna samo na Apple uređaju.');
@@ -299,11 +299,10 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           if (signedInUser == null) {
             throw StateError('Apple prijava nije vratila korisnički nalog.');
           }
-          final idToken = await signedInUser.getIdToken(true);
-          if (idToken == null || idToken.isEmpty) {
-            throw StateError('Apple prijava nije vratila token.');
-          }
-          await _resolveNative(requestId, {'ok': true, 'idToken': idToken});
+          await _resolveNative(
+            requestId,
+            await _webSessionForNativeUser(signedInUser),
+          );
         case 'authSignOut':
           await FirebaseAuth.instance.signOut();
           await _resolveNative(requestId, {'ok': true});
@@ -407,6 +406,31 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         });
       }
     }
+  }
+
+  /// The hosted Flutter UI runs in a WKWebView.  Passing a Firebase ID token
+  /// back to JavaScript and then asking the WebView to call a Callable
+  /// Function added a second, fragile authentication hop after Sign in with
+  /// Apple.  Mint the one-time web custom token while the native Firebase
+  /// session is authoritative instead.  The WebView only needs to adopt it.
+  Future<Map<String, dynamic>> _webSessionForNativeUser(User? user) async {
+    if (user == null) {
+      throw StateError('Prijava nije vratila korisnički nalog.');
+    }
+    final idToken = await user.getIdToken(true);
+    if (idToken == null || idToken.isEmpty) {
+      throw StateError('Prijava nije vratila bezbednosni token.');
+    }
+    final exchange = await FirebaseFunctions.instanceFor(
+      region: 'europe-west3',
+    ).httpsCallable('exchangeNativeAuth').call<Map<Object?, Object?>>({
+      'idToken': idToken,
+    });
+    final customToken = exchange.data['customToken'];
+    if (customToken is! String || customToken.isEmpty) {
+      throw StateError('Prijava nije završila bezbednu web sesiju.');
+    }
+    return {'ok': true, 'customToken': customToken};
   }
 
   Future<void> _initializeNotifications() async {
