@@ -197,6 +197,7 @@ async function loadMetrics() {
   const result = await httpsCallable(functions, 'adminOverview')();
   const metric = result.data;
   document.querySelector('#users').textContent = metric.users ?? 0;
+  document.querySelector('#profile-users').textContent = metric.profileUsers ?? 0;
   document.querySelector('#active-users').textContent = metric.activeUsers ?? 0;
   document.querySelector('#analyses').textContent = metric.analyses ?? 0;
   document.querySelector('#premium-users').textContent = metric.premiumUsers ?? 0;

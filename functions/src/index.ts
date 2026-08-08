@@ -1661,11 +1661,29 @@ async function productAnalyticsOverview() {
   };
 }
 
+/**
+ * Firebase Authentication is the source of truth for registered accounts.
+ * The local-first app mirrors a lightweight profile to Firestore only after a
+ * user has opened the app while Firestore is reachable, so counting the
+ * `users` collection alone under-reports sign-ups.
+ */
+async function registeredAuthUserCount(): Promise<number> {
+  let count = 0;
+  let pageToken: string | undefined;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    count += page.users.length;
+    pageToken = page.pageToken;
+  } while (pageToken);
+  return count;
+}
+
 export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: false}, async (request) => {
   await requireAdmin(request.auth?.uid);
   const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const monthKey = berlinDate(new Date()).slice(0, 7);
-  const [users, activeUsers, premiumUsers, metrics, aiMetrics, analytics] = await Promise.all([
+  const [registeredUsers, profileUsers, activeUsers, premiumUsers, metrics, aiMetrics, analytics] = await Promise.all([
+    registeredAuthUserCount(),
     db.collection("users").count().get(),
     db.collection("users").where("lastActiveAt", ">=", activeSince).count().get(),
     db.collection("subscriptions").where("status", "in", ["active", "trialing"]).count().get(),
@@ -1674,7 +1692,8 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
     productAnalyticsOverview(),
   ]);
   return {
-    users: users.data().count,
+    users: registeredUsers,
+    profileUsers: profileUsers.data().count,
     activeUsers: activeUsers.data().count,
     analyses: metrics.data()?.analyses ?? 0,
     premiumUsers: premiumUsers.data().count,
