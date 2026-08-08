@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "briefai-germany"
+  },
+  "targets": {
+    "briefai-germany": {
+      "hosting": {
+        "admin": [
+          "briefai-germany"
+        ]
+      }
+    }
   }
 }
