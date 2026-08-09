@@ -289,19 +289,12 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           if (appleCredential.authorizationCode.isEmpty) {
             throw StateError('Apple prijava nije završena. Pokušajte ponovo.');
           }
-          final credential = await FirebaseAuth.instance.signInWithCredential(
-            OAuthProvider('apple.com').credential(
-              idToken: identityToken,
-              rawNonce: rawNonce,
-            ),
-          );
-          final signedInUser = credential.user;
-          if (signedInUser == null) {
-            throw StateError('Apple prijava nije vratila korisnički nalog.');
-          }
           await _resolveNative(
             requestId,
-            await _webSessionForNativeUser(signedInUser),
+            await _webSessionForNativeAppleCredential(
+              identityToken: identityToken,
+              rawNonce: rawNonce,
+            ),
           );
         case 'authSignOut':
           await FirebaseAuth.instance.signOut();
@@ -429,6 +422,23 @@ class _WrapperScreenState extends State<_WrapperScreen> {
     final customToken = exchange.data['customToken'];
     if (customToken is! String || customToken.isEmpty) {
       throw StateError('Prijava nije završila bezbednu web sesiju.');
+    }
+    return {'ok': true, 'customToken': customToken};
+  }
+
+  Future<Map<String, dynamic>> _webSessionForNativeAppleCredential({
+    required String identityToken,
+    required String rawNonce,
+  }) async {
+    final exchange = await FirebaseFunctions.instanceFor(
+      region: 'europe-west3',
+    ).httpsCallable('nativeAppleWebSession').call<Map<Object?, Object?>>({
+      'identityToken': identityToken,
+      'rawNonce': rawNonce,
+    });
+    final customToken = exchange.data['customToken'];
+    if (customToken is! String || customToken.isEmpty) {
+      throw StateError('Apple prijava nije završila bezbednu web sesiju.');
     }
     return {'ok': true, 'customToken': customToken};
   }

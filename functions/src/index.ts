@@ -8,7 +8,7 @@ import Stripe from "stripe";
 import {defineSecret, defineString} from "firebase-functions/params";
 import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
 import OpenAI from "openai";
-import {createHash, createSign, randomUUID} from "node:crypto";
+import {createHash, createPublicKey, createSign, randomUUID, verify} from "node:crypto";
 
 initializeApp();
 
@@ -53,9 +53,173 @@ export const exchangeNativeAuth = onCall(
     };
   },
 );
+
+type AppleJwk = {
+  kty?: string;
+  kid?: string;
+  crv?: string;
+  x?: string;
+  y?: string;
+};
+
+type AppleIdentityPayload = {
+  iss?: unknown;
+  aud?: unknown;
+  exp?: unknown;
+  iat?: unknown;
+  nonce?: unknown;
+  sub?: unknown;
+  email?: unknown;
+  email_verified?: unknown;
+};
+
+let appleKeysCache: {expiresAt: number; keys: AppleJwk[]} | null = null;
+
+function decodeJwtObject(part: string, label: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(Buffer.from(part, "base64url").toString("utf8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("not an object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    throw new HttpsError("unauthenticated", `Apple ${label} token nije važeći.`);
+  }
+}
+
+async function appleSigningKey(kid: string): Promise<AppleJwk> {
+  const now = Date.now();
+  if (!appleKeysCache || appleKeysCache.expiresAt <= now) {
+    let response: Response;
+    try {
+      response = await fetch("https://appleid.apple.com/auth/keys");
+    } catch {
+      throw new HttpsError("unavailable", "Apple identitet trenutno ne može da se proveri.");
+    }
+    if (!response.ok) {
+      throw new HttpsError("unavailable", "Apple identitet trenutno ne može da se proveri.");
+    }
+    const body = await response.json() as {keys?: unknown};
+    if (!Array.isArray(body.keys)) {
+      throw new HttpsError("unavailable", "Apple nije vratio ključeve za proveru identiteta.");
+    }
+    appleKeysCache = {
+      keys: body.keys.filter((key): key is AppleJwk =>
+        Boolean(key) && typeof key === "object",
+      ),
+      // Refresh well before a potential Apple key rotation affects a login.
+      expiresAt: now + 6 * 60 * 60 * 1000,
+    };
+  }
+  const key = appleKeysCache.keys.find((candidate) =>
+    candidate.kid === kid && candidate.kty === "EC" && candidate.crv === "P-256",
+  );
+  if (!key) {
+    throw new HttpsError("unauthenticated", "Apple ključ za prijavu nije pronađen.");
+  }
+  return key;
+}
+
+async function verifyAppleIdentityToken(identityToken: string, rawNonce: string) {
+  const parts = identityToken.split(".");
+  if (parts.length !== 3) {
+    throw new HttpsError("unauthenticated", "Apple identitet nije važeći.");
+  }
+  const header = decodeJwtObject(parts[0], "header");
+  const payload = decodeJwtObject(parts[1], "identity") as AppleIdentityPayload;
+  if (header.alg !== "ES256" || typeof header.kid !== "string") {
+    throw new HttpsError("unauthenticated", "Apple identitet koristi nepodržani potpis.");
+  }
+  const key = await appleSigningKey(header.kid);
+  let signatureValid = false;
+  try {
+    signatureValid = verify(
+      "sha256",
+      Buffer.from(`${parts[0]}.${parts[1]}`, "utf8"),
+      {key: createPublicKey({key, format: "jwk"}), dsaEncoding: "ieee-p1363"},
+      Buffer.from(parts[2], "base64url"),
+    );
+  } catch {
+    signatureValid = false;
+  }
+  if (!signatureValid) {
+    throw new HttpsError("unauthenticated", "Apple potpis identiteta nije važeći.");
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const nonceHash = createHash("sha256").update(rawNonce).digest("hex");
+  if (
+    payload.iss !== "https://appleid.apple.com" ||
+    payload.aud !== appleBundleId.value() ||
+    typeof payload.exp !== "number" || payload.exp <= now ||
+    typeof payload.iat !== "number" || payload.iat > now + 300 ||
+    payload.nonce !== nonceHash ||
+    typeof payload.sub !== "string" || payload.sub.length === 0
+  ) {
+    throw new HttpsError("unauthenticated", "Apple identitet nije mogao da se potvrdi.");
+  }
+  return payload;
+}
+
+function hasFirebaseAuthCode(error: unknown, code: string): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as {code?: unknown}).code === `auth/${code}`,
+  );
+}
+
+async function nativeAppleFirebaseUid(payload: AppleIdentityPayload): Promise<string> {
+  const appleSubject = payload.sub as string;
+  try {
+    return (await getAuth().getUserByProviderUid("apple.com", appleSubject)).uid;
+  } catch (error: unknown) {
+    if (!hasFirebaseAuthCode(error, "user-not-found")) {
+      throw error;
+    }
+  }
+  const uid = `apple_${createHash("sha256").update(appleSubject).digest("hex")}`;
+  const email = typeof payload.email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)
+    ? payload.email
+    : undefined;
+  const emailVerified = payload.email_verified === true || payload.email_verified === "true";
+  try {
+    await getAuth().getUser(uid);
+  } catch (error: unknown) {
+    if (!hasFirebaseAuthCode(error, "user-not-found")) throw error;
+    try {
+      await getAuth().createUser({uid, email, emailVerified});
+    } catch (createError: unknown) {
+      // The stable Apple subject remains the identifier if a relay email is
+      // already associated with an older non-Apple account.
+      if (email && hasFirebaseAuthCode(createError, "email-already-exists")) {
+        await getAuth().createUser({uid});
+      } else {
+        throw createError;
+      }
+    }
+  }
+  return uid;
+}
+
+// Native Sign in with Apple returns an Apple-signed identity token. Verifying
+// it directly against Apple's rotating JWK set removes the fragile Firebase
+// Apple-provider hop before the hosted WebView receives its Firebase session.
+export const nativeAppleWebSession = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const identityToken = requireString(request.data?.identityToken, "identityToken", 8192);
+    const rawNonce = requireString(request.data?.rawNonce, "rawNonce", 256);
+    const payload = await verifyAppleIdentityToken(identityToken, rawNonce);
+    const uid = await nativeAppleFirebaseUid(payload);
+    return {customToken: await getAuth().createCustomToken(uid)};
+  },
+);
 const webAppOrigin = defineString("WEB_APP_ORIGIN");
 const androidPackageName = defineString("ANDROID_PACKAGE_NAME");
-const appleBundleId = defineString("APPLE_BUNDLE_ID");
+const appleBundleId = defineString("APPLE_BUNDLE_ID", {
+  default: "com.briefai.briefaiGermany",
+});
 const appleIssuerId = defineString("APPLE_APP_STORE_ISSUER_ID");
 const appleKeyId = defineString("APPLE_APP_STORE_KEY_ID");
 const appleEnvironment = defineString("APPLE_APP_STORE_ENV");

@@ -41,6 +41,11 @@ workflows:
             --build-name="$BUILD_NAME" \
             --build-number="$BUILD_NUMBER" \
             --export-options-plist=/Users/builder/export_options.plist
+          APP_PATH="$(find build/ios/archive -path '*Runner.app' -type d | head -n 1)"
+          test -n "$APP_PATH"
+          # Fail the release before upload if the signed app ever loses the
+          # Apple Sign In entitlement required by the native login sheet.
+          codesign -d --entitlements :- "$APP_PATH" 2>&1 | grep -q 'com.apple.developer.applesignin'
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
