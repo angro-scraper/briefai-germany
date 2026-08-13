@@ -30,7 +30,7 @@ Pre deploy-a podesiti Functions parametre:
 
 ```text
 WEB_APP_ORIGIN=https://briefai.salvesca.com
-OPENAI_MODEL=gpt-5.6-terra
+OPENAI_MODEL=gpt-5.4-mini
 FREE_BETA_AI_ENABLED=true
 AI_MONTHLY_BUDGET_USD=30
 AI_USER_MONTHLY_BUDGET_USD=1.50

@@ -5,14 +5,13 @@ Referentne cene su proverene 26. jula 2026. na zvaničnoj OpenAI stranici:
 
 ## Produkcioni model
 
-Podrazumevani model je `gpt-5.6-terra`, zvanično preporučen za balans
-kvaliteta i troška:
+Podrazumevani model je `gpt-5.4-mini`, podržan OpenAI Responses API model za kvalitetne i ekonomične analize:
 
-- ulaz: 2,50 USD / 1.000.000 tokena;
-- izlaz: 15 USD / 1.000.000 tokena.
+- ulaz: 0,75 USD / 1.000.000 tokena;
+- izlaz: 4,50 USD / 1.000.000 tokena.
 
 Tipična analiza sa približno 3.500 ulaznih i 700 izlaznih tokena košta oko
-0,0193 USD. Konzervativna procena, koja uključuje duži OCR i maksimalni
+0,0058 USD. Konzervativna procena, koja uključuje duži OCR i maksimalni
 odgovor, rezerviše više sredstava pre svakog poziva i posle odgovora se
 usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 
@@ -33,7 +32,7 @@ usklađuje sa stvarnim brojem tokena koji prijavi OpenAI.
 Budžeti su Firebase Functions parametri:
 
 ```text
-OPENAI_MODEL=gpt-5.6-terra
+OPENAI_MODEL=gpt-5.4-mini
 AI_MONTHLY_BUDGET_USD=30
 AI_USER_MONTHLY_BUDGET_USD=1.50
 ```

@@ -17,7 +17,7 @@ const openAiApiKey = defineSecret("OPENAI_API_KEY");
 const founderEmail = defineSecret("FOUNDER_EMAIL");
 const reviewEmail = defineSecret("PLAY_REVIEW_EMAIL");
 const openAiModel = defineString("OPENAI_MODEL", {
-  default: "gpt-5.6-terra",
+  default: "gpt-5.4-mini",
 });
 const aiMonthlyBudgetUsd = defineString("AI_MONTHLY_BUDGET_USD", {
   default: "30",
@@ -298,9 +298,8 @@ type AiBudgetReservation = {
 };
 
 const modelPricingUsdPerMillion = {
-  "gpt-5.6-luna": {input: 1, output: 6},
-  "gpt-5.6-terra": {input: 2.5, output: 15},
-  "gpt-5.6-sol": {input: 5, output: 30},
+  // Supported Responses API model. Pricing is per 1M text tokens.
+  "gpt-5.4-mini": {input: 0.75, output: 4.5},
 } as const;
 
 function positiveUsdMicros(value: string, name: string): number {
