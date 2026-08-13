@@ -57,9 +57,9 @@ export const exchangeNativeAuth = onCall(
 type AppleJwk = {
   kty?: string;
   kid?: string;
-  crv?: string;
-  x?: string;
-  y?: string;
+  alg?: string;
+  n?: string;
+  e?: string;
 };
 
 type AppleIdentityPayload = {
@@ -112,7 +112,11 @@ async function appleSigningKey(kid: string): Promise<AppleJwk> {
     };
   }
   const key = appleKeysCache.keys.find((candidate) =>
-    candidate.kid === kid && candidate.kty === "EC" && candidate.crv === "P-256",
+    // Apple signs Sign in with Apple identity tokens with RSA/RS256 keys.
+    // These are deliberately checked here instead of accepting an arbitrary
+    // JWK from the remote key set.
+    candidate.kid === kid && candidate.kty === "RSA" &&
+      typeof candidate.n === "string" && typeof candidate.e === "string",
   );
   if (!key) {
     throw new HttpsError("unauthenticated", "Apple ključ za prijavu nije pronađen.");
@@ -127,16 +131,16 @@ async function verifyAppleIdentityToken(identityToken: string, rawNonce: string)
   }
   const header = decodeJwtObject(parts[0], "header");
   const payload = decodeJwtObject(parts[1], "identity") as AppleIdentityPayload;
-  if (header.alg !== "ES256" || typeof header.kid !== "string") {
+  if (header.alg !== "RS256" || typeof header.kid !== "string") {
     throw new HttpsError("unauthenticated", "Apple identitet koristi nepodržani potpis.");
   }
   const key = await appleSigningKey(header.kid);
   let signatureValid = false;
   try {
     signatureValid = verify(
-      "sha256",
+      "RSA-SHA256",
       Buffer.from(`${parts[0]}.${parts[1]}`, "utf8"),
-      {key: createPublicKey({key, format: "jwk"}), dsaEncoding: "ieee-p1363"},
+      createPublicKey({key, format: "jwk"}),
       Buffer.from(parts[2], "base64url"),
     );
   } catch {
