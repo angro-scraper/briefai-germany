@@ -101,4 +101,67 @@ void main() {
       );
     },
   );
+
+  test('all document pages are stored locally and restored in order', () async {
+    final repository = LetterRepository(
+      cloudEnabled: false,
+      databaseFactory: databaseFactoryMemory,
+      databasePath: 'multi-page-vault-test.db',
+    );
+    final pages = <PickedDocument>[
+      PickedDocument(
+        name: 'page-1.jpg',
+        bytes: Uint8List.fromList([1, 2, 3]),
+        mimeType: 'image/jpeg',
+        ocrPath: null,
+      ),
+      PickedDocument(
+        name: 'page-2.png',
+        bytes: Uint8List.fromList([4, 5, 6, 7]),
+        mimeType: 'image/png',
+        ocrPath: null,
+      ),
+      PickedDocument(
+        name: 'attachment.pdf',
+        bytes: Uint8List.fromList([8, 9]),
+        mimeType: 'application/pdf',
+        ocrPath: null,
+      ),
+    ];
+    const vault = 'user:multi-page-user';
+
+    await repository.save(
+      vault,
+      LetterAnalysis(
+        id: 'multi-page-letter',
+        title: 'Višestranično pismo',
+        plainExplanation: 'Objašnjenje',
+        category: LetterCategory.other,
+        urgency: Urgency.medium,
+        suggestedAction: 'Odgovorite.',
+        createdAt: DateTime.utc(2026, 8, 14),
+        sourceText: 'Strana 1\nStrana 2\nPrilog',
+      ),
+      documents: pages,
+    );
+
+    final restored = await repository.loadDocuments(vault, 'multi-page-letter');
+    expect(restored.map((page) => page.name), [
+      'page-1.jpg',
+      'page-2.png',
+      'attachment.pdf',
+    ]);
+    expect(restored.map((page) => page.mimeType), [
+      'image/jpeg',
+      'image/png',
+      'application/pdf',
+    ]);
+    expect(restored[0].bytes, orderedEquals([1, 2, 3]));
+    expect(restored[1].bytes, orderedEquals([4, 5, 6, 7]));
+    expect(restored[2].bytes, orderedEquals([8, 9]));
+    expect(
+      (await repository.loadDocument(vault, 'multi-page-letter'))?.name,
+      'page-1.jpg',
+    );
+  });
 }

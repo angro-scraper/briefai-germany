@@ -82,6 +82,16 @@ class AppStrings {
   String remaining(int value) =>
       text('remaining').replaceFirst('{count}', value.toString());
 
+  String pagesSelected(int value) =>
+      text('pagesSelected').replaceFirst('{count}', value.toString());
+
+  String ocrProgress(int current, int total) => text('ocrProgress')
+      .replaceFirst('{current}', current.toString())
+      .replaceFirst('{total}', total.toString());
+
+  String maxPages(int value) =>
+      text('maxPages').replaceFirst('{count}', value.toString());
+
   String category(String key) =>
       (_categories[locale.languageCode] ?? _categories['en']!)[key] ??
       _categories['en']![key] ??
@@ -329,6 +339,12 @@ class AppStrings {
       'camera': 'Kamera',
       'gallery': 'Galeri',
       'pdfImage': 'PDF veya resim',
+      'page': 'Sayfa',
+      'pagesSelected': '{count} sayfa seçildi',
+      'ocrProgress': '{total} sayfanın {current}. sayfası tanınıyor…',
+      'removePage': 'Sayfayı kaldır',
+      'maxPages': 'Bir mektuba en fazla {count} sayfa ekleyebilirsiniz.',
+      'filesTooLarge': 'Seçilen sayfalar cihaz için fazla büyük.',
       'letterText': 'Mektup metni',
       'ocrReading': 'Metin cihazda tanınıyor…',
       'loadingImage': 'Fotoğraf yükleniyor…',
@@ -374,6 +390,11 @@ class AppStrings {
       'originalMissing': 'Orijinal belge bu analizle birlikte kaydedilmemiş.',
       'openOriginal': 'Orijinali aç veya indir',
       'generateReply': 'Yanıt oluştur',
+      'replyFactsTitle': 'Kendi açıklamanızı ekleyin',
+      'replyFactsHelp':
+          'Olanları kendi dilinizde yazın. Yapay zekâ bu bilgileri mektubun tüm sayfalarıyla birleştirip profesyonel bir Almanca yanıt oluşturur. Bilmediğiniz hiçbir şeyi eklemeyin.',
+      'replyFactsHint':
+          'Örn. Neden itiraz ettiğinizi, daha önce ne olduğunu ve karşı taraftan ne istediğinizi yazın…',
       'finishHome': 'Bitir ve ana sayfaya dön',
       'replyTitle': 'Önerilen yanıt',
       'formalReply': 'Resmî Almanca yanıt',
@@ -511,6 +532,12 @@ class AppStrings {
       'camera': 'Kamera',
       'gallery': 'Galerija',
       'pdfImage': 'PDF ili slika',
+      'page': 'Strana',
+      'pagesSelected': 'Izabrano strana: {count}',
+      'ocrProgress': 'Prepoznajem stranu {current} od {total}…',
+      'removePage': 'Ukloni stranu',
+      'maxPages': 'Jedno pismo može imati najviše {count} strana.',
+      'filesTooLarge': 'Izabrane strane su prevelike za ovaj uređaj.',
       'letterText': 'Tekst sa pisma',
       'ocrReading': 'Prepoznajem tekst lokalno…',
       'loadingImage': 'Učitavam fotografiju…',
@@ -555,6 +582,11 @@ class AppStrings {
       'originalMissing': 'Originalni dokument nije sačuvan uz analizu.',
       'openOriginal': 'Otvori ili preuzmi original',
       'generateReply': 'Generiši odgovor',
+      'replyFactsTitle': 'Dodajte svoje objašnjenje',
+      'replyFactsHelp':
+          'Napišite svojim jezikom šta se dogodilo. AI će to spojiti sa svim stranama pisma i sastaviti profesionalan odgovor na nemačkom. Unesite samo proverene činjenice.',
+      'replyFactsHint':
+          'Npr. objasnite zašto osporavate zahtev, šta se ranije dogodilo i šta tražite od pošiljaoca…',
       'finishHome': 'Završi i idi na početnu',
       'replyTitle': 'Predlog odgovora',
       'formalReply': 'Formalni nemački odgovor',
@@ -658,6 +690,12 @@ class AppStrings {
       'camera': 'Kamera',
       'gallery': 'Galerija',
       'pdfImage': 'PDF ili slika',
+      'page': 'Stranica',
+      'pagesSelected': 'Odabrano stranica: {count}',
+      'ocrProgress': 'Prepoznajem stranicu {current} od {total}…',
+      'removePage': 'Ukloni stranicu',
+      'maxPages': 'Jedno pismo može imati najviše {count} stranica.',
+      'filesTooLarge': 'Odabrane stranice prevelike su za ovaj uređaj.',
       'letterText': 'Tekst pisma',
       'ocrReading': 'Prepoznajem tekst lokalno…',
       'loadingImage': 'Učitavam fotografiju…',
@@ -702,6 +740,11 @@ class AppStrings {
       'originalMissing': 'Izvorni dokument nije spremljen uz analizu.',
       'openOriginal': 'Otvori ili preuzmi izvornik',
       'generateReply': 'Generiraj odgovor',
+      'replyFactsTitle': 'Dodajte svoje objašnjenje',
+      'replyFactsHelp':
+          'Napišite svojim jezikom što se dogodilo. AI će to spojiti sa svim stranicama pisma i sastaviti profesionalan odgovor na njemačkom. Unesite samo provjerene činjenice.',
+      'replyFactsHint':
+          'Npr. objasnite zašto osporavate zahtjev, što se ranije dogodilo i što tražite od pošiljatelja…',
       'finishHome': 'Završi i idi na početnu',
       'replyTitle': 'Prijedlog odgovora',
       'formalReply': 'Formalni njemački odgovor',
@@ -804,6 +847,12 @@ class AppStrings {
       'camera': 'Kamera',
       'gallery': 'Galerija',
       'pdfImage': 'PDF ili slika',
+      'page': 'Stranica',
+      'pagesSelected': 'Odabrano stranica: {count}',
+      'ocrProgress': 'Prepoznajem stranicu {current} od {total}…',
+      'removePage': 'Ukloni stranicu',
+      'maxPages': 'Jedno pismo može imati najviše {count} stranica.',
+      'filesTooLarge': 'Odabrane stranice su prevelike za ovaj uređaj.',
       'letterText': 'Tekst pisma',
       'ocrReading': 'Prepoznajem tekst lokalno…',
       'loadingImage': 'Učitavam fotografiju…',
@@ -848,6 +897,11 @@ class AppStrings {
       'originalMissing': 'Originalni dokument nije sačuvan uz analizu.',
       'openOriginal': 'Otvori ili preuzmi original',
       'generateReply': 'Generiši odgovor',
+      'replyFactsTitle': 'Dodajte svoje objašnjenje',
+      'replyFactsHelp':
+          'Napišite svojim jezikom šta se dogodilo. AI će to spojiti sa svim stranicama pisma i sastaviti profesionalan odgovor na njemačkom. Unesite samo provjerene činjenice.',
+      'replyFactsHint':
+          'Npr. objasnite zašto osporavate zahtjev, šta se ranije dogodilo i šta tražite od pošiljaoca…',
       'finishHome': 'Završi i idi na početnu',
       'replyTitle': 'Prijedlog odgovora',
       'formalReply': 'Formalni njemački odgovor',
@@ -951,6 +1005,12 @@ class AppStrings {
       'camera': 'Камера',
       'gallery': 'Галерија',
       'pdfImage': 'PDF или слика',
+      'page': 'Страница',
+      'pagesSelected': 'Избрани страници: {count}',
+      'ocrProgress': 'Препознавам страница {current} од {total}…',
+      'removePage': 'Отстрани страница',
+      'maxPages': 'Едно писмо може да има најмногу {count} страници.',
+      'filesTooLarge': 'Избраните страници се преголеми за уредот.',
       'letterText': 'Текст од писмото',
       'ocrReading': 'Го препознавам текстот локално…',
       'loadingImage': 'Ја вчитувам фотографијата…',
@@ -995,6 +1055,11 @@ class AppStrings {
       'originalMissing': 'Оригиналниот документ не е зачуван со анализата.',
       'openOriginal': 'Отвори или преземи оригинал',
       'generateReply': 'Генерирај одговор',
+      'replyFactsTitle': 'Додајте го вашето објаснување',
+      'replyFactsHelp':
+          'Напишете на вашиот јазик што се случило. AI ќе го спои тоа со сите страници од писмото и ќе состави професионален одговор на германски. Внесете само проверени факти.',
+      'replyFactsHint':
+          'На пр. објаснете зошто го оспорувате барањето, што се случило претходно и што барате од испраќачот…',
       'finishHome': 'Заврши и оди на почетна',
       'replyTitle': 'Предлог-одговор',
       'formalReply': 'Формален одговор на германски',
@@ -1098,6 +1163,12 @@ class AppStrings {
       'camera': 'Kamera',
       'gallery': 'Galerie',
       'pdfImage': 'PDF oder Bild',
+      'page': 'Seite',
+      'pagesSelected': '{count} Seiten ausgewählt',
+      'ocrProgress': 'Seite {current} von {total} wird erkannt…',
+      'removePage': 'Seite entfernen',
+      'maxPages': 'Ein Schreiben kann höchstens {count} Seiten haben.',
+      'filesTooLarge': 'Die ausgewählten Seiten sind für dieses Gerät zu groß.',
       'letterText': 'Brieftext',
       'ocrReading': 'Text wird lokal erkannt…',
       'loadingImage': 'Foto wird geladen…',
@@ -1143,6 +1214,11 @@ class AppStrings {
       'originalMissing': 'Das Originaldokument wurde nicht gespeichert.',
       'openOriginal': 'Original öffnen oder herunterladen',
       'generateReply': 'Antwort erstellen',
+      'replyFactsTitle': 'Ihre Erklärung ergänzen',
+      'replyFactsHelp':
+          'Schildern Sie in Ihrer Sprache, was passiert ist. Die KI verbindet diese Angaben mit allen Seiten des Schreibens und erstellt eine professionelle deutsche Antwort. Geben Sie nur überprüfte Tatsachen an.',
+      'replyFactsHint':
+          'Z. B. warum Sie die Forderung bestreiten, was zuvor geschehen ist und was Sie vom Absender verlangen…',
       'finishHome': 'Fertig und zur Startseite',
       'replyTitle': 'Antwortvorschlag',
       'formalReply': 'Formelle deutsche Antwort',
@@ -1248,6 +1324,12 @@ class AppStrings {
       'camera': 'Camera',
       'gallery': 'Gallery',
       'pdfImage': 'PDF or image',
+      'page': 'Page',
+      'pagesSelected': '{count} pages selected',
+      'ocrProgress': 'Recognizing page {current} of {total}…',
+      'removePage': 'Remove page',
+      'maxPages': 'One letter can contain up to {count} pages.',
+      'filesTooLarge': 'The selected pages are too large for this device.',
       'letterText': 'Letter text',
       'ocrReading': 'Recognizing text locally…',
       'loadingImage': 'Loading photo…',
@@ -1293,6 +1375,11 @@ class AppStrings {
           'The original document was not saved with this analysis.',
       'openOriginal': 'Open or download original',
       'generateReply': 'Generate reply',
+      'replyFactsTitle': 'Add your explanation',
+      'replyFactsHelp':
+          'Describe what happened in your own language. AI will combine it with every page of the letter and draft a professional German response. Include only facts you can verify.',
+      'replyFactsHint':
+          'For example, explain why you dispute the claim, what happened earlier, and what you want the sender to do…',
       'finishHome': 'Finish and go home',
       'replyTitle': 'Suggested reply',
       'formalReply': 'Formal German reply',
@@ -1396,6 +1483,12 @@ class AppStrings {
       'camera': 'Камера',
       'gallery': 'Галерия',
       'pdfImage': 'PDF или изображение',
+      'page': 'Страница',
+      'pagesSelected': 'Избрани страници: {count}',
+      'ocrProgress': 'Разпознавам страница {current} от {total}…',
+      'removePage': 'Премахни страницата',
+      'maxPages': 'Едно писмо може да съдържа до {count} страници.',
+      'filesTooLarge': 'Избраните страници са твърде големи за устройството.',
       'letterText': 'Текст на писмото',
       'ocrReading': 'Разпознавам текста локално…',
       'loadingImage': 'Зареждам снимката…',
@@ -1441,6 +1534,11 @@ class AppStrings {
       'originalMissing': 'Оригиналният документ не е запазен с анализа.',
       'openOriginal': 'Отвори или изтегли оригинала',
       'generateReply': 'Генерирай отговор',
+      'replyFactsTitle': 'Добавете вашето обяснение',
+      'replyFactsHelp':
+          'Опишете на своя език какво се е случило. AI ще го съчетае с всички страници на писмото и ще изготви професионален отговор на немски. Въведете само проверени факти.',
+      'replyFactsHint':
+          'Напр. обяснете защо оспорвате искането, какво се е случило по-рано и какво искате от подателя…',
       'finishHome': 'Завърши и към началото',
       'replyTitle': 'Предложен отговор',
       'formalReply': 'Официален отговор на немски',

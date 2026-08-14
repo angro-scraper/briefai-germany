@@ -16,6 +16,12 @@ void main() {
         'signIn',
         'createAccount',
         'uploadDocument',
+        'page',
+        'pagesSelected',
+        'ocrProgress',
+        'removePage',
+        'maxPages',
+        'filesTooLarge',
         'ocrReading',
         'loadingImage',
         'ocrReady',
@@ -39,6 +45,9 @@ void main() {
         'paymentOpen',
         'paymentPaid',
         'generateReply',
+        'replyFactsTitle',
+        'replyFactsHelp',
+        'replyFactsHint',
         'replyTitle',
         'archiveSubtitle',
         'privacyPolicy',
@@ -76,5 +85,9 @@ void main() {
     );
     expect(strings.remaining(1), contains('1'));
     expect(strings.remaining(1), isNot(contains('{count}')));
+    expect(strings.pagesSelected(3), contains('3'));
+    expect(strings.pagesSelected(3), isNot(contains('{count}')));
+    expect(strings.ocrProgress(2, 5), allOf(contains('2'), contains('5')));
+    expect(strings.maxPages(20), contains('20'));
   });
 }

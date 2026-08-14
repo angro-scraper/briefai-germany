@@ -708,27 +708,40 @@ class DocumentService {
     ),
   );
 
+  Future<List<PickedDocument>> galleryMultiple() => _fromXFiles(
+    _picker.pickMultiImage(imageQuality: 90, maxWidth: 2400, maxHeight: 2400),
+  );
+
   Future<PickedDocument?> file() async {
+    final selected = await files();
+    return selected.isEmpty ? null : selected.first;
+  }
+
+  Future<List<PickedDocument>> files() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg'],
       withData: true,
+      allowMultiple: true,
     );
-    final selected = result?.files.single;
-    if (selected == null || selected.bytes == null) return null;
-    final lower = selected.name.toLowerCase();
-    final isPdf = lower.endsWith('.pdf');
-    final document = PickedDocument(
-      name: selected.name,
-      bytes: selected.bytes!,
-      mimeType: isPdf
-          ? 'application/pdf'
-          : lower.endsWith('.png')
-          ? 'image/png'
-          : 'image/jpeg',
-      ocrPath: isPdf ? null : selected.path,
-    );
-    return isPdf ? document : _preprocess(document);
+    final documents = <PickedDocument>[];
+    for (final selected in result?.files ?? const <PlatformFile>[]) {
+      if (selected.bytes == null) continue;
+      final lower = selected.name.toLowerCase();
+      final isPdf = lower.endsWith('.pdf');
+      final document = PickedDocument(
+        name: selected.name,
+        bytes: selected.bytes!,
+        mimeType: isPdf
+            ? 'application/pdf'
+            : lower.endsWith('.png')
+            ? 'image/png'
+            : 'image/jpeg',
+        ocrPath: isPdf ? null : selected.path,
+      );
+      documents.add(isPdf ? document : _preprocess(document));
+    }
+    return documents;
   }
 
   Future<String> ocr(PickedDocument document) async {
@@ -745,6 +758,31 @@ class DocumentService {
     return text;
   }
 
+  Future<String> ocrAll(
+    List<PickedDocument> documents, {
+    void Function(int current, int total)? onProgress,
+  }) async {
+    final recognizedPages = <String>[];
+    for (var index = 0; index < documents.length; index += 1) {
+      onProgress?.call(index + 1, documents.length);
+      try {
+        final text = await ocr(documents[index]);
+        recognizedPages.add(
+          '[[DOCUMENT PAGE ${index + 1} OF ${documents.length}]]\n$text',
+        );
+      } on StateError {
+        // A blank cover or an unreadable page must not discard the readable
+        // pages of the same letter. We only fail when no page produced text.
+      }
+    }
+    if (recognizedPages.isEmpty) {
+      throw StateError(
+        'Tekst nije prepoznat. Fotografije uslikajte ravno i pri dobrom svetlu.',
+      );
+    }
+    return recognizedPages.join('\n\n');
+  }
+
   Future<PickedDocument?> _fromXFile(Future<XFile?> future) async {
     final file = await future;
     if (file == null) return null;
@@ -758,6 +796,26 @@ class DocumentService {
         ocrPath: file.path,
       ),
     );
+  }
+
+  Future<List<PickedDocument>> _fromXFiles(Future<List<XFile>> future) async {
+    final files = await future;
+    final documents = <PickedDocument>[];
+    for (final file in files) {
+      documents.add(
+        _preprocess(
+          PickedDocument(
+            name: file.name,
+            bytes: await file.readAsBytes(),
+            mimeType: file.name.toLowerCase().endsWith('.png')
+                ? 'image/png'
+                : 'image/jpeg',
+            ocrPath: file.path,
+          ),
+        ),
+      );
+    }
+    return documents;
   }
 
   PickedDocument _preprocess(PickedDocument document) {
@@ -992,21 +1050,31 @@ class LetterRepository {
     String uid,
     LetterAnalysis letter, {
     PickedDocument? document,
+    List<PickedDocument>? documents,
   }) async {
+    final storedDocuments =
+        documents ??
+        (document == null
+            ? const <PickedDocument>[]
+            : <PickedDocument>[document]);
     final database = await _db();
     await _store.record(letter.id).put(database, {
       ...letter.toMap(),
       'ownerKey': uid,
       'createdAt': letter.createdAt.toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
-      if (document != null) ...{
-        'documentName': document.name,
-        'documentMimeType': document.mimeType,
-        // Base64 is portable across IndexedDB, native Sembast and in-memory
-        // test databases. Older web records stored a Sembast Blob and remain
-        // readable through the migration path in loadDocument/exportRecords.
-        'documentBase64': base64Encode(document.bytes),
-      },
+      if (storedDocuments.isNotEmpty)
+        'documentPages': storedDocuments
+            .map(
+              (page) => <String, Object?>{
+                'name': page.name,
+                'mimeType': page.mimeType,
+                // Base64 is portable across IndexedDB, native Sembast and
+                // in-memory test databases.
+                'base64': base64Encode(page.bytes),
+              },
+            )
+            .toList(growable: false),
     });
   }
 
@@ -1060,32 +1128,72 @@ class LetterRepository {
   }
 
   Future<PickedDocument?> loadDocument(String uid, String letterId) async {
+    final documents = await loadDocuments(uid, letterId);
+    return documents.isEmpty ? null : documents.first;
+  }
+
+  Future<List<PickedDocument>> loadDocuments(
+    String uid,
+    String letterId,
+  ) async {
     final database = await _db();
     final values = await _store.record(letterId).get(database);
-    if (!_ownedBy(values, uid)) return null;
+    if (!_ownedBy(values, uid)) return const <PickedDocument>[];
+    final storedPages = values?['documentPages'];
+    if (storedPages is List) {
+      final documents = <PickedDocument>[];
+      for (final storedPage in storedPages) {
+        if (storedPage is! Map) continue;
+        final name = storedPage['name'];
+        final mimeType = storedPage['mimeType'];
+        final storedBase64 = storedPage['base64'];
+        if (name is! String || mimeType is! String || storedBase64 is! String) {
+          continue;
+        }
+        try {
+          documents.add(
+            PickedDocument(
+              name: name,
+              bytes: base64Decode(storedBase64),
+              mimeType: mimeType,
+              ocrPath: null,
+            ),
+          );
+        } on FormatException {
+          // Keep loading the remaining locally stored pages.
+        }
+      }
+      if (documents.isNotEmpty) return documents;
+    }
+
+    // Compatibility with archives written before multi-page letters shipped.
     final storedBase64 = values?['documentBase64'];
     final legacyBlob = values?['documentBytes'];
     final name = values?['documentName'];
     final mimeType = values?['documentMimeType'];
-    if (name is! String || mimeType is! String) return null;
+    if (name is! String || mimeType is! String) {
+      return const <PickedDocument>[];
+    }
     Uint8List bytes;
     if (storedBase64 is String) {
       try {
         bytes = base64Decode(storedBase64);
       } on FormatException {
-        return null;
+        return const <PickedDocument>[];
       }
     } else if (legacyBlob is Blob) {
       bytes = Uint8List.fromList(legacyBlob.bytes);
     } else {
-      return null;
+      return const <PickedDocument>[];
     }
-    return PickedDocument(
-      name: name,
-      bytes: bytes,
-      mimeType: mimeType,
-      ocrPath: null,
-    );
+    return <PickedDocument>[
+      PickedDocument(
+        name: name,
+        bytes: bytes,
+        mimeType: mimeType,
+        ocrPath: null,
+      ),
+    ];
   }
 
   Filter _ownerFilter(String uid) => Filter.equals('ownerKey', uid);
@@ -1557,17 +1665,26 @@ class ReplyExportService {
   }
 
   Future<void> shareDocument(PickedDocument document) async {
+    await shareDocuments(<PickedDocument>[document]);
+  }
+
+  Future<void> shareDocuments(List<PickedDocument> documents) async {
+    if (documents.isEmpty) return;
     await SharePlus.instance.share(
       ShareParams(
         subject: 'Originalni dokument — BriefAI Germany',
-        files: [
-          XFile.fromData(
-            document.bytes,
-            mimeType: document.mimeType,
-            name: document.name,
-          ),
-        ],
-        fileNameOverrides: [document.name],
+        files: documents
+            .map(
+              (document) => XFile.fromData(
+                document.bytes,
+                mimeType: document.mimeType,
+                name: document.name,
+              ),
+            )
+            .toList(growable: false),
+        fileNameOverrides: documents
+            .map((document) => document.name)
+            .toList(growable: false),
       ),
     );
   }

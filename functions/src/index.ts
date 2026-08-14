@@ -1166,7 +1166,10 @@ export const analyzeLetter = onCall(
     const founder = isFounder(request.auth?.token);
     const accessOverride = founder || isPlayReviewer(request.auth?.token);
     requireString(request.data?.letterId, "letterId", 128);
-    const ocrText = requireString(request.data?.ocrText, "ocrText", 30000);
+    // Multi-page letters are OCRed locally and sent as one ordered text. The
+    // higher guard keeps every relevant page available to the analysis while
+    // remaining far below the callable request-size and model context limits.
+    const ocrText = requireString(request.data?.ocrText, "ocrText", 120000);
     const preferredLanguage = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
     const usageRef = db.collection("users").doc(uid).collection("usage").doc("current");
     const subscriptionRef = db.collection("subscriptions").doc(uid);
@@ -1322,8 +1325,8 @@ export const generateReply = onCall(
     const founder = isFounder(request.auth?.token);
     const accessOverride = founder || isPlayReviewer(request.auth?.token);
     requireString(request.data?.letterId, "letterId", 128);
-    const sourceText = requireString(request.data?.sourceText, "sourceText", 20000);
-    const facts = requireString(request.data?.facts, "facts", 10000);
+    const sourceText = requireString(request.data?.sourceText, "sourceText", 120000);
+    const facts = requireString(request.data?.facts, "facts", 30000);
     if (!await hasAiFeatureAccess(uid, accessOverride)) {
       throw new HttpsError(
         "permission-denied",

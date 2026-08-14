@@ -953,7 +953,9 @@ class _GoogleSignInButton extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF1F1F1F),
           disabledBackgroundColor: Colors.white.withValues(alpha: 0.7),
-          disabledForegroundColor: const Color(0xFF1F1F1F).withValues(alpha: 0.5),
+          disabledForegroundColor: const Color(
+            0xFF1F1F1F,
+          ).withValues(alpha: 0.5),
           side: const BorderSide(color: Color(0xFF747775)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           textStyle: const TextStyle(
@@ -1055,12 +1057,16 @@ class AnalysisScreen extends StatefulWidget {
 }
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
+  static const _maxDocumentPages = 20;
+  static const _maxDocumentBytes = 50 * 1024 * 1024;
+
   final _text = TextEditingController();
+  final List<PickedDocument> _documents = [];
   bool _loading = false;
   bool _selecting = false;
   bool _recognizing = false;
   bool _ocrComplete = false;
-  PickedDocument? _document;
+  int _ocrCurrentPage = 0;
 
   @override
   void dispose() {
@@ -1094,97 +1100,29 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 OutlinedButton.icon(
                   onPressed: _loading
                       ? null
-                      : () => _select(widget.services.documents.capture),
+                      : () => _selectOne(widget.services.documents.capture),
                   icon: const Icon(Icons.camera_alt_outlined),
                   label: Text(strings.text('camera')),
                 ),
                 OutlinedButton.icon(
                   onPressed: _loading
                       ? null
-                      : () => _select(widget.services.documents.gallery),
+                      : () => _selectMany(
+                          widget.services.documents.galleryMultiple,
+                        ),
                   icon: const Icon(Icons.photo_library_outlined),
                   label: Text(strings.text('gallery')),
                 ),
                 OutlinedButton.icon(
                   onPressed: _loading
                       ? null
-                      : () => _select(widget.services.documents.file),
+                      : () => _selectMany(widget.services.documents.files),
                   icon: const Icon(Icons.upload_file_outlined),
                   label: Text(strings.text('pdfImage')),
                 ),
               ],
             ),
-            if (_document != null)
-              Card(
-                margin: const EdgeInsets.only(top: 12),
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      if (!_document!.isPdf)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.memory(
-                            _document!.bytes,
-                            width: 64,
-                            height: 80,
-                            cacheWidth: 256,
-                            filterQuality: FilterQuality.low,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const SizedBox(
-                              width: 64,
-                              height: 80,
-                              child: Icon(Icons.description_outlined),
-                            ),
-                          ),
-                        )
-                      else
-                        const SizedBox(
-                          width: 64,
-                          height: 80,
-                          child: Icon(Icons.picture_as_pdf_outlined, size: 38),
-                        ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _document!.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _recognizing
-                                  ? strings.text('ocrReading')
-                                  : _ocrComplete
-                                  ? strings.text('ocrReady')
-                                  : strings.text('photoReadyForAnalysis'),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: _ocrComplete
-                                        ? Colors.green.shade700
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                            if (_recognizing) ...[
-                              const SizedBox(height: 8),
-                              const LinearProgressIndicator(minHeight: 3),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            if (_documents.isNotEmpty) _buildDocumentPages(strings),
             const SizedBox(height: 12),
             Expanded(
               child: TextField(
@@ -1209,11 +1147,136 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               label: Text(
                 _loading
                     ? _recognizing
-                          ? strings.text('ocrReading')
+                          ? strings.ocrProgress(
+                              _ocrCurrentPage,
+                              _documents.length,
+                            )
                           : _selecting
                           ? strings.text('loadingImage')
                           : strings.text('processing')
                     : strings.text('analyzeLetter'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentPages(AppStrings strings) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              strings.pagesSelected(_documents.length),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              _recognizing
+                  ? strings.ocrProgress(_ocrCurrentPage, _documents.length)
+                  : _ocrComplete
+                  ? strings.text('ocrReady')
+                  : strings.text('photoReadyForAnalysis'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: _ocrComplete
+                    ? Colors.green.shade700
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (_recognizing) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                minHeight: 3,
+                value: _documents.isEmpty
+                    ? null
+                    : _ocrCurrentPage / _documents.length,
+              ),
+            ],
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 118,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _documents.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final document = _documents[index];
+                  return SizedBox(
+                    width: 92,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(9),
+                                  child: document.isPdf
+                                      ? ColoredBox(
+                                          color: theme
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                          child: const Icon(
+                                            Icons.picture_as_pdf_outlined,
+                                            size: 38,
+                                          ),
+                                        )
+                                      : Image.memory(
+                                          document.bytes,
+                                          cacheWidth: 256,
+                                          filterQuality: FilterQuality.low,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) =>
+                                              const ColoredBox(
+                                                color: Color(0xFFE8ECF4),
+                                                child: Icon(
+                                                  Icons.description_outlined,
+                                                ),
+                                              ),
+                                        ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: IconButton.filledTonal(
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 30,
+                                    height: 30,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: strings.text('removePage'),
+                                  onPressed: _loading
+                                      ? null
+                                      : () => _removeDocument(index),
+                                  icon: const Icon(Icons.close, size: 17),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${strings.text('page')} ${index + 1}',
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          style: theme.textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -1233,10 +1296,18 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     try {
       final id = newLetterId();
       final language = widget.state.localeCode;
-      if (_document != null && _text.text.trim().isEmpty) {
-        setState(() => _recognizing = true);
+      if (_documents.isNotEmpty && _text.text.trim().isEmpty) {
+        setState(() {
+          _recognizing = true;
+          _ocrCurrentPage = 1;
+        });
         await WidgetsBinding.instance.endOfFrame;
-        final recognized = await widget.services.documents.ocr(_document!);
+        final recognized = await widget.services.documents.ocrAll(
+          _documents,
+          onProgress: (current, _) {
+            if (mounted) setState(() => _ocrCurrentPage = current);
+          },
+        );
         if (!mounted) return;
         setState(() {
           _text.text = recognized;
@@ -1256,7 +1327,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       await widget.services.letters.save(
         widget.services.auth.localVaultKey,
         analysis,
-        document: _document,
+        documents: List<PickedDocument>.unmodifiable(_documents),
       );
       if (!kFreeBetaMode &&
           !widget.state.isPremium &&
@@ -1301,7 +1372,16 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
   }
 
-  Future<void> _select(Future<PickedDocument?> Function() source) async {
+  Future<void> _selectOne(Future<PickedDocument?> Function() source) async {
+    await _selectMany(() async {
+      final selected = await source();
+      return selected == null ? const <PickedDocument>[] : [selected];
+    });
+  }
+
+  Future<void> _selectMany(
+    Future<List<PickedDocument>> Function() source,
+  ) async {
     if (_loading) return;
     setState(() {
       _loading = true;
@@ -1310,12 +1390,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
     try {
       final selected = await source();
-      if (selected == null || !mounted) return;
-      setState(() {
-        _document = selected;
-        _ocrComplete = false;
-        _text.clear();
-      });
+      if (selected.isEmpty || !mounted) return;
+      _appendDocuments(selected);
     } on Object catch (error) {
       if (!mounted) return;
       setState(() => _ocrComplete = false);
@@ -1336,6 +1412,52 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         });
       }
     }
+  }
+
+  void _appendDocuments(List<PickedDocument> selected) {
+    final availableSlots = _maxDocumentPages - _documents.length;
+    final accepted = <PickedDocument>[];
+    var totalBytes = _documents.fold<int>(
+      0,
+      (sum, document) => sum + document.bytes.length,
+    );
+    var sizeLimitReached = false;
+    for (final document in selected.take(math.max(0, availableSlots))) {
+      if (totalBytes + document.bytes.length > _maxDocumentBytes) {
+        sizeLimitReached = true;
+        break;
+      }
+      accepted.add(document);
+      totalBytes += document.bytes.length;
+    }
+    if (accepted.isNotEmpty) {
+      setState(() {
+        _documents.addAll(accepted);
+        _ocrComplete = false;
+        _ocrCurrentPage = 0;
+        _text.clear();
+      });
+    }
+    if (selected.length > availableSlots) {
+      _showSelectionMessage(context.strings.maxPages(_maxDocumentPages));
+    } else if (sizeLimitReached) {
+      _showSelectionMessage(context.strings.text('filesTooLarge'));
+    }
+  }
+
+  void _removeDocument(int index) {
+    setState(() {
+      _documents.removeAt(index);
+      _ocrComplete = false;
+      _ocrCurrentPage = 0;
+      _text.clear();
+    });
+  }
+
+  void _showSelectionMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _readableError(Object error) {
@@ -1454,18 +1576,18 @@ class ResultScreen extends StatelessWidget {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () async {
-              final document = await services.letters.loadDocument(
+              final documents = await services.letters.loadDocuments(
                 services.auth.localVaultKey,
                 letter.id,
               );
               if (!context.mounted) return;
-              if (document == null) {
+              if (documents.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(strings.text('originalMissing'))),
                 );
                 return;
               }
-              await services.exports.shareDocument(document);
+              await services.exports.shareDocuments(documents);
             },
             icon: const Icon(Icons.attach_file_rounded),
             label: Text(strings.text('openOriginal')),
@@ -1517,117 +1639,172 @@ class ResponseScreen extends StatefulWidget {
 }
 
 class _ResponseScreenState extends State<ResponseScreen> {
-  late final Future<GeneratedReply> _response = () async {
-    return widget.services.ai.generateReply(
-      letterId: widget.letter.id,
-      sourceText: widget.letter.sourceText,
-      facts: 'No additional user-supplied facts.',
-    );
-  }();
+  final _facts = TextEditingController();
+  Future<GeneratedReply>? _response;
   bool _emailVersion = false;
+
+  @override
+  void dispose() {
+    _facts.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('replyTitle'))),
-      body: FutureBuilder<GeneratedReply>(
-        future: _response,
-        builder: (context, snapshot) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                strings.text('formalReply'),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              if (snapshot.hasData)
-                SegmentedButton<bool>(
-                  segments: [
-                    ButtonSegment(
-                      value: false,
-                      icon: const Icon(Icons.article_outlined),
-                      label: Text(strings.text('letter')),
-                    ),
-                    ButtonSegment(
-                      value: true,
-                      icon: const Icon(Icons.email_outlined),
-                      label: Text('E-mail'),
-                    ),
-                  ],
-                  selected: {_emailVersion},
-                  onSelectionChanged: (selected) =>
-                      setState(() => _emailVersion = selected.first),
-                ),
-              if (snapshot.hasData) const SizedBox(height: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+      body: _response == null
+          ? _buildFactsForm(strings)
+          : _buildGeneratedReply(strings),
+    );
+  }
+
+  Widget _buildFactsForm(AppStrings strings) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(
+          strings.text('replyFactsTitle'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(strings.text('replyFactsHelp')),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _facts,
+          minLines: 7,
+          maxLines: 14,
+          maxLength: 30000,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: strings.text('replyFactsHint'),
+            alignLabelWithHint: true,
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _generateReply,
+          icon: const Icon(Icons.auto_awesome),
+          label: Text(strings.text('generateReply')),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGeneratedReply(AppStrings strings) {
+    final response = _response!;
+    return FutureBuilder<GeneratedReply>(
+      future: response,
+      builder: (context, snapshot) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              strings.text('formalReply'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (snapshot.hasData)
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(
+                    value: false,
+                    icon: const Icon(Icons.article_outlined),
+                    label: Text(strings.text('letter')),
                   ),
-                  child: snapshot.hasError
-                      ? Text(
-                          '${strings.text('responseUnavailable')}: ${snapshot.error}',
-                        )
-                      : snapshot.hasData
-                      ? SelectableText(
-                          _emailVersion
-                              ? snapshot.data!.email
-                              : snapshot.data!.letter,
-                        )
-                      : const Center(child: CircularProgressIndicator()),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (snapshot.hasData) ...[
-                FilledButton.icon(
-                  onPressed: () async {
-                    await widget.services.exports.copy(
-                      _emailVersion
-                          ? snapshot.data!.email
-                          : snapshot.data!.letter,
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(strings.text('replyCopied'))),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: Text(strings.text('copyReply')),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => widget.services.exports.composeEmail(
-                    subject: 'Odgovor na: ${widget.letter.title}',
-                    body: snapshot.data!.email,
+                  ButtonSegment(
+                    value: true,
+                    icon: const Icon(Icons.email_outlined),
+                    label: Text('E-mail'),
                   ),
-                  icon: const Icon(Icons.email_outlined),
-                  label: Text(strings.text('sendEmail')),
+                ],
+                selected: {_emailVersion},
+                onSelectionChanged: (selected) =>
+                    setState(() => _emailVersion = selected.first),
+              ),
+            if (snapshot.hasData) const SizedBox(height: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => widget.services.exports.savePdf(
-                    title: 'BriefAI Germany — ${widget.letter.title}',
-                    body: _emailVersion
+                child: snapshot.hasError
+                    ? Text(
+                        '${strings.text('responseUnavailable')}: ${snapshot.error}',
+                      )
+                    : snapshot.hasData
+                    ? SelectableText(
+                        _emailVersion
+                            ? snapshot.data!.email
+                            : snapshot.data!.letter,
+                      )
+                    : const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (snapshot.hasData) ...[
+              FilledButton.icon(
+                onPressed: () async {
+                  await widget.services.exports.copy(
+                    _emailVersion
                         ? snapshot.data!.email
                         : snapshot.data!.letter,
-                  ),
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: Text(strings.text('savePdf')),
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(strings.text('replyCopied'))),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.copy),
+                label: Text(strings.text('copyReply')),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => widget.services.exports.composeEmail(
+                  subject: 'Odgovor na: ${widget.letter.title}',
+                  body: snapshot.data!.email,
                 ),
-              ],
+                icon: const Icon(Icons.email_outlined),
+                label: Text(strings.text('sendEmail')),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => widget.services.exports.savePdf(
+                  title: 'BriefAI Germany — ${widget.letter.title}',
+                  body: _emailVersion
+                      ? snapshot.data!.email
+                      : snapshot.data!.letter,
+                ),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: Text(strings.text('savePdf')),
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
+  }
+
+  void _generateReply() {
+    final facts = _facts.text.trim();
+    setState(() {
+      _response = widget.services.ai.generateReply(
+        letterId: widget.letter.id,
+        sourceText: widget.letter.sourceText,
+        facts: facts.isEmpty
+            ? 'The user did not provide additional facts.'
+            : facts,
+      );
+    });
   }
 }
 
