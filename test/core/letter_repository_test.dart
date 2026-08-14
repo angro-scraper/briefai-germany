@@ -7,7 +7,7 @@ import 'package:sembast/sembast_memory.dart';
 
 void main() {
   test(
-    'legacy account vaults migrate into one durable device-local archive',
+    'legacy device archive is claimed by exactly one signed-in account',
     () async {
       final repository = LetterRepository(
         cloudEnabled: false,
@@ -33,52 +33,39 @@ void main() {
       );
 
       await repository.save(
-        'user:alice',
+        LetterRepository.deviceVaultKey,
         letter('alice-letter', 'Alice OCR'),
         document: document,
       );
-      await repository.save(
-        'user:bob',
-        letter('bob-letter', 'Bob OCR'),
-        document: document,
-      );
 
-      await repository.migrateToDeviceVault();
-      final archive = await repository.exportRecords(
-        LetterRepository.deviceVaultKey,
-      );
+      final aliceVault = LetterRepository.userVaultKey('alice');
+      final bobVault = LetterRepository.userVaultKey('bob');
+      await repository.claimLegacyDeviceVault(aliceVault);
+      await repository.claimLegacyDeviceVault(bobVault);
+
+      final archive = await repository.exportRecords(aliceVault);
+      expect(archive.map((record) => record['id']), ['alice-letter']);
+      expect(await repository.exportRecords(bobVault), isEmpty);
       expect(
-        archive.map((record) => record['id']),
-        containsAll(['alice-letter', 'bob-letter']),
-      );
-      expect(
-        await repository.loadDocument(
-          LetterRepository.deviceVaultKey,
-          'alice-letter',
-        ),
+        await repository.loadDocument(aliceVault, 'alice-letter'),
         isNotNull,
       );
 
-      await repository.clearAll(LetterRepository.deviceVaultKey);
-      expect(
-        await repository.exportRecords(LetterRepository.deviceVaultKey),
-        isEmpty,
-      );
+      await repository.clearAll(aliceVault);
+      expect(await repository.exportRecords(aliceVault), isEmpty);
     },
   );
 
   test(
-    'migration is idempotent and includes anonymous legacy records',
+    'signed-in and anonymous archives stay isolated on one device',
     () async {
       final repository = LetterRepository(
         cloudEnabled: false,
         databaseFactory: databaseFactoryMemory,
         databasePath: 'legacy-vault-test.db',
       );
-      // Saving as anonymous models the destination of ownerless records after
-      // migration; signed-in account filters must still exclude it.
       await repository.save(
-        'anonymous',
+        LetterRepository.anonymousVaultKey,
         LetterAnalysis(
           id: 'legacy',
           title: 'Legacy',
@@ -89,12 +76,28 @@ void main() {
           createdAt: DateTime.utc(2026, 7, 26),
         ),
       );
+      final signedInVault = LetterRepository.userVaultKey('firebase-uid');
+      await repository.save(
+        signedInVault,
+        LetterAnalysis(
+          id: 'signed-in',
+          title: 'Privatno',
+          plainExplanation: 'Samo za nalog',
+          category: LetterCategory.other,
+          urgency: Urgency.low,
+          suggestedAction: 'Proverite.',
+          createdAt: DateTime.utc(2026, 7, 27),
+        ),
+      );
 
-      await repository.migrateToDeviceVault();
-      await repository.migrateToDeviceVault();
       expect(
-        await repository.exportRecords(LetterRepository.deviceVaultKey),
+        await repository.exportRecords(LetterRepository.anonymousVaultKey),
         hasLength(1),
+      );
+      expect(await repository.exportRecords(signedInVault), hasLength(1));
+      expect(
+        (await repository.exportRecords(signedInVault)).single['id'],
+        'signed-in',
       );
     },
   );

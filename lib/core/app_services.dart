@@ -172,11 +172,6 @@ class AppServices {
     // notification channel; reminders initialize in the background instead.
     unawaited(reminders.initialize().catchError((_) {}));
     final letters = LetterRepository(cloudEnabled: cloudEnabled);
-    // The archive belongs to this physical browser/app installation, not to
-    // the current Firebase session. Older builds changed owner keys at login,
-    // which made saved letters appear to disappear. Consolidate those records
-    // before the UI subscribes to the local vault.
-    await letters.migrateToDeviceVault();
     return AppServices._(
       cloudEnabled: cloudEnabled,
       configurationError: configurationError,
@@ -279,7 +274,12 @@ class AuthService {
       cloudEnabled && FirebaseAuth.instance.currentUser != null;
   String? get uid =>
       cloudEnabled ? FirebaseAuth.instance.currentUser?.uid : null;
-  String get localVaultKey => LetterRepository.deviceVaultKey;
+  String get localVaultKey {
+    final userId = uid;
+    return userId == null
+        ? LetterRepository.anonymousVaultKey
+        : LetterRepository.userVaultKey(userId);
+  }
 
   Future<bool> ensureFreshSession() async {
     if (!cloudEnabled) return false;
@@ -920,7 +920,12 @@ class AiService {
 }
 
 class LetterRepository {
+  /// Legacy owner used by builds that shared one archive between every account
+  /// on the same installation. It is retained only as a migration source.
   static const deviceVaultKey = 'device-local-v2';
+  static const anonymousVaultKey = 'anonymous-v3';
+
+  static String userVaultKey(String uid) => 'user:$uid';
 
   LetterRepository({
     required this.cloudEnabled,
@@ -938,17 +943,22 @@ class LetterRepository {
       await (databaseFactory?.openDatabase(databasePath) ??
           openBriefAiLocalDatabase());
 
-  /// Moves records written by all previous local-vault schemes into one
-  /// installation-local archive. This never uploads document content and is
-  /// deliberately idempotent so it is safe on every cold start.
-  Future<void> migrateToDeviceVault() async {
+  /// Assigns the archive left by device-wide builds to the first authenticated
+  /// account that opens it after this update. The operation is local-only and
+  /// idempotent: once claimed, those letters cannot appear in another account.
+  Future<void> claimLegacyDeviceVault(String destinationOwnerKey) async {
+    if (destinationOwnerKey == anonymousVaultKey ||
+        destinationOwnerKey == deviceVaultKey) {
+      return;
+    }
     final database = await _db();
     await database.transaction((transaction) async {
       final records = await _store.find(transaction);
       for (final record in records) {
-        if (record.value['ownerKey'] == deviceVaultKey) continue;
+        final ownerKey = record.value['ownerKey'];
+        if (ownerKey != null && ownerKey != deviceVaultKey) continue;
         await _store.record(record.key).update(transaction, {
-          'ownerKey': deviceVaultKey,
+          'ownerKey': destinationOwnerKey,
           'updatedAt': DateTime.now().toIso8601String(),
         });
       }

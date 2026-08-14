@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -341,15 +342,16 @@ class _AppShellState extends State<AppShell> {
   StreamSubscription<dynamic>? _authSubscription;
   StreamSubscription<dynamic>? _entitlementSubscription;
   StreamSubscription<dynamic>? _usageSubscription;
+  int _vaultBinding = 0;
 
   @override
   void initState() {
     super.initState();
-    _bindLocalVault();
+    unawaited(_bindLocalVault());
     unawaited(widget.services.analytics.trackPageView());
     if (widget.services.cloudEnabled) {
       _authSubscription = widget.services.auth.authChanges.listen((user) {
-        _bindLocalVault();
+        unawaited(_bindLocalVault());
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
         if (mounted) setState(() {});
@@ -376,11 +378,18 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  void _bindLocalVault() {
-    unawaited(_lettersSubscription?.cancel());
+  Future<void> _bindLocalVault() async {
+    final binding = ++_vaultBinding;
+    await _lettersSubscription?.cancel();
+    _lettersSubscription = null;
+    if (!mounted || binding != _vaultBinding) return;
     widget.state.replaceLetters(const []);
+
+    final ownerKey = widget.services.auth.localVaultKey;
+    await widget.services.letters.claimLegacyDeviceVault(ownerKey);
+    if (!mounted || binding != _vaultBinding) return;
     _lettersSubscription = widget.services.letters
-        .watch(widget.services.auth.localVaultKey)
+        .watch(ownerKey)
         .listen(widget.state.replaceLetters);
   }
 
@@ -817,15 +826,14 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
+          _GoogleSignInButton(
             onPressed: _loading ? null : _google,
-            icon: const Icon(Icons.g_mobiledata),
             label: Text(strings.text('continueGoogle')),
           ),
+          const SizedBox(height: 10),
           if (Theme.of(context).platform == TargetPlatform.iOS)
-            OutlinedButton.icon(
+            _AppleSignInButton(
               onPressed: _loading ? null : _apple,
-              icon: const Icon(Icons.apple),
               label: Text(strings.text('continueApple')),
             ),
           TextButton(
@@ -927,6 +935,111 @@ class _SignInScreenState extends State<SignInScreen> {
             '${error.message ?? error.code}',
     };
   }
+}
+
+class _GoogleSignInButton extends StatelessWidget {
+  const _GoogleSignInButton({required this.onPressed, required this.label});
+
+  final VoidCallback? onPressed;
+  final Widget label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1F1F1F),
+          disabledBackgroundColor: Colors.white.withValues(alpha: 0.7),
+          disabledForegroundColor: const Color(0xFF1F1F1F).withValues(alpha: 0.5),
+          side: const BorderSide(color: Color(0xFF747775)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+          ),
+        ),
+        icon: const SizedBox.square(
+          dimension: 20,
+          child: CustomPaint(painter: _GoogleGLogoPainter()),
+        ),
+        label: label,
+      ),
+    );
+  }
+}
+
+class _AppleSignInButton extends StatelessWidget {
+  const _AppleSignInButton({required this.onPressed, required this.label});
+
+  final VoidCallback? onPressed;
+  final Widget label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.black.withValues(alpha: 0.55),
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        icon: const Icon(Icons.apple, size: 22),
+        label: label,
+      ),
+    );
+  }
+}
+
+class _GoogleGLogoPainter extends CustomPainter {
+  const _GoogleGLogoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide * 0.36;
+    final stroke = size.shortestSide * 0.19;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    void arc(Color color, double start, double sweep) {
+      canvas.drawArc(
+        rect,
+        start,
+        sweep,
+        false,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.butt,
+      );
+    }
+
+    arc(const Color(0xFF4285F4), -math.pi / 4, math.pi * 0.72);
+    arc(const Color(0xFF34A853), math.pi * 0.47, math.pi * 0.55);
+    arc(const Color(0xFFFBBC05), math.pi * 1.02, math.pi * 0.30);
+    arc(const Color(0xFFEA4335), math.pi * 1.32, math.pi * 0.43);
+
+    canvas.drawLine(
+      Offset(center.dx, center.dy),
+      Offset(center.dx + radius + stroke / 2, center.dy),
+      Paint()
+        ..color = const Color(0xFF4285F4)
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.square,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _GoogleGLogoPainter oldDelegate) => false;
 }
 
 class AnalysisScreen extends StatefulWidget {
