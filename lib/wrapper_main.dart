@@ -24,6 +24,7 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'core/app_config.dart';
+import 'core/email_composer.dart';
 import 'firebase_options.dart';
 
 const _appUrl = String.fromEnvironment(
@@ -405,6 +406,29 @@ class _WrapperScreenState extends State<_WrapperScreen> {
                 ? filename
                 : 'briefai-odgovor.pdf',
           );
+          await _resolveNative(requestId, {'ok': true});
+        case 'composeEmail':
+          final subject = payload['subject'];
+          final body = payload['body'];
+          if (subject is! String || subject.trim().isEmpty) {
+            throw StateError('Naslov e-maila nije pripremljen.');
+          }
+          if (body is! String || body.trim().isEmpty) {
+            throw StateError('Sadržaj e-maila nije pripremljen.');
+          }
+          final draft = prepareGeneratedEmail(
+            fallbackSubject: subject,
+            generatedBody: body,
+          );
+          final opened = await launchUrl(
+            draft.toMailtoUri(),
+            mode: LaunchMode.externalApplication,
+          );
+          if (!opened) {
+            throw StateError(
+              'Aplikacija za e-mail nije dostupna na ovom uređaju.',
+            );
+          }
           await _resolveNative(requestId, {'ok': true});
         default:
           throw StateError('Nepoznata native akcija.');

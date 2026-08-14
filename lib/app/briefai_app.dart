@@ -1786,10 +1786,7 @@ class _ResponseScreenState extends State<ResponseScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => widget.services.exports.composeEmail(
-                  subject: 'Odgovor na: ${widget.letter.title}',
-                  body: snapshot.data!.email,
-                ),
+                onPressed: () => _composeEmail(snapshot.data!, strings),
                 icon: const Icon(Icons.email_outlined),
                 label: Text(strings.text('sendEmail')),
               ),
@@ -1870,6 +1867,21 @@ class _ResponseScreenState extends State<ResponseScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${strings.text('pdfSaveFailed')}: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _composeEmail(GeneratedReply reply, AppStrings strings) async {
+    try {
+      await widget.services.exports.composeEmail(
+        subject: 'Antwort: ${widget.letter.title}',
+        body: reply.email,
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${strings.text('emailOpenFailed')}: $error')),
         );
       }
     }

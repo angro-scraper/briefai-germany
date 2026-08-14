@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'domain.dart';
 import 'app_config.dart';
+import 'email_composer.dart';
 import 'app_localizations.dart';
 import '../firebase_options.dart';
 import '../features/analysis/analysis_engine.dart';
@@ -1666,11 +1667,26 @@ class ReplyExportService {
     required String subject,
     required String body,
   }) async {
-    final mailto = Uri(
-      scheme: 'mailto',
-      queryParameters: {'subject': subject, 'body': body},
+    final draft = prepareGeneratedEmail(
+      fallbackSubject: subject,
+      generatedBody: body,
     );
-    if (!await launchUrl(mailto)) {
+    if (kIsWeb && await nativeStoreAvailable()) {
+      try {
+        final result = await nativeStoreRequest('composeEmail', {
+          'subject': draft.subject,
+          'body': draft.body,
+        });
+        if (result['ok'] == true) return;
+      } on Object {
+        // Installed wrappers without this bridge still use the safe mailto
+        // fallback until the next store update is installed.
+      }
+    }
+    if (!await launchUrl(
+      draft.toMailtoUri(),
+      mode: LaunchMode.externalApplication,
+    )) {
       throw StateError('Aplikacija za e-mail nije dostupna na ovom uređaju.');
     }
   }
