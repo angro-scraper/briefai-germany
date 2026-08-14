@@ -15,6 +15,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -266,10 +267,14 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           );
         case 'authApple':
           if (!Platform.isIOS && !Platform.isMacOS) {
-            throw StateError('Apple prijava je dostupna samo na Apple uređaju.');
+            throw StateError(
+              'Apple prijava je dostupna samo na Apple uređaju.',
+            );
           }
           if (!await SignInWithApple.isAvailable()) {
-            throw StateError('Apple prijava trenutno nije dostupna na uređaju.');
+            throw StateError(
+              'Apple prijava trenutno nije dostupna na uređaju.',
+            );
           }
           final rawNonce = _appleNonce();
           final appleCredential = await SignInWithApple.getAppleIDCredential(
@@ -388,6 +393,19 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           }
           await _cancelReminders(letterId);
           await _resolveNative(requestId, {'ok': true});
+        case 'sharePdf':
+          final rawPdf = payload['base64'];
+          final filename = payload['filename'];
+          if (rawPdf is! String || rawPdf.isEmpty) {
+            throw StateError('PDF dokument nije pripremljen.');
+          }
+          await Printing.sharePdf(
+            bytes: base64Decode(rawPdf),
+            filename: filename is String && filename.isNotEmpty
+                ? filename
+                : 'briefai-odgovor.pdf',
+          );
+          await _resolveNative(requestId, {'ok': true});
         default:
           throw StateError('Nepoznata native akcija.');
       }
@@ -414,11 +432,9 @@ class _WrapperScreenState extends State<_WrapperScreen> {
     if (idToken == null || idToken.isEmpty) {
       throw StateError('Prijava nije vratila bezbednosni token.');
     }
-    final exchange = await FirebaseFunctions.instanceFor(
-      region: 'europe-west3',
-    ).httpsCallable('exchangeNativeAuth').call<Map<Object?, Object?>>({
-      'idToken': idToken,
-    });
+    final exchange = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('exchangeNativeAuth')
+        .call<Map<Object?, Object?>>({'idToken': idToken});
     final customToken = exchange.data['customToken'];
     if (customToken is! String || customToken.isEmpty) {
       throw StateError('Prijava nije završila bezbednu web sesiju.');
@@ -430,12 +446,12 @@ class _WrapperScreenState extends State<_WrapperScreen> {
     required String identityToken,
     required String rawNonce,
   }) async {
-    final exchange = await FirebaseFunctions.instanceFor(
-      region: 'europe-west3',
-    ).httpsCallable('nativeAppleWebSession').call<Map<Object?, Object?>>({
-      'identityToken': identityToken,
-      'rawNonce': rawNonce,
-    });
+    final exchange = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('nativeAppleWebSession')
+        .call<Map<Object?, Object?>>({
+          'identityToken': identityToken,
+          'rawNonce': rawNonce,
+        });
     final customToken = exchange.data['customToken'];
     if (customToken is! String || customToken.isEmpty) {
       throw StateError('Apple prijava nije završila bezbednu web sesiju.');

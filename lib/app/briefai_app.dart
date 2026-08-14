@@ -1642,6 +1642,13 @@ class _ResponseScreenState extends State<ResponseScreen> {
   final _facts = TextEditingController();
   Future<GeneratedReply>? _response;
   bool _emailVersion = false;
+  bool _restoringReply = true;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_restoreSavedReply());
+  }
 
   @override
   void dispose() {
@@ -1654,7 +1661,9 @@ class _ResponseScreenState extends State<ResponseScreen> {
     final strings = context.strings;
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('replyTitle'))),
-      body: _response == null
+      body: _restoringReply
+          ? const Center(child: CircularProgressIndicator())
+          : _response == null
           ? _buildFactsForm(strings)
           : _buildGeneratedReply(strings),
     );
@@ -1751,6 +1760,14 @@ class _ResponseScreenState extends State<ResponseScreen> {
             ),
             const SizedBox(height: 16),
             if (snapshot.hasData) ...[
+              Row(
+                children: [
+                  const Icon(Icons.lock_outline, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(strings.text('replySavedLocally'))),
+                ],
+              ),
+              const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: () async {
                   await widget.services.exports.copy(
@@ -1778,14 +1795,15 @@ class _ResponseScreenState extends State<ResponseScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => widget.services.exports.savePdf(
-                  title: 'BriefAI Germany — ${widget.letter.title}',
-                  body: _emailVersion
-                      ? snapshot.data!.email
-                      : snapshot.data!.letter,
-                ),
+                onPressed: () => _savePdf(snapshot.data!, strings),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: Text(strings.text('savePdf')),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => setState(() => _response = null),
+                icon: const Icon(Icons.edit_outlined),
+                label: Text(strings.text('editReplyContext')),
               ),
             ],
           ],
@@ -1794,17 +1812,67 @@ class _ResponseScreenState extends State<ResponseScreen> {
     );
   }
 
-  void _generateReply() {
+  Future<void> _restoreSavedReply() async {
+    final saved = await widget.services.letters.loadGeneratedReply(
+      widget.services.auth.localVaultKey,
+      widget.letter.id,
+    );
+    if (!mounted) return;
+    if (saved != null) {
+      _facts.text = saved.userContext;
+      _response = Future<GeneratedReply>.value(saved.reply);
+    }
+    setState(() => _restoringReply = false);
+  }
+
+  Future<void> _generateReply() async {
     final facts = _facts.text.trim();
+    final response = widget.services.ai.generateReply(
+      letterId: widget.letter.id,
+      sourceText: widget.letter.sourceText,
+      facts: facts.isEmpty
+          ? 'The user did not provide additional facts.'
+          : facts,
+    );
     setState(() {
-      _response = widget.services.ai.generateReply(
-        letterId: widget.letter.id,
-        sourceText: widget.letter.sourceText,
-        facts: facts.isEmpty
-            ? 'The user did not provide additional facts.'
-            : facts,
-      );
+      _response = response;
     });
+    try {
+      final generated = await response;
+      await widget.services.letters.saveGeneratedReply(
+        widget.services.auth.localVaultKey,
+        widget.letter.id,
+        generated,
+        userContext: facts,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.text('replySavedLocally'))),
+        );
+      }
+    } on Object {
+      // FutureBuilder displays the AI error and leaves the form recoverable.
+    }
+  }
+
+  Future<void> _savePdf(GeneratedReply reply, AppStrings strings) async {
+    try {
+      await widget.services.exports.savePdf(
+        title: 'BriefAI Germany — ${widget.letter.title}',
+        body: _emailVersion ? reply.email : reply.letter,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.text('pdfReady'))));
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${strings.text('pdfSaveFailed')}: $error')),
+        );
+      }
+    }
   }
 }
 

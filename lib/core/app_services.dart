@@ -1092,6 +1092,51 @@ class LetterRepository {
     });
   }
 
+  /// Stores the generated German letter and e-mail beside the local analysis.
+  /// The record never leaves the user's device and remains isolated by vault.
+  Future<void> saveGeneratedReply(
+    String uid,
+    String letterId,
+    GeneratedReply reply, {
+    required String userContext,
+  }) async {
+    final database = await _db();
+    final existing = await _store.record(letterId).get(database);
+    if (!_ownedBy(existing, uid)) return;
+    await _store.record(letterId).update(database, {
+      'generatedReplyLetter': reply.letter,
+      'generatedReplyEmail': reply.email,
+      'generatedReplyContext': userContext,
+      'generatedReplyUpdatedAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<SavedGeneratedReply?> loadGeneratedReply(
+    String uid,
+    String letterId,
+  ) async {
+    final database = await _db();
+    final values = await _store.record(letterId).get(database);
+    if (!_ownedBy(values, uid)) return null;
+    final letter = values?['generatedReplyLetter'];
+    final email = values?['generatedReplyEmail'];
+    if (letter is! String ||
+        letter.isEmpty ||
+        email is! String ||
+        email.isEmpty) {
+      return null;
+    }
+    final rawUpdatedAt = values?['generatedReplyUpdatedAt'];
+    return SavedGeneratedReply(
+      reply: GeneratedReply(letter: letter, email: email),
+      userContext: values?['generatedReplyContext'] as String? ?? '',
+      updatedAt: rawUpdatedAt is String
+          ? DateTime.tryParse(rawUpdatedAt) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
   Future<List<Map<String, dynamic>>> exportRecords(String uid) async {
     final database = await _db();
     final records = await _store.find(
@@ -1631,6 +1676,27 @@ class ReplyExportService {
   }
 
   Future<void> savePdf({required String title, required String body}) async {
+    final bytes = await createPdfBytes(title: title, body: body);
+    const filename = 'briefai-odgovor.pdf';
+    if (kIsWeb && await nativeStoreAvailable()) {
+      try {
+        await nativeStoreRequest('sharePdf', {
+          'filename': filename,
+          'base64': base64Encode(bytes),
+        });
+        return;
+      } on Object {
+        // Older store wrappers do not yet expose the PDF bridge. Keep the web
+        // share/download path available until the wrapper update is installed.
+      }
+    }
+    await Printing.sharePdf(bytes: bytes, filename: filename);
+  }
+
+  Future<Uint8List> createPdfBytes({
+    required String title,
+    required String body,
+  }) async {
     final document = pw.Document();
     document.addPage(
       pw.MultiPage(
@@ -1641,10 +1707,7 @@ class ReplyExportService {
         ],
       ),
     );
-    await Printing.sharePdf(
-      bytes: await document.save(),
-      filename: 'briefai-odgovor.pdf',
-    );
+    return document.save();
   }
 
   Future<void> shareJsonExport(String json) async {

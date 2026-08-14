@@ -71,6 +71,18 @@ class GeneratedReply {
   final String email;
 }
 
+class SavedGeneratedReply {
+  const SavedGeneratedReply({
+    required this.reply,
+    required this.userContext,
+    required this.updatedAt,
+  });
+
+  final GeneratedReply reply;
+  final String userContext;
+  final DateTime updatedAt;
+}
+
 class LetterAnalysis {
   const LetterAnalysis({
     required this.id,

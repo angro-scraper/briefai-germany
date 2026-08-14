@@ -164,4 +164,50 @@ void main() {
       'page-1.jpg',
     );
   });
+
+  test('generated reply is restored only from its account vault', () async {
+    final repository = LetterRepository(
+      cloudEnabled: false,
+      databaseFactory: databaseFactoryMemory,
+      databasePath: 'generated-reply-vault-test.db',
+    );
+    const ownerVault = 'user:reply-owner';
+    const otherVault = 'user:another-user';
+    await repository.save(
+      ownerVault,
+      LetterAnalysis(
+        id: 'reply-letter',
+        title: 'Inkasso odgovor',
+        plainExplanation: 'Potrebno je odgovoriti.',
+        category: LetterCategory.debtCollection,
+        urgency: Urgency.high,
+        suggestedAction: 'Pošaljite prigovor.',
+        createdAt: DateTime.utc(2026, 8, 14),
+        sourceText: 'Inkasso Forderung',
+      ),
+    );
+
+    await repository.saveGeneratedReply(
+      ownerVault,
+      'reply-letter',
+      const GeneratedReply(
+        letter: 'Sehr geehrte Damen und Herren, ...',
+        email: 'Betreff: Widerspruch ...',
+      ),
+      userContext: 'Deca nisu mogla da nastave trening.',
+    );
+
+    final restored = await repository.loadGeneratedReply(
+      ownerVault,
+      'reply-letter',
+    );
+    expect(restored, isNotNull);
+    expect(restored!.reply.letter, contains('Sehr geehrte'));
+    expect(restored.reply.email, contains('Widerspruch'));
+    expect(restored.userContext, contains('trening'));
+    expect(
+      await repository.loadGeneratedReply(otherVault, 'reply-letter'),
+      isNull,
+    );
+  });
 }

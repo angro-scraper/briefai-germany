@@ -404,6 +404,10 @@ class AppStrings {
       'copyReply': 'Yanıtı kopyala',
       'sendEmail': 'E-posta gönder',
       'savePdf': 'PDF olarak kaydet',
+      'replySavedLocally': 'Yanıt bu hesap için cihazda kaydedildi.',
+      'editReplyContext': 'Açıklamayı düzenle ve yeniden oluştur',
+      'pdfReady': 'PDF paylaşmaya veya kaydetmeye hazır.',
+      'pdfSaveFailed': 'PDF kaydedilemedi',
       'archiveSubtitle': 'Mektuplarınız durum ve kategoriye göre düzenlenir.',
       'deleteDocument': 'Belgeyi sil',
       'deleteDocumentBody':
@@ -596,6 +600,10 @@ class AppStrings {
       'copyReply': 'Kopiraj odgovor',
       'sendEmail': 'Pošalji e-mail',
       'savePdf': 'Sačuvaj PDF',
+      'replySavedLocally': 'Odgovor je sačuvan na uređaju za ovaj nalog.',
+      'editReplyContext': 'Izmeni objašnjenje i generiši ponovo',
+      'pdfReady': 'PDF je spreman za čuvanje ili deljenje.',
+      'pdfSaveFailed': 'PDF nije sačuvan',
       'archiveSubtitle': 'Vaša pisma su organizovana po statusu i kategoriji.',
       'deleteDocument': 'Obriši dokument',
       'deleteDocumentBody':
@@ -754,6 +762,10 @@ class AppStrings {
       'copyReply': 'Kopiraj odgovor',
       'sendEmail': 'Pošalji e-poštu',
       'savePdf': 'Spremi PDF',
+      'replySavedLocally': 'Odgovor je spremljen na uređaju za ovaj račun.',
+      'editReplyContext': 'Uredi objašnjenje i generiraj ponovno',
+      'pdfReady': 'PDF je spreman za spremanje ili dijeljenje.',
+      'pdfSaveFailed': 'PDF nije spremljen',
       'archiveSubtitle': 'Vaša su pisma organizirana po statusu i kategoriji.',
       'deleteDocument': 'Izbriši dokument',
       'deleteDocumentBody':
@@ -911,6 +923,10 @@ class AppStrings {
       'copyReply': 'Kopiraj odgovor',
       'sendEmail': 'Pošalji e-mail',
       'savePdf': 'Sačuvaj PDF',
+      'replySavedLocally': 'Odgovor je sačuvan na uređaju za ovaj nalog.',
+      'editReplyContext': 'Izmijeni objašnjenje i generiši ponovo',
+      'pdfReady': 'PDF je spreman za čuvanje ili dijeljenje.',
+      'pdfSaveFailed': 'PDF nije sačuvan',
       'archiveSubtitle': 'Vaša pisma su organizovana po statusu i kategoriji.',
       'deleteDocument': 'Obriši dokument',
       'deleteDocumentBody':
@@ -1069,6 +1085,10 @@ class AppStrings {
       'copyReply': 'Копирај одговор',
       'sendEmail': 'Испрати е-пошта',
       'savePdf': 'Зачувај PDF',
+      'replySavedLocally': 'Одговорот е зачуван на уредот за оваа сметка.',
+      'editReplyContext': 'Измени го објаснувањето и генерирај повторно',
+      'pdfReady': 'PDF е подготвен за зачувување или споделување.',
+      'pdfSaveFailed': 'PDF не е зачуван',
       'archiveSubtitle': 'Вашите писма се организирани по статус и категорија.',
       'deleteDocument': 'Избриши документ',
       'deleteDocumentBody':
@@ -1228,6 +1248,11 @@ class AppStrings {
       'copyReply': 'Antwort kopieren',
       'sendEmail': 'E-Mail senden',
       'savePdf': 'PDF speichern',
+      'replySavedLocally':
+          'Die Antwort wurde für dieses Konto lokal gespeichert.',
+      'editReplyContext': 'Erklärung bearbeiten und neu erstellen',
+      'pdfReady': 'Die PDF kann jetzt gespeichert oder geteilt werden.',
+      'pdfSaveFailed': 'PDF konnte nicht gespeichert werden',
       'archiveSubtitle': 'Ihre Briefe sind nach Status und Kategorie geordnet.',
       'deleteDocument': 'Dokument löschen',
       'deleteDocumentBody':
@@ -1389,6 +1414,11 @@ class AppStrings {
       'copyReply': 'Copy reply',
       'sendEmail': 'Send email',
       'savePdf': 'Save PDF',
+      'replySavedLocally':
+          'The reply is saved on this device for this account.',
+      'editReplyContext': 'Edit explanation and generate again',
+      'pdfReady': 'The PDF is ready to save or share.',
+      'pdfSaveFailed': 'PDF could not be saved',
       'archiveSubtitle': 'Your letters are organized by status and category.',
       'deleteDocument': 'Delete document',
       'deleteDocumentBody':
@@ -1548,6 +1578,11 @@ class AppStrings {
       'copyReply': 'Копирай отговор',
       'sendEmail': 'Изпрати имейл',
       'savePdf': 'Запази PDF',
+      'replySavedLocally':
+          'Отговорът е запазен на устройството за този профил.',
+      'editReplyContext': 'Редактирай обяснението и генерирай отново',
+      'pdfReady': 'PDF файлът е готов за запазване или споделяне.',
+      'pdfSaveFailed': 'PDF файлът не бе запазен',
       'archiveSubtitle': 'Писмата са организирани по статус и категория.',
       'deleteDocument': 'Изтрий документ',
       'deleteDocumentBody':
