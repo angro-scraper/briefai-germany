@@ -33,7 +33,7 @@ class _BriefAiAppState extends State<BriefAiApp> {
   void initState() {
     super.initState();
     unawaited(_restoreAppState());
-    if (kPaymentsEnabled && !kIsWeb) {
+    if (!kIsWeb) {
       _purchaseSubscription = widget.services.purchases.updates.listen(
         _handlePurchaseUpdates,
         onError: (_) {},
@@ -450,8 +450,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final cloudUnavailable =
-        !kFreeBetaMode && !services.cloudEnabled && !kDebugMode;
+    final cloudUnavailable = !services.cloudEnabled && !kDebugMode;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -509,9 +508,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                kFreeBetaMode
-                    ? strings.text('freeBetaActive')
-                    : state.isPremium
+                state.isPremium
                     ? strings.text('monthlyPlanActive')
                     : strings.remaining(
                         kFreeAnalysisLimit - state.freeAnalysesUsed,
@@ -1329,9 +1326,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         analysis,
         documents: List<PickedDocument>.unmodifiable(_documents),
       );
-      if (!kFreeBetaMode &&
-          !widget.state.isPremium &&
-          widget.services.auth.uid == null) {
+      if (!widget.state.isPremium && widget.services.auth.uid == null) {
         await widget.services.entitlements.recordAnalysis('local-device');
         widget.state.setFreeAnalysesUsed(widget.state.freeAnalysesUsed + 1);
       }
@@ -2383,29 +2378,22 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
         const Divider(),
-        if (kPaymentsEnabled)
-          ListTile(
-            leading: const Icon(Icons.workspace_premium),
-            title: Text(
-              state.isPremium
-                  ? strings.text('premiumActive')
-                  : strings.text('premiumName'),
-            ),
-            subtitle: Text(strings.text('premiumSubtitle')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    SubscriptionScreen(state: state, services: services),
-              ),
-            ),
-          )
-        else
-          ListTile(
-            leading: const Icon(Icons.science_outlined),
-            title: Text(strings.text('freeBetaTitle')),
-            subtitle: Text(strings.text('freeBetaBody')),
+        ListTile(
+          leading: const Icon(Icons.workspace_premium),
+          title: Text(
+            state.isPremium
+                ? strings.text('premiumActive')
+                : strings.text('premiumName'),
           ),
+          subtitle: Text(strings.text('premiumSubtitle')),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  SubscriptionScreen(state: state, services: services),
+            ),
+          ),
+        ),
         if (services.cloudEnabled && !services.auth.isSignedIn)
           ListTile(
             leading: const Icon(Icons.login),
@@ -2761,7 +2749,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Tokom zatvorenog testiranja svaki nalog dobija 5 test analiza bez naplate. Posle toga korisnik bira mesečni paket od 50, 100 ili 150 analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
+    'Svaki novi nalog uključuje 5 uvodnih analiza bez naplate. Posle toga korisnik bira mesečni paket od 50, 100 ili 150 analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
   ),
   (
     '4. Prihvatljivo korišćenje',

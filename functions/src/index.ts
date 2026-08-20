@@ -359,7 +359,7 @@ async function hasPremiumAccess(uid: string, accessOverride: boolean): Promise<b
   return ["active", "trialing"].includes(subscription.data()?.status);
 }
 
-async function hasTrialAiAccess(uid: string): Promise<boolean> {
+async function hasIntroductoryAiAccess(uid: string): Promise<boolean> {
   const usage = await db
     .collection("users")
     .doc(uid)
@@ -381,7 +381,7 @@ async function hasAiFeatureAccess(
   accessOverride: boolean,
 ): Promise<boolean> {
   return await hasPremiumAccess(uid, accessOverride) ||
-    await hasTrialAiAccess(uid);
+    await hasIntroductoryAiAccess(uid);
 }
 
 function safetyIdentifier(uid: string): string {
@@ -1180,7 +1180,7 @@ export const analyzeLetter = onCall(
       .collection("usage")
       .doc(monthKey);
 
-    // Reserve either the free lifetime trial or one monthly paid analysis
+    // Reserve either an introductory analysis or one monthly paid analysis
     // before the billable OpenAI call. The transaction prevents parallel
     // requests from bypassing either quota. Failed requests are released.
     const reservedAnalysis = accessOverride
@@ -1222,7 +1222,7 @@ export const analyzeLetter = onCall(
           analysesLifetime >= freeAnalysisLimit) {
         throw new HttpsError(
           "resource-exhausted",
-          "Pet test analiza je iskorišćeno. Izaberite paket da nastavite sa analizama.",
+          "Iskoristili ste 5 uvodnih analiza. Izaberite paket da nastavite sa analizama.",
         );
       }
       transaction.set(usageRef, {
@@ -1330,7 +1330,7 @@ export const generateReply = onCall(
     if (!await hasAiFeatureAccess(uid, accessOverride)) {
       throw new HttpsError(
         "permission-denied",
-        "Analizirajte prvo probno pismo ili aktivirajte Premium.",
+        "Iskoristite uvodnu analizu ili aktivirajte Premium.",
       );
     }
     // Reply drafts are correspondence sent to German institutions. They must
@@ -1405,7 +1405,7 @@ export const askLetterAssistant = onCall(
     if (!await hasAiFeatureAccess(uid, accessOverride)) {
       throw new HttpsError(
         "permission-denied",
-        "Analizirajte prvo probno pismo ili aktivirajte Premium.",
+        "Iskoristite uvodnu analizu ili aktivirajte Premium.",
       );
     }
     const input = `Letter context:\n${context}\n\nRecent conversation (JSON):\n${conversation}\n\nCurrent user question:\n${question}`;

@@ -75,7 +75,6 @@ if (mode !== 'static') {
     for (const name of [
       'WEB_APP_ORIGIN',
       'OPENAI_MODEL',
-      'FREE_BETA_AI_ENABLED',
       'AI_MONTHLY_BUDGET_USD',
       'AI_USER_MONTHLY_BUDGET_USD',
       'AI_PRO_USER_MONTHLY_BUDGET_USD',

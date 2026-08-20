@@ -120,29 +120,32 @@ void main() {
     }
   });
 
-  test('closed test allows five analyses and then requires a plan', () {
-    final state = AppState();
-    state.addAnalysis(
-      LetterAnalysis(
-        id: 'local',
-        title: 'Local',
-        plainExplanation: '',
-        category: LetterCategory.other,
-        urgency: Urgency.low,
-        suggestedAction: '',
-        createdAt: DateTime(2026),
-      ),
-    );
+  test(
+    'introductory plan includes five analyses before a paid plan is required',
+    () {
+      final state = AppState();
+      state.addAnalysis(
+        LetterAnalysis(
+          id: 'local',
+          title: 'Local',
+          plainExplanation: '',
+          category: LetterCategory.other,
+          urgency: Urgency.low,
+          suggestedAction: '',
+          createdAt: DateTime(2026),
+        ),
+      );
 
-    state.setFreeAnalysesUsed(4);
+      state.setFreeAnalysesUsed(4);
 
-    expect(state.freeAnalysesUsed, 4);
-    expect(state.canAnalyse, isTrue);
-    state.setFreeAnalysesUsed(5);
-    expect(state.canAnalyse, isFalse);
-    state.setPremium(true);
-    expect(state.canAnalyse, isTrue);
-  });
+      expect(state.freeAnalysesUsed, 4);
+      expect(state.canAnalyse, isTrue);
+      state.setFreeAnalysesUsed(5);
+      expect(state.canAnalyse, isFalse);
+      state.setPremium(true);
+      expect(state.canAnalyse, isTrue);
+    },
+  );
 
   test('generated reply retains separate letter and email variants', () {
     const reply = GeneratedReply(

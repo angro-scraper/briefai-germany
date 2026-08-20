@@ -253,8 +253,7 @@ class AppState extends ChangeNotifier {
   String localeCode = 'sr';
   final List<LetterAnalysis> letters = [];
 
-  bool get canAnalyse =>
-      kFreeBetaMode || isPremium || freeAnalysesUsed < kFreeAnalysisLimit;
+  bool get canAnalyse => isPremium || freeAnalysesUsed < kFreeAnalysisLimit;
 
   void setLocale(String value) {
     if (localeCode == value) return;
