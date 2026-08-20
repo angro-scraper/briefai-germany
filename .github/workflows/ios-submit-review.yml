@@ -70,6 +70,7 @@ jobs:
             --platform ios \
             --submit_for_review true \
             --automatic_release true \
+            --reject_if_possible true \
             --force true \
             --skip_binary_upload true \
             --skip_metadata true \
