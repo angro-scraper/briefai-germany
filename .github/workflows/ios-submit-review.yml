@@ -74,6 +74,7 @@ jobs:
             --skip_binary_upload true \
             --skip_metadata true \
             --skip_screenshots true \
+            --precheck_include_in_app_purchases false \
             --submission_information '{"export_compliance_uses_encryption":false}'
 
       - name: Clean temporary API key
