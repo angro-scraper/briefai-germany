@@ -56,9 +56,7 @@ void main() {
         'archiveSubtitle',
         'privacyPolicy',
         'choosePlan',
-        'freeBetaActive',
-        'freeBetaTitle',
-        'freeBetaBody',
+        'freeFeature',
         'deleteAccount',
       ];
 
