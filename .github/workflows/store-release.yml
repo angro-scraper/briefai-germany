@@ -64,7 +64,12 @@ jobs:
       - run: flutter analyze lib test
       - run: flutter test
       - name: Build signed AAB
-        run: flutter build appbundle --release --flavor briefai --target lib/wrapper_main.dart --build-name=${{ inputs.build_name }} --build-number=${{ inputs.build_number }}
+        run: >-
+          flutter build appbundle --release --flavor briefai
+          --target lib/wrapper_main.dart
+          --build-name=${{ inputs.build_name }}
+          --build-number=${{ inputs.build_number }}
+          --dart-define=SUBSCRIPTION_MANAGEMENT_URL=https://play.google.com/store/account/subscriptions?package=com.briefai.briefai_germany
       - uses: actions/upload-artifact@v4
         with:
           name: BriefAI-Germany-${{ inputs.build_name }}-${{ inputs.build_number }}.aab

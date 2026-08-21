@@ -1608,13 +1608,9 @@ class PurchaseService {
         throw StateError('Stripe portal nije vratio važeću adresu.');
       }
       target = Uri.parse(url);
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      target = Uri.parse(
-        'https://play.google.com/store/account/subscriptions'
-        '?package=com.briefai.briefai_germany',
-      );
-    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      target = Uri.parse('https://apps.apple.com/account/subscriptions');
+    } else if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      target = Uri.parse(kSubscriptionManagementUrl);
     } else {
       throw UnsupportedError('Upravljanje pretplatom nije dostupno.');
     }

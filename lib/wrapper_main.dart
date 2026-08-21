@@ -373,12 +373,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           await InAppPurchase.instance.restorePurchases();
           await _resolveNative(requestId, {'ok': true});
         case 'manage':
-          final uri = Platform.isAndroid
-              ? Uri.parse(
-                  'https://play.google.com/store/account/subscriptions'
-                  '?package=com.briefai.briefai_germany',
-                )
-              : Uri.parse('https://apps.apple.com/account/subscriptions');
+          final uri = Uri.parse(kSubscriptionManagementUrl);
           final opened = await launchUrl(
             uri,
             mode: LaunchMode.externalApplication,
