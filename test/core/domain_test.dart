@@ -9,9 +9,9 @@ void main() {
       [50, 100, 150],
     );
     expect(kSubscriptionPlans.map((plan) => plan.fallbackPrice).toList(), [
-      '9,90 € / mesečno',
-      '19,90 € / mesečno',
-      '29,90 € / mesečno',
+      '9,90 €',
+      '19,90 €',
+      '29,90 €',
     ]);
     expect(kSubscriptionPlans.map((plan) => plan.productId).toSet().length, 3);
   });

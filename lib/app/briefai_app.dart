@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../core/domain.dart';
 import '../core/app_config.dart';
@@ -754,6 +755,7 @@ class _SignInScreenState extends State<SignInScreen> {
   // broken registration flow; returning users can switch to sign-in directly.
   bool _create = true;
   bool _loading = false;
+  bool _showEmailForm = false;
 
   @override
   void dispose() {
@@ -781,66 +783,100 @@ class _SignInScreenState extends State<SignInScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          SegmentedButton<bool>(
-            segments: [
-              ButtonSegment<bool>(
-                value: true,
-                label: Text(strings.text('createAccount')),
-                icon: const Icon(Icons.person_add_alt_1_outlined),
+          if (Theme.of(context).platform == TargetPlatform.iOS)
+            IgnorePointer(
+              ignoring: _loading,
+              child: Opacity(
+                opacity: _loading ? 0.6 : 1,
+                child: SignInWithAppleButton(
+                  key: const ValueKey('apple-sign-in'),
+                  onPressed: _apple,
+                  text: strings.text('continueApple'),
+                  height: 48,
+                  borderRadius: const BorderRadius.all(Radius.circular(6)),
+                ),
               ),
-              ButtonSegment<bool>(
-                value: false,
-                label: Text(strings.text('signIn')),
-                icon: const Icon(Icons.login),
-              ),
-            ],
-            selected: {_create},
-            onSelectionChanged: _loading
-                ? null
-                : (selection) => setState(() => _create = selection.single),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
-            decoration: InputDecoration(labelText: strings.text('email')),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _password,
-            obscureText: true,
-            autofillHints: _create
-                ? const [AutofillHints.newPassword]
-                : const [AutofillHints.password],
-            decoration: InputDecoration(labelText: strings.text('password')),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _loading ? null : _emailSignIn,
-            child: Text(
-              _create ? strings.text('createAccount') : strings.text('signIn'),
             ),
-          ),
-          const SizedBox(height: 8),
+          if (Theme.of(context).platform == TargetPlatform.iOS)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 2),
+              child: Text(
+                strings.text('appleNoExtraData'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          const SizedBox(height: 10),
           _GoogleSignInButton(
             onPressed: _loading ? null : _google,
             label: Text(strings.text('continueGoogle')),
           ),
-          const SizedBox(height: 10),
-          if (Theme.of(context).platform == TargetPlatform.iOS)
-            _AppleSignInButton(
-              onPressed: _loading ? null : _apple,
-              label: Text(strings.text('continueApple')),
-            ),
-          TextButton(
-            onPressed: () => setState(() => _create = !_create),
-            child: Text(
-              _create
-                  ? strings.text('haveAccount')
-                  : strings.text('needAccount'),
-            ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: const ValueKey('show-email-auth'),
+            onPressed: _loading
+                ? null
+                : () => setState(() => _showEmailForm = !_showEmailForm),
+            icon: Icon(_showEmailForm ? Icons.expand_less : Icons.mail_outline),
+            label: Text(strings.text('continueEmail')),
           ),
+          if (_showEmailForm) ...[
+            const SizedBox(height: 20),
+            SegmentedButton<bool>(
+              segments: [
+                ButtonSegment<bool>(
+                  value: true,
+                  label: Text(strings.text('createAccount')),
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                ),
+                ButtonSegment<bool>(
+                  value: false,
+                  label: Text(strings.text('signIn')),
+                  icon: const Icon(Icons.login),
+                ),
+              ],
+              selected: {_create},
+              onSelectionChanged: _loading
+                  ? null
+                  : (selection) => setState(() => _create = selection.single),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              key: const ValueKey('email-auth-field'),
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              decoration: InputDecoration(labelText: strings.text('email')),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              autofillHints: _create
+                  ? const [AutofillHints.newPassword]
+                  : const [AutofillHints.password],
+              decoration: InputDecoration(labelText: strings.text('password')),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _loading ? null : _emailSignIn,
+              child: Text(
+                _create
+                    ? strings.text('createAccount')
+                    : strings.text('signIn'),
+              ),
+            ),
+            TextButton(
+              onPressed: _loading
+                  ? null
+                  : () => setState(() => _create = !_create),
+              child: Text(
+                _create
+                    ? strings.text('haveAccount')
+                    : strings.text('needAccount'),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -965,33 +1001,6 @@ class _GoogleSignInButton extends StatelessWidget {
           dimension: 20,
           child: CustomPaint(painter: _GoogleGLogoPainter()),
         ),
-        label: label,
-      ),
-    );
-  }
-}
-
-class _AppleSignInButton extends StatelessWidget {
-  const _AppleSignInButton({required this.onPressed, required this.label});
-
-  final VoidCallback? onPressed;
-  final Widget label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: FilledButton.icon(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.black.withValues(alpha: 0.55),
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        icon: const Icon(Icons.apple, size: 22),
         label: label,
       ),
     );
@@ -2303,7 +2312,7 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.badge_outlined),
-                    title: Text(strings.text('name')),
+                    title: Text(strings.text('optionalProfileName')),
                     subtitle: Text(
                       name.isEmpty ? strings.text('addName') : name,
                     ),
@@ -2667,7 +2676,6 @@ class LegalScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(strings.text('lastUpdated')),
           const SizedBox(height: 20),
-          if (!LegalConfig.isComplete) const _LegalWarning(),
           ...sections.map(
             (section) => Padding(
               padding: const EdgeInsets.only(bottom: 22),
@@ -2698,23 +2706,6 @@ class LegalScreen extends StatelessWidget {
   }
 }
 
-class _LegalWarning extends StatelessWidget {
-  const _LegalWarning();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 22),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: const Text(
-      'Ovo je razvojna verzija. Pre javne objave vlasnik aplikacije mora uneti pravni identitet, kontakt, adresu i potvrditi dokumente sa nemačkim pravnikom.',
-    ),
-  );
-}
-
 const _privacySections = [
   (
     '1. Odgovorno lice i obim',
@@ -2726,7 +2717,7 @@ const _privacySections = [
   ),
   (
     '3. Obrada i primaoci',
-    'Firebase se koristi za autentifikaciju, status pretplate, ograničenje korišćenja i opcionalne push tokene. Kada je cloud AI uključen, samo OCR tekst potreban za trenutni zahtev šalje se OpenAI-ju radi analize ili odgovora i ne upisuje se u cloud arhivu. Stripe obrađuje web naplatu, a Apple ili Google mobilne pretplate.',
+    'Firebase se koristi za autentifikaciju, status pretplate, ograničenje korišćenja i opcionalne push tokene. Kada je cloud AI uključen, samo OCR tekst potreban za trenutni zahtev šalje se OpenAI-ju radi analize ili odgovora i ne upisuje se u cloud arhivu. Web i mobilnu naplatu obrađuju odgovarajući ovlašćeni pružaoci plaćanja.',
   ),
   (
     '4. Rok čuvanja i bezbednost',
@@ -2749,7 +2740,7 @@ const _termsSections = [
   ),
   (
     '3. Pretplate i otkazivanje',
-    'Svaki novi nalog uključuje 5 uvodnih analiza bez naplate. Posle toga korisnik bira mesečni paket od 50, 100 ili 150 analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima svog Apple ID ili Google Play naloga najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
+    'Svaki novi nalog uključuje 5 uvodnih analiza bez naplate. Posle toga korisnik bira mesečni paket od 50, 100 ili 150 analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima naloga prodavnice aplikacija najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
   ),
   (
     '4. Prihvatljivo korišćenje',
@@ -2887,10 +2878,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       title:
                           '${plan.key.toUpperCase()} · '
                           '${plan.monthlyAnalysisLimit}',
-                      price:
-                          productById[plan.productId]?.price ??
-                          wrapperPrices[plan.productId] ??
-                          plan.fallbackPrice,
+                      price: strings
+                          .text('pricePerMonth')
+                          .replaceFirst(
+                            '{price}',
+                            productById[plan.productId]?.price ??
+                                wrapperPrices[plan.productId] ??
+                                plan.fallbackPrice,
+                          ),
                       features: [
                         strings
                             .text('analysesPerMonth')
@@ -2929,7 +2924,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
                         : kIsWeb && snapshot.data?.nativeWrapper != true
                         ? 'Web pretplata se obrađuje preko Stripe Checkout-a. Entitlement aktivira potpisani webhook.'
-                        : 'Plaćanje se obrađuje preko Google Play Billing / Apple In-App Purchase. Entitlement se aktivira tek nakon serverske verifikacije.',
+                        : 'Plaćanje se bezbedno obrađuje preko prodavnice aplikacija na ovom uređaju. Paket se aktivira tek nakon serverske potvrde kupovine.',
                     textAlign: TextAlign.center,
                   ),
                 ],
