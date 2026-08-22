@@ -86,7 +86,7 @@ class LocalLetterAssistant {
 
 String _locale(String language) {
   final value = language.toLowerCase().split(RegExp('[-_]')).first;
-  return _copy.containsKey(value) ? value : 'sr';
+  return _copy.containsKey(value) ? value : 'en';
 }
 
 bool _matches(String text, List<String> words) =>

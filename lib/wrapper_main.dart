@@ -79,6 +79,34 @@ String _nativeReminderBody(String language, int days, bool isPayment) {
       isPayment
           ? 'Ödemenin son tarihi $days ${one ? 'gün' : 'gün'} sonra.'
           : 'Son tarih $days ${one ? 'gün' : 'gün'} sonra.',
+    'ru' =>
+      isPayment
+          ? 'Платёж необходимо внести через $days ${one
+                ? 'день'
+                : days < 5
+                ? 'дня'
+                : 'дней'}.'
+          : 'Срок истекает через $days ${one
+                ? 'день'
+                : days < 5
+                ? 'дня'
+                : 'дней'}.',
+    'uk' =>
+      isPayment
+          ? 'Платіж потрібно внести через $days ${one
+                ? 'день'
+                : days < 5
+                ? 'дні'
+                : 'днів'}.'
+          : 'Строк спливає через $days ${one
+                ? 'день'
+                : days < 5
+                ? 'дні'
+                : 'днів'}.',
+    'ar' =>
+      isPayment
+          ? 'يستحق الدفع خلال $days ${one ? 'يوم' : 'أيام'}.'
+          : 'ينتهي الموعد خلال $days ${one ? 'يوم' : 'أيام'}.',
     'hr' || 'bs' =>
       isPayment
           ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'

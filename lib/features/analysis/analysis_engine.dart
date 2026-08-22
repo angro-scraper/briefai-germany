@@ -383,7 +383,10 @@ class AnalysisEngine {
 
 String _supportedLocale(String value) {
   final locale = value.toLowerCase().split(RegExp('[-_]')).first;
-  return _copy.containsKey(locale) ? locale : 'sr';
+  // The production OpenAI path answers in every selected BCP-47 language.
+  // If cloud analysis is temporarily unavailable, English is the neutral
+  // fallback for languages whose offline analysis copy is not shipped yet.
+  return _copy.containsKey(locale) ? locale : 'en';
 }
 
 String _categoryName(LetterCategory category, String _) => switch (category) {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'major_language_translations.dart';
+
 class AppStrings {
   const AppStrings(this.locale);
 
@@ -7,10 +9,9 @@ class AppStrings {
 
   /// Languages users can choose for AI explanations and replies.
   ///
-  /// The eight fully translated interfaces keep their native copy. For every
-  /// additional language the interface uses English until its complete static
-  /// translation ships, while OpenAI receives the selected BCP-47 code and
-  /// answers in that language immediately.
+  /// Fully localized interfaces are static and do not consume AI tokens.
+  /// Additional languages remain available for AI explanations; until their
+  /// complete interface bundle ships, their navigation falls back to English.
   static const languageLabels = <String, String>{
     'sq': 'Shqip',
     'ar': 'العربية',
@@ -41,6 +42,7 @@ class AppStrings {
     'ja': '日本語',
     'kk': 'Қазақша',
     'ko': '한국어',
+    'ku': 'Kurdî (Kurmancî)',
     'lv': 'Latviešu',
     'lt': 'Lietuvių',
     'mk': 'Македонски',
@@ -69,6 +71,41 @@ class AppStrings {
   static final supportedLocales = languageLabels.keys
       .map(Locale.new)
       .toList(growable: false);
+
+  /// Complete interface translations currently shipped with BriefAI.
+  static const fullyLocalizedLanguageCodes = <String>{
+    'ar',
+    'bg',
+    'bs',
+    'de',
+    'en',
+    'hr',
+    'mk',
+    'ru',
+    'sr',
+    'tr',
+    'uk',
+  };
+
+  static bool hasFullyLocalizedInterface(String languageCode) =>
+      fullyLocalizedLanguageCodes.contains(languageCode);
+
+  /// Keeps complete app translations at the top of the picker and the wider
+  /// AI-explanation language set below them.
+  static List<MapEntry<String, String>> get orderedLanguageEntries {
+    final entries = languageLabels.entries.toList(growable: false);
+    return [...entries]..sort((a, b) {
+      final aFull = hasFullyLocalizedInterface(a.key);
+      final bFull = hasFullyLocalizedInterface(b.key);
+      if (aFull != bFull) return aFull ? -1 : 1;
+      return a.value.compareTo(b.value);
+    });
+  }
+
+  static String languagePickerLabel(MapEntry<String, String> entry) =>
+      hasFullyLocalizedInterface(entry.key)
+      ? entry.value
+      : '${entry.value} · AI';
 
   static AppStrings of(BuildContext context) =>
       Localizations.of<AppStrings>(context, AppStrings) ??
@@ -101,6 +138,7 @@ class AppStrings {
       _AppStringsDelegate();
 
   static const _categories = <String, Map<String, String>>{
+    ...majorCategoryTranslations,
     'sr': {
       'finanzamt': 'Finanzamt',
       'krankenkasse': 'Zdravstveno osiguranje',
@@ -497,6 +535,7 @@ class AppStrings {
   };
 
   static final _values = <String, Map<String, String>>{
+    ...majorInterfaceTranslations,
     'tr': _categories['_trUi']!,
     'sr': {
       'home': 'Početna',
