@@ -2282,6 +2282,46 @@ _AssistantArchiveCopy _assistantArchiveCopy(String language) {
         explainAgain:
             'اشرح لي هذه الرسالة مرة أخرى بالتفصيل وبلغة بسيطة. ما المطلوب مني تحديداً وما الخطوة التالية؟',
       );
+    case 'ro':
+      return const _AssistantArchiveCopy(
+        label: 'Scrisoare din arhivă',
+        ready: 'Scrisoare selectată din arhiva locală:',
+        explainButton: 'Explică din nou această scrisoare',
+        explainAgain:
+            'Explică-mi din nou această scrisoare, detaliat și în limbaj simplu. Ce mi se cere exact și care este următorul pas?',
+      );
+    case 'pl':
+      return const _AssistantArchiveCopy(
+        label: 'Pismo z archiwum',
+        ready: 'Wybrane pismo z lokalnego archiwum:',
+        explainButton: 'Wyjaśnij to pismo ponownie',
+        explainAgain:
+            'Wyjaśnij mi to pismo ponownie, szczegółowo i prostym językiem. Czego dokładnie się ode mnie wymaga i jaki jest następny krok?',
+      );
+    case 'it':
+      return const _AssistantArchiveCopy(
+        label: 'Lettera dall’archivio',
+        ready: 'Lettera selezionata dall’archivio locale:',
+        explainButton: 'Spiega di nuovo questa lettera',
+        explainAgain:
+            'Spiegami di nuovo questa lettera in modo dettagliato e semplice. Che cosa mi viene richiesto esattamente e qual è il prossimo passo?',
+      );
+    case 'el':
+      return const _AssistantArchiveCopy(
+        label: 'Επιστολή από το αρχείο',
+        ready: 'Επιλεγμένη επιστολή από το τοπικό αρχείο:',
+        explainButton: 'Εξήγησε ξανά αυτή την επιστολή',
+        explainAgain:
+            'Εξήγησέ μου ξανά αυτή την επιστολή αναλυτικά και με απλά λόγια. Τι ακριβώς ζητείται από εμένα και ποιο είναι το επόμενο βήμα;',
+      );
+    case 'sq':
+      return const _AssistantArchiveCopy(
+        label: 'Letër nga arkivi',
+        ready: 'Letra e zgjedhur nga arkivi lokal:',
+        explainButton: 'Shpjegoje përsëri këtë letër',
+        explainAgain:
+            'Ma shpjego përsëri këtë letër me hollësi dhe me gjuhë të thjeshtë. Çfarë kërkohet saktësisht nga unë dhe cili është hapi tjetër?',
+      );
     default:
       return const _AssistantArchiveCopy(
         label: 'Pismo iz arhive',
@@ -2661,6 +2701,36 @@ const _cloudAiConsentCopy = <String, (String, String, String, String)>{
     'لتحليل أكثر جودة، سيُرسل النص المستخرج من هذه الرسالة بأمان إلى OpenAI لهذا الطلب فقط. تبقى الصورة الأصلية أو ملف PDF والتحليل والأرشيف محلياً على هذا الجهاز ولا تُحفظ في Firebase.',
     'إلغاء',
     'موافق والمتابعة',
+  ),
+  'ro': (
+    'Analiză OpenAI',
+    'Pentru o analiză mai bună, textul OCR recunoscut va fi trimis în siguranță către OpenAI numai pentru această solicitare. Fotografia sau PDF-ul original, analiza și arhiva rămân local pe acest dispozitiv și nu sunt stocate în Firebase.',
+    'Anulează',
+    'Sunt de acord și continuă',
+  ),
+  'pl': (
+    'Analiza OpenAI',
+    'Aby zapewnić lepszą analizę, rozpoznany tekst OCR zostanie bezpiecznie wysłany do OpenAI wyłącznie na potrzeby tego zapytania. Oryginalne zdjęcie lub PDF, analiza i archiwum pozostają lokalnie na tym urządzeniu i nie są przechowywane w Firebase.',
+    'Anuluj',
+    'Zgadzam się i kontynuuję',
+  ),
+  'it': (
+    'Analisi OpenAI',
+    'Per un’analisi migliore, il testo OCR riconosciuto verrà inviato in modo sicuro a OpenAI solo per questa richiesta. La foto o il PDF originale, l’analisi e l’archivio restano in locale su questo dispositivo e non vengono salvati in Firebase.',
+    'Annulla',
+    'Accetta e continua',
+  ),
+  'el': (
+    'Ανάλυση OpenAI',
+    'Για καλύτερη ανάλυση, το αναγνωρισμένο κείμενο OCR θα αποσταλεί με ασφάλεια στο OpenAI μόνο για αυτό το αίτημα. Η αρχική φωτογραφία ή το PDF, η ανάλυση και το αρχείο παραμένουν τοπικά σε αυτή τη συσκευή και δεν αποθηκεύονται στο Firebase.',
+    'Ακύρωση',
+    'Συμφωνώ και συνεχίζω',
+  ),
+  'sq': (
+    'Analizë OpenAI',
+    'Për një analizë më të mirë, teksti i njohur me OCR do t’i dërgohet në mënyrë të sigurt OpenAI vetëm për këtë kërkesë. Fotografia ose PDF-ja origjinale, analiza dhe arkivi mbeten lokalisht në këtë pajisje dhe nuk ruhen në Firebase.',
+    'Anulo',
+    'Pranoj dhe vazhdo',
   ),
 };
 

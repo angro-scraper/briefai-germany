@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'eu_major_language_translations.dart';
 import 'major_language_translations.dart';
 
 class AppStrings {
@@ -78,10 +79,15 @@ class AppStrings {
     'bg',
     'bs',
     'de',
+    'el',
     'en',
     'hr',
+    'it',
     'mk',
+    'pl',
+    'ro',
     'ru',
+    'sq',
     'sr',
     'tr',
     'uk',
@@ -138,6 +144,7 @@ class AppStrings {
       _AppStringsDelegate();
 
   static const _categories = <String, Map<String, String>>{
+    ...euMajorCategoryTranslations,
     ...majorCategoryTranslations,
     'sr': {
       'finanzamt': 'Finanzamt',
@@ -535,6 +542,7 @@ class AppStrings {
   };
 
   static final _values = <String, Map<String, String>>{
+    ...euMajorInterfaceTranslations,
     ...majorInterfaceTranslations,
     'tr': _categories['_trUi']!,
     'sr': {

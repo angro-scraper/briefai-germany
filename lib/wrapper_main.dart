@@ -107,6 +107,26 @@ String _nativeReminderBody(String language, int days, bool isPayment) {
       isPayment
           ? 'يستحق الدفع خلال $days ${one ? 'يوم' : 'أيام'}.'
           : 'ينتهي الموعد خلال $days ${one ? 'يوم' : 'أيام'}.',
+    'ro' =>
+      isPayment
+          ? 'Plata este scadentă în $days ${one ? 'zi' : 'zile'}.'
+          : 'Termenul expiră în $days ${one ? 'zi' : 'zile'}.',
+    'pl' =>
+      isPayment
+          ? 'Termin płatności upływa za $days ${one ? 'dzień' : 'dni'}.'
+          : 'Termin upływa za $days ${one ? 'dzień' : 'dni'}.',
+    'it' =>
+      isPayment
+          ? 'Il pagamento scade tra $days ${one ? 'giorno' : 'giorni'}.'
+          : 'La scadenza è tra $days ${one ? 'giorno' : 'giorni'}.',
+    'el' =>
+      isPayment
+          ? 'Η πληρωμή λήγει σε $days ${one ? 'ημέρα' : 'ημέρες'}.'
+          : 'Η προθεσμία λήγει σε $days ${one ? 'ημέρα' : 'ημέρες'}.',
+    'sq' =>
+      isPayment
+          ? 'Pagesa duhet bërë pas $days ${one ? 'dite' : 'ditësh'}.'
+          : 'Afati përfundon pas $days ${one ? 'dite' : 'ditësh'}.',
     'hr' || 'bs' =>
       isPayment
           ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'
