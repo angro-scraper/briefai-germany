@@ -10,6 +10,7 @@ plugins {
 // Keep the local development build usable until a Firebase project is selected.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 val signingPropertiesFile = rootProject.file("key.properties")
