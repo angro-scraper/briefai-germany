@@ -40,6 +40,15 @@ const _appTitle = String.fromEnvironment(
   'APP_TITLE',
   defaultValue: 'BriefAI Germany',
 );
+// This is the public OAuth *web* client ID from Firebase's
+// google-services.json. It is not a secret. Google Sign-In 7 on Android needs
+// it explicitly as the server client ID in order to issue a Firebase ID token.
+// Without it Android raises GoogleSignInException(clientConfigurationError).
+const _googleServerClientId = String.fromEnvironment(
+  'GOOGLE_SERVER_CLIENT_ID',
+  defaultValue:
+      '891432357321-1a918vk20vb8762q26p9ms220mmrechf.apps.googleusercontent.com',
+);
 const _wrapperImageMaxSide = 2200;
 late final Future<FirebaseApp> _nativeFirebaseReady;
 late final Future<void> _nativeGoogleSignInReady;
@@ -176,10 +185,11 @@ void main() {
   _nativeFirebaseReady = Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   ).timeout(const Duration(seconds: 20));
-  // Android's secure account picker must be initialized before login. It reads
-  // the web OAuth client ID generated from google-services.json.
+  // Android's secure account picker must be initialized before login. Google
+  // Sign-In 7 does not infer the Firebase server client ID from
+  // google-services.json, so supply the matching public web OAuth client ID.
   _nativeGoogleSignInReady = Platform.isAndroid
-      ? GoogleSignIn.instance.initialize()
+      ? GoogleSignIn.instance.initialize(serverClientId: _googleServerClientId)
       : Future<void>.value();
   unawaited(_nativeFirebaseReady.then<void>((_) {}, onError: (Object _) {}));
   unawaited(
@@ -326,7 +336,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           await _resolveNative(requestId, {
             'ok': true,
             'nativeAuth': true,
-            'wrapperBuild': 35,
+            'wrapperBuild': 37,
           });
         case 'authGoogle':
           await _nativeFirebaseReady;
