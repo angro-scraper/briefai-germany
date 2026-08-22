@@ -16,6 +16,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -41,6 +42,7 @@ const _appTitle = String.fromEnvironment(
 );
 const _wrapperImageMaxSide = 2200;
 late final Future<FirebaseApp> _nativeFirebaseReady;
+late final Future<void> _nativeGoogleSignInReady;
 
 String _appleNonce() {
   final random = Random.secure();
@@ -174,7 +176,15 @@ void main() {
   _nativeFirebaseReady = Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   ).timeout(const Duration(seconds: 20));
+  // Android's secure account picker must be initialized before login. It reads
+  // the web OAuth client ID generated from google-services.json.
+  _nativeGoogleSignInReady = Platform.isAndroid
+      ? GoogleSignIn.instance.initialize()
+      : Future<void>.value();
   unawaited(_nativeFirebaseReady.then<void>((_) {}, onError: (Object _) {}));
+  unawaited(
+    _nativeGoogleSignInReady.then<void>((_) {}, onError: (Object _) {}),
+  );
   runApp(const BriefAiWrapper());
 }
 
@@ -320,14 +330,31 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           });
         case 'authGoogle':
           await _nativeFirebaseReady;
-          final credential = await FirebaseAuth.instance.signInWithProvider(
-            GoogleAuthProvider()
-              ..setCustomParameters({'prompt': 'select_account'}),
-          );
-          await _resolveNative(
-            requestId,
-            await _webSessionForNativeUser(credential.user),
-          );
+          final User? user;
+          if (Platform.isAndroid) {
+            await _nativeGoogleSignInReady;
+            if (!GoogleSignIn.instance.supportsAuthenticate()) {
+              throw StateError('Google prijava nije dostupna na ovom uređaju.');
+            }
+            final googleAccount = await GoogleSignIn.instance.authenticate();
+            final idToken = googleAccount.authentication.idToken;
+            if (idToken == null || idToken.isEmpty) {
+              throw StateError(
+                'Google prijava nije vratila bezbednosni token.',
+              );
+            }
+            final result = await FirebaseAuth.instance.signInWithCredential(
+              GoogleAuthProvider.credential(idToken: idToken),
+            );
+            user = result.user;
+          } else {
+            final credential = await FirebaseAuth.instance.signInWithProvider(
+              GoogleAuthProvider()
+                ..setCustomParameters({'prompt': 'select_account'}),
+            );
+            user = credential.user;
+          }
+          await _resolveNative(requestId, await _webSessionForNativeUser(user));
         case 'authApple':
           await _nativeFirebaseReady;
           if (!Platform.isIOS && !Platform.isMacOS) {
@@ -368,6 +395,10 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         case 'authSignOut':
           await _nativeFirebaseReady;
           await FirebaseAuth.instance.signOut();
+          if (Platform.isAndroid) {
+            await _nativeGoogleSignInReady;
+            await GoogleSignIn.instance.signOut();
+          }
           await _resolveNative(requestId, {'ok': true});
         case 'products':
           final response = await InAppPurchase.instance.queryProductDetails(

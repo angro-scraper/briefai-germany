@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "891432357321-2m47soqlg8ecuf3io1qbhejua0qb75t1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.briefai.briefai_germany",
+            "certificate_hash": "6a1a1b0d710b178abafbe13df01ac66242e3b341"
+          }
+        },
+        {
           "client_id": "891432357321-1a918vk20vb8762q26p9ms220mmrechf.apps.googleusercontent.com",
           "client_type": 3
         }
