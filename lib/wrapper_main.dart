@@ -316,7 +316,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           await _resolveNative(requestId, {
             'ok': true,
             'nativeAuth': true,
-            'wrapperBuild': 33,
+            'wrapperBuild': 35,
           });
         case 'authGoogle':
           await _nativeFirebaseReady;
