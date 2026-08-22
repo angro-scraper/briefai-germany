@@ -40,6 +40,7 @@ const _appTitle = String.fromEnvironment(
   defaultValue: 'BriefAI Germany',
 );
 const _wrapperImageMaxSide = 2200;
+late final Future<FirebaseApp> _nativeFirebaseReady;
 
 String _appleNonce() {
   final random = Random.secure();
@@ -107,6 +108,26 @@ String _nativeReminderBody(String language, int days, bool isPayment) {
       isPayment
           ? 'يستحق الدفع خلال $days ${one ? 'يوم' : 'أيام'}.'
           : 'ينتهي الموعد خلال $days ${one ? 'يوم' : 'أيام'}.',
+    'ro' =>
+      isPayment
+          ? 'Plata este scadentă în $days ${one ? 'zi' : 'zile'}.'
+          : 'Termenul expiră în $days ${one ? 'zi' : 'zile'}.',
+    'pl' =>
+      isPayment
+          ? 'Termin płatności upływa za $days ${one ? 'dzień' : 'dni'}.'
+          : 'Termin upływa za $days ${one ? 'dzień' : 'dni'}.',
+    'it' =>
+      isPayment
+          ? 'Il pagamento scade tra $days ${one ? 'giorno' : 'giorni'}.'
+          : 'La scadenza è tra $days ${one ? 'giorno' : 'giorni'}.',
+    'el' =>
+      isPayment
+          ? 'Η πληρωμή λήγει σε $days ${one ? 'ημέρα' : 'ημέρες'}.'
+          : 'Η προθεσμία λήγει σε $days ${one ? 'ημέρα' : 'ημέρες'}.',
+    'sq' =>
+      isPayment
+          ? 'Pagesa duhet bërë pas $days ${one ? 'dite' : 'ditësh'}.'
+          : 'Afati përfundon pas $days ${one ? 'dite' : 'ditësh'}.',
     'hr' || 'bs' =>
       isPayment
           ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'
@@ -144,9 +165,16 @@ Future<String> _resizeWrapperImage(Map<String, String> job) async {
   return job['output']!;
 }
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // The hosted app can render before native Firebase is ready. Waiting here
+  // kept Android on the launch screen when Play Services or the network was
+  // slow, which looked like the app could not open. Native authentication
+  // awaits this future only when the user actually starts a sign-in flow.
+  _nativeFirebaseReady = Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  ).timeout(const Duration(seconds: 20));
+  unawaited(_nativeFirebaseReady.then<void>((_) {}, onError: (Object _) {}));
   runApp(const BriefAiWrapper());
 }
 
@@ -188,6 +216,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
   String? _purchaseWaiter;
   Timer? _purchaseWaiterTimer;
   var _progress = 0;
+  var _showWebView = false;
   var _preparingFile = false;
   String? _error;
 
@@ -231,7 +260,11 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           },
         ),
       );
-    unawaited(_loadLiveWebApp());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _showWebView = true);
+      unawaited(_loadLiveWebApp());
+    });
     _purchaseSubscription = InAppPurchase.instance.purchaseStream.listen(
       _handlePurchaseUpdates,
       onError: (Object error) => _enqueuePurchase({
@@ -283,9 +316,10 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           await _resolveNative(requestId, {
             'ok': true,
             'nativeAuth': true,
-            'wrapperBuild': 31,
+            'wrapperBuild': 33,
           });
         case 'authGoogle':
+          await _nativeFirebaseReady;
           final credential = await FirebaseAuth.instance.signInWithProvider(
             GoogleAuthProvider()
               ..setCustomParameters({'prompt': 'select_account'}),
@@ -295,6 +329,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             await _webSessionForNativeUser(credential.user),
           );
         case 'authApple':
+          await _nativeFirebaseReady;
           if (!Platform.isIOS && !Platform.isMacOS) {
             throw StateError(
               'Apple prijava je dostupna samo na Apple uređaju.',
@@ -331,6 +366,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             ),
           );
         case 'authSignOut':
+          await _nativeFirebaseReady;
           await FirebaseAuth.instance.signOut();
           await _resolveNative(requestId, {'ok': true});
         case 'products':
@@ -513,23 +549,33 @@ class _WrapperScreenState extends State<_WrapperScreen> {
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         ),
       ),
     );
+  }
+
+  Future<void> _ensureNotificationPermission() async {
+    await _notificationsReady;
     if (Platform.isAndroid) {
       await _notifications
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.requestNotificationsPermission();
+    } else if (Platform.isIOS) {
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
     }
   }
 
   Future<void> _scheduleReminders(Map<String, dynamic> payload) async {
-    await _notificationsReady;
+    await _ensureNotificationPermission();
     final letterId = payload['letterId'];
     final rawDueDate = payload['dueDate'];
     if (letterId is! String || letterId.isEmpty || rawDueDate is! String) {
@@ -686,8 +732,30 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-              WebViewWidget(controller: _controller),
-              if (_progress < 100)
+              if (_showWebView)
+                WebViewWidget(controller: _controller)
+              else
+                const ColoredBox(
+                  color: Color(0xfff5f7ff),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 18),
+                        Text(
+                          'BriefAI Germany',
+                          style: TextStyle(
+                            color: Color(0xff071633),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (_showWebView && _progress < 100)
                 LinearProgressIndicator(value: _progress / 100),
               if (_preparingFile)
                 ColoredBox(
