@@ -1,5 +1,8 @@
 import 'package:briefai_germany/core/app_localizations.dart';
 import 'package:briefai_germany/core/domain.dart';
+import 'package:briefai_germany/core/major_language_translations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -95,5 +98,91 @@ void main() {
     expect(strings.pagesSelected(3), isNot(contains('{count}')));
     expect(strings.ocrProgress(2, 5), allOf(contains('2'), contains('5')));
     expect(strings.maxPages(20), contains('20'));
+  });
+
+  test('Russian, Ukrainian and Arabic ship complete static interfaces', () {
+    const majorLanguages = {'ru', 'uk', 'ar'};
+    const referenceLanguage = 'ru';
+    final referenceKeys = majorInterfaceTranslations[referenceLanguage]!.keys
+        .toSet();
+    final referenceCategoryKeys = majorCategoryTranslations[referenceLanguage]!
+        .keys
+        .toSet();
+
+    expect(referenceKeys, hasLength(153));
+    expect(referenceCategoryKeys, hasLength(LetterCategory.values.length));
+
+    for (final language in majorLanguages) {
+      expect(
+        AppStrings.hasFullyLocalizedInterface(language),
+        isTrue,
+        reason: '$language must be presented as a complete app language',
+      );
+      expect(
+        majorInterfaceTranslations[language]!.keys.toSet(),
+        referenceKeys,
+        reason: '$language is missing interface strings',
+      );
+      expect(
+        majorCategoryTranslations[language]!.keys.toSet(),
+        referenceCategoryKeys,
+        reason: '$language is missing document categories',
+      );
+    }
+  });
+
+  test('major-language user journeys do not fall back to English', () async {
+    const englishValues = {
+      'Welcome',
+      'Analyze a new letter',
+      'Upload document',
+      'Analysis result',
+      'Generate reply',
+      'Save PDF',
+      'Choose a plan',
+    };
+    const keys = {
+      'welcome',
+      'analyzeNew',
+      'uploadDocument',
+      'resultTitle',
+      'generateReply',
+      'savePdf',
+      'choosePlan',
+    };
+
+    for (final language in const ['ru', 'uk', 'ar']) {
+      final strings = await AppStrings.delegate.load(Locale(language));
+      for (final key in keys) {
+        expect(
+          englishValues,
+          isNot(contains(strings.text(key))),
+          reason: '$language unexpectedly fell back to English for $key',
+        );
+      }
+    }
+  });
+
+  testWidgets('Arabic interface uses right-to-left layout', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: const [
+          AppStrings.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Builder(
+          builder: (context) => Text(
+            Directionality.of(context) == TextDirection.rtl ? 'rtl' : 'ltr',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('rtl'), findsOneWidget);
   });
 }

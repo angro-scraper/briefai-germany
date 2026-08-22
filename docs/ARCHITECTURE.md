@@ -54,6 +54,12 @@ sopstvene tekstove, a ostali jezici privremeno koriste engleski interfejs.
 Izabrani BCP-47 kod se uvek prosleđuje AI funkcijama, pa analiza, objašnjenje
 i asistent odgovaraju na izabranom jeziku bez vraćanja na srpski.
 
+Potpuni interfejs trenutno postoji na srpskom, hrvatskom, bosanskom,
+makedonskom, bugarskom, turskom, ruskom, ukrajinskom, arapskom, nemačkom i
+engleskom. U biraču su oni prikazani prvi; ostali jezici nose oznaku `AI`, što
+jasno znači da AI objašnjenje koristi taj jezik, dok je navigacija na engleskom.
+Za arapski Flutter automatski uključuje prikaz zdesna nalevo (RTL).
+
 ## Pretplate
 
 - Zatvoreni test: ukupno 15 analiza po nalogu bez naplate.

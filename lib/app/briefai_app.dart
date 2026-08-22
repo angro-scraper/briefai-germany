@@ -719,7 +719,7 @@ class _LanguageMenu extends StatelessWidget {
         // without reverting the user's explicit selection.
       }
     },
-    itemBuilder: (_) => AppStrings.languageLabels.entries
+    itemBuilder: (_) => AppStrings.orderedLanguageEntries
         .map(
           (entry) => PopupMenuItem<String>(
             value: entry.key,
@@ -730,7 +730,7 @@ class _LanguageMenu extends StatelessWidget {
                     padding: EdgeInsets.only(right: 8),
                     child: Icon(Icons.check, size: 18),
                   ),
-                Text(entry.value),
+                Flexible(child: Text(AppStrings.languagePickerLabel(entry))),
               ],
             ),
           ),
@@ -2258,6 +2258,30 @@ _AssistantArchiveCopy _assistantArchiveCopy(String language) {
         explainAgain:
             'Bu mektubu tekrar ayrıntılı ve sade bir dille açıkla. Benden tam olarak ne isteniyor ve sonraki adımım nedir?',
       );
+    case 'ru':
+      return const _AssistantArchiveCopy(
+        label: 'Письмо из архива',
+        ready: 'Выбрано письмо из локального архива:',
+        explainButton: 'Объяснить это письмо ещё раз',
+        explainAgain:
+            'Объясни это письмо ещё раз подробно и простыми словами. Что именно от меня требуется и что мне делать дальше?',
+      );
+    case 'uk':
+      return const _AssistantArchiveCopy(
+        label: 'Лист з архіву',
+        ready: 'Вибрано лист із локального архіву:',
+        explainButton: 'Пояснити цей лист ще раз',
+        explainAgain:
+            'Поясни цей лист ще раз докладно й простими словами. Що саме від мене вимагається і що мені робити далі?',
+      );
+    case 'ar':
+      return const _AssistantArchiveCopy(
+        label: 'رسالة من الأرشيف',
+        ready: 'تم اختيار رسالة من الأرشيف المحلي:',
+        explainButton: 'اشرح هذه الرسالة مرة أخرى',
+        explainAgain:
+            'اشرح لي هذه الرسالة مرة أخرى بالتفصيل وبلغة بسيطة. ما المطلوب مني تحديداً وما الخطوة التالية؟',
+      );
     default:
       return const _AssistantArchiveCopy(
         label: 'Pismo iz arhive',
@@ -2342,11 +2366,13 @@ class ProfileScreen extends StatelessWidget {
                           // failure.
                         }
                       },
-                      itemBuilder: (_) => AppStrings.languageLabels.entries
+                      itemBuilder: (_) => AppStrings.orderedLanguageEntries
                           .map(
                             (entry) => PopupMenuItem(
                               value: entry.key,
-                              child: Text(entry.value),
+                              child: Text(
+                                AppStrings.languagePickerLabel(entry),
+                              ),
                             ),
                           )
                           .toList(),
@@ -2545,7 +2571,7 @@ Future<bool> _ensureCloudAiAccess(
   if (preferences.getBool('cloudAiConsentV1') == true) return true;
   if (!context.mounted) return false;
   final language = Localizations.localeOf(context).languageCode;
-  final copy = _cloudAiConsentCopy[language] ?? _cloudAiConsentCopy['sr']!;
+  final copy = _cloudAiConsentCopy[language] ?? _cloudAiConsentCopy['en']!;
   final accepted = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -2617,6 +2643,24 @@ const _cloudAiConsentCopy = <String, (String, String, String, String)>{
     'Daha kaliteli bir analiz için tanınan OCR metni yalnızca bu istek kapsamında güvenli biçimde OpenAI’ye gönderilir. Orijinal fotoğraf/PDF, analiz ve arşiv bu cihazda yerel kalır ve Firebase’de saklanmaz.',
     'İptal',
     'Kabul et ve devam et',
+  ),
+  'ru': (
+    'Анализ OpenAI',
+    'Для более качественного анализа распознанный текст этого письма будет безопасно отправлен OpenAI только для текущего запроса. Оригинальная фотография или PDF, анализ и архив остаются локально на этом устройстве и не сохраняются в Firebase.',
+    'Отмена',
+    'Согласиться и продолжить',
+  ),
+  'uk': (
+    'Аналіз OpenAI',
+    'Для якіснішого аналізу розпізнаний текст цього листа буде безпечно надіслано OpenAI лише для поточного запиту. Оригінальна фотографія або PDF, аналіз і архів залишаються локально на цьому пристрої та не зберігаються у Firebase.',
+    'Скасувати',
+    'Погодитися й продовжити',
+  ),
+  'ar': (
+    'تحليل OpenAI',
+    'لتحليل أكثر جودة، سيُرسل النص المستخرج من هذه الرسالة بأمان إلى OpenAI لهذا الطلب فقط. تبقى الصورة الأصلية أو ملف PDF والتحليل والأرشيف محلياً على هذا الجهاز ولا تُحفظ في Firebase.',
+    'إلغاء',
+    'موافق والمتابعة',
   ),
 };
 
