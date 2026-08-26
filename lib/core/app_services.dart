@@ -521,7 +521,7 @@ class AuthService {
       );
     }
     if (preferredLanguage != null) {
-      await preferences.setString('briefai.ui-language', preferredLanguage);
+      await preferences.setString('briefai.ai-language', preferredLanguage);
       await preferences.setString(
         _profileKey(userId, 'preferredLanguage'),
         preferredLanguage,
@@ -569,9 +569,12 @@ class AuthService {
     final userId = uid;
     final preferences = await SharedPreferences.getInstance();
     if (!cloudEnabled || userId == null) {
-      return preferences.getString('briefai.ui-language') ?? 'sr';
+      return preferences.getString('briefai.ai-language') ??
+          preferences.getString('briefai.ui-language') ??
+          'sr';
     }
     return preferences.getString(_profileKey(userId, 'preferredLanguage')) ??
+        preferences.getString('briefai.ai-language') ??
         preferences.getString('briefai.ui-language') ??
         'sr';
   }
@@ -581,7 +584,7 @@ class AuthService {
       throw ArgumentError.value(language, 'language');
     }
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString('briefai.ui-language', language);
+    await preferences.setString('briefai.ai-language', language);
     if (isSignedIn) {
       await updateProfile(preferredLanguage: language);
     }
@@ -617,11 +620,13 @@ class AuthService {
     if (!preferences.containsKey(languageKey)) {
       await preferences.setString(
         languageKey,
-        preferences.getString('briefai.ui-language') ?? 'sr',
+        preferences.getString('briefai.ai-language') ??
+            preferences.getString('briefai.ui-language') ??
+            'sr',
       );
     }
     await preferences.setString(
-      'briefai.ui-language',
+      'briefai.ai-language',
       preferences.getString(languageKey) ?? 'sr',
     );
     final displayNameKey = _profileKey(user.uid, 'displayName');
@@ -1533,10 +1538,14 @@ String _reminderBody(String language, int days, bool isPayment) {
       isPayment
           ? 'Plaćanje dospijeva za $days ${one ? 'dan' : 'dana'}.'
           : 'Rok ističe za $days ${one ? 'dan' : 'dana'}.',
-    _ =>
+    'sr' =>
       isPayment
           ? 'Plaćanje dospeva za $days ${one ? 'dan' : 'dana'}.'
           : 'Rok ističe za $days ${one ? 'dan' : 'dana'}.',
+    _ =>
+      isPayment
+          ? 'Payment is due in $days ${one ? 'day' : 'days'}.'
+          : 'The deadline is in $days ${one ? 'day' : 'days'}.',
   };
 }
 

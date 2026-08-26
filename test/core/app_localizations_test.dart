@@ -89,6 +89,52 @@ void main() {
     },
   );
 
+  test('interface and AI language choices are explicitly separated', () {
+    expect(AppStrings.languageLabels, hasLength(53));
+    expect(AppStrings.fullyLocalizedLanguageCodes, hasLength(16));
+    expect(
+      AppStrings.interfaceLanguageEntries.map((entry) => entry.key).toSet(),
+      AppStrings.fullyLocalizedLanguageCodes,
+    );
+    expect(
+      AppStrings.aiLanguageEntries.map((entry) => entry.key).toSet(),
+      AppStrings.languageLabels.keys.toSet(),
+    );
+    for (final entry in AppStrings.aiLanguageEntries) {
+      expect(AppStrings.languagePickerLabel(entry), entry.value);
+    }
+  });
+
+  test(
+    'every advertised interface language ships every static string',
+    () async {
+      for (final language in AppStrings.fullyLocalizedLanguageCodes) {
+        final strings = await AppStrings.delegate.load(Locale(language));
+        for (final key in AppStrings.interfaceTextKeys) {
+          expect(
+            strings.shipsStaticText(key),
+            isTrue,
+            reason: '$language falls back for interface key $key',
+          );
+        }
+        for (final key in AppStrings.categoryKeys) {
+          expect(
+            strings.shipsCategory(key),
+            isTrue,
+            reason: '$language falls back for category $key',
+          );
+        }
+        for (final key in AppStrings.purchaseMessageKeys) {
+          expect(
+            strings.shipsPurchaseMessage(key),
+            isTrue,
+            reason: '$language falls back for purchase message $key',
+          );
+        }
+      }
+    },
+  );
+
   test('remaining analysis count is interpolated', () async {
     final strings = await AppStrings.delegate.load(
       AppStrings.supportedLocales.first,

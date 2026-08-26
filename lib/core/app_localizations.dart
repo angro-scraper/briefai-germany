@@ -10,9 +10,10 @@ class AppStrings {
 
   /// Languages users can choose for AI explanations and replies.
   ///
-  /// Fully localized interfaces are static and do not consume AI tokens.
-  /// Additional languages remain available for AI explanations; until their
-  /// complete interface bundle ships, their navigation falls back to English.
+  /// The app interface uses a separate, fully translated language list below.
+  /// This prevents an interface from silently switching between a selected
+  /// language and English while still letting AI explain a letter in a wider
+  /// choice of languages.
   static const languageLabels = <String, String>{
     'sq': 'Shqip',
     'ar': 'العربية',
@@ -96,22 +97,23 @@ class AppStrings {
   static bool hasFullyLocalizedInterface(String languageCode) =>
       fullyLocalizedLanguageCodes.contains(languageCode);
 
-  /// Keeps complete app translations at the top of the picker and the wider
-  /// AI-explanation language set below them.
-  static List<MapEntry<String, String>> get orderedLanguageEntries {
-    final entries = languageLabels.entries.toList(growable: false);
-    return [...entries]..sort((a, b) {
-      final aFull = hasFullyLocalizedInterface(a.key);
-      final bFull = hasFullyLocalizedInterface(b.key);
-      if (aFull != bFull) return aFull ? -1 : 1;
-      return a.value.compareTo(b.value);
-    });
+  /// Complete, static translations available for the application interface.
+  static List<MapEntry<String, String>> get interfaceLanguageEntries {
+    final entries = languageLabels.entries
+        .where((entry) => hasFullyLocalizedInterface(entry.key))
+        .toList(growable: false);
+    return [...entries]..sort((a, b) => a.value.compareTo(b.value));
   }
 
+  /// Wider language choice used exclusively for AI explanations and replies.
+  static List<MapEntry<String, String>> get aiLanguageEntries {
+    final entries = languageLabels.entries.toList(growable: false);
+    return [...entries]..sort((a, b) => a.value.compareTo(b.value));
+  }
+
+  /// Native language names are intentionally shown unchanged in every picker.
   static String languagePickerLabel(MapEntry<String, String> entry) =>
-      hasFullyLocalizedInterface(entry.key)
-      ? entry.value
-      : '${entry.value} · AI';
+      entry.value;
 
   static AppStrings of(BuildContext context) =>
       Localizations.of<AppStrings>(context, AppStrings) ??
@@ -121,6 +123,13 @@ class AppStrings {
       (_values[locale.languageCode] ?? _values['en']!)[key] ??
       _values['en']![key] ??
       key;
+
+  /// Used by tests to ensure a language advertised as a complete interface
+  /// never resolves through the English fallback.
+  bool shipsStaticText(String key) =>
+      _values[locale.languageCode]?.containsKey(key) ?? false;
+
+  static Set<String> get interfaceTextKeys => _values['en']!.keys.toSet();
 
   String remaining(int value) =>
       text('remaining').replaceFirst('{count}', value.toString());
@@ -139,6 +148,176 @@ class AppStrings {
       (_categories[locale.languageCode] ?? _categories['en']!)[key] ??
       _categories['en']![key] ??
       key;
+
+  bool shipsCategory(String key) =>
+      _categories[locale.languageCode]?.containsKey(key) ?? false;
+
+  static Set<String> get categoryKeys => _categories['en']!.keys.toSet();
+
+  /// System purchase messages are kept outside the screen code so they never
+  /// leak Serbian or English into a different fully localized interface.
+  String purchaseMessage(String key) =>
+      (_purchaseMessages[locale.languageCode] ??
+          _purchaseMessages['en']!)[key] ??
+      _purchaseMessages['en']![key] ??
+      key;
+
+  bool shipsPurchaseMessage(String key) =>
+      _purchaseMessages[locale.languageCode]?.containsKey(key) ?? false;
+
+  static Set<String> get purchaseMessageKeys =>
+      _purchaseMessages['en']!.keys.toSet();
+
+  static const _purchaseMessages = <String, Map<String, String>>{
+    'sr': {
+      'notConfigured': 'Paket još nije dostupan u prodavnici.',
+      'failed': 'Kupovina trenutno nije uspela. Pokušajte ponovo.',
+      'checking': 'Proveravamo ranije kupovine…',
+      'unavailable': 'Kupovine trenutno nisu dostupne.',
+      'webInfo': 'Web pretplata se bezbedno obrađuje preko Stripe Checkout-a.',
+      'storeInfo': 'Plaćanje se bezbedno obrađuje preko prodavnice aplikacija.',
+    },
+    'hr': {
+      'notConfigured': 'Paket još nije dostupan u trgovini.',
+      'failed': 'Kupnja trenutačno nije uspjela. Pokušajte ponovno.',
+      'checking': 'Provjeravamo ranije kupnje…',
+      'unavailable': 'Kupnje trenutačno nisu dostupne.',
+      'webInfo': 'Web pretplata sigurno se obrađuje putem Stripe Checkouta.',
+      'storeInfo': 'Plaćanje se sigurno obrađuje putem trgovine aplikacija.',
+    },
+    'bs': {
+      'notConfigured': 'Paket još nije dostupan u prodavnici.',
+      'failed': 'Kupovina trenutno nije uspjela. Pokušajte ponovo.',
+      'checking': 'Provjeravamo ranije kupovine…',
+      'unavailable': 'Kupovine trenutno nisu dostupne.',
+      'webInfo': 'Web pretplata se sigurno obrađuje putem Stripe Checkouta.',
+      'storeInfo': 'Plaćanje se sigurno obrađuje preko prodavnice aplikacija.',
+    },
+    'mk': {
+      'notConfigured': 'Пакетот сè уште не е достапен во продавницата.',
+      'failed': 'Купувањето во моментов не успеа. Обидете се повторно.',
+      'checking': 'Ги проверуваме претходните купувања…',
+      'unavailable': 'Купувањата во моментов не се достапни.',
+      'webInfo':
+          'Веб-претплатата безбедно се обработува преку Stripe Checkout.',
+      'storeInfo':
+          'Плаќањето безбедно се обработува преку продавницата за апликации.',
+    },
+    'bg': {
+      'notConfigured': 'Пакетът все още не е наличен в магазина.',
+      'failed': 'Покупката не бе успешна. Опитайте отново.',
+      'checking': 'Проверяваме предишни покупки…',
+      'unavailable': 'Покупките в момента не са налични.',
+      'webInfo': 'Уеб абонаментът се обработва сигурно чрез Stripe Checkout.',
+      'storeInfo':
+          'Плащането се обработва сигурно чрез магазина за приложения.',
+    },
+    'de': {
+      'notConfigured': 'Dieses Paket ist im Store noch nicht verfügbar.',
+      'failed':
+          'Der Kauf war nicht erfolgreich. Bitte versuchen Sie es erneut.',
+      'checking': 'Frühere Käufe werden geprüft…',
+      'unavailable': 'Käufe sind derzeit nicht verfügbar.',
+      'webInfo': 'Das Web-Abo wird sicher über Stripe Checkout abgewickelt.',
+      'storeInfo': 'Die Zahlung wird sicher über den App-Store abgewickelt.',
+    },
+    'en': {
+      'notConfigured': 'This plan is not available in the store yet.',
+      'failed': 'The purchase could not be completed. Please try again.',
+      'checking': 'Checking previous purchases…',
+      'unavailable': 'Purchases are currently unavailable.',
+      'webInfo':
+          'Web subscriptions are processed securely through Stripe Checkout.',
+      'storeInfo':
+          'Payment is processed securely through this device’s app store.',
+    },
+    'tr': {
+      'notConfigured': 'Bu paket henüz mağazada kullanıma sunulmadı.',
+      'failed': 'Satın alma tamamlanamadı. Lütfen tekrar deneyin.',
+      'checking': 'Önceki satın almalar kontrol ediliyor…',
+      'unavailable': 'Satın almalar şu anda kullanılamıyor.',
+      'webInfo': 'Web aboneliği Stripe Checkout üzerinden güvenle işlenir.',
+      'storeInfo':
+          'Ödeme, bu cihazdaki uygulama mağazası üzerinden güvenle işlenir.',
+    },
+    'ru': {
+      'notConfigured': 'Этот пакет пока недоступен в магазине.',
+      'failed': 'Не удалось завершить покупку. Попробуйте ещё раз.',
+      'checking': 'Проверяем предыдущие покупки…',
+      'unavailable': 'Покупки сейчас недоступны.',
+      'webInfo': 'Веб-подписка безопасно оформляется через Stripe Checkout.',
+      'storeInfo':
+          'Оплата безопасно обрабатывается через магазин приложений на устройстве.',
+    },
+    'uk': {
+      'notConfigured': 'Цей пакет ще недоступний у магазині.',
+      'failed': 'Не вдалося завершити покупку. Спробуйте ще раз.',
+      'checking': 'Перевіряємо попередні покупки…',
+      'unavailable': 'Покупки зараз недоступні.',
+      'webInfo': 'Вебпідписка безпечно оформлюється через Stripe Checkout.',
+      'storeInfo':
+          'Оплата безпечно обробляється через магазин застосунків на пристрої.',
+    },
+    'ar': {
+      'notConfigured': 'هذه الباقة غير متاحة في المتجر بعد.',
+      'failed': 'تعذّر إتمام الشراء. يُرجى المحاولة مرة أخرى.',
+      'checking': 'يجري التحقق من المشتريات السابقة…',
+      'unavailable': 'عمليات الشراء غير متاحة حالياً.',
+      'webInfo': 'تتم معالجة اشتراك الويب بأمان عبر Stripe Checkout.',
+      'storeInfo': 'تتم معالجة الدفع بأمان عبر متجر التطبيقات على هذا الجهاز.',
+    },
+    'ro': {
+      'notConfigured': 'Acest pachet nu este încă disponibil în magazin.',
+      'failed': 'Achiziția nu a putut fi finalizată. Încercați din nou.',
+      'checking': 'Verificăm achizițiile anterioare…',
+      'unavailable': 'Achizițiile nu sunt disponibile momentan.',
+      'webInfo':
+          'Abonamentul web este procesat în siguranță prin Stripe Checkout.',
+      'storeInfo':
+          'Plata este procesată în siguranță prin magazinul de aplicații al dispozitivului.',
+    },
+    'pl': {
+      'notConfigured': 'Ten pakiet nie jest jeszcze dostępny w sklepie.',
+      'failed': 'Nie udało się ukończyć zakupu. Spróbuj ponownie.',
+      'checking': 'Sprawdzamy wcześniejsze zakupy…',
+      'unavailable': 'Zakupy są obecnie niedostępne.',
+      'webInfo':
+          'Subskrypcja internetowa jest bezpiecznie obsługiwana przez Stripe Checkout.',
+      'storeInfo':
+          'Płatność jest bezpiecznie obsługiwana przez sklep z aplikacjami na urządzeniu.',
+    },
+    'it': {
+      'notConfigured': 'Questo piano non è ancora disponibile nello store.',
+      'failed': 'Non è stato possibile completare l’acquisto. Riprova.',
+      'checking': 'Stiamo verificando gli acquisti precedenti…',
+      'unavailable': 'Gli acquisti non sono disponibili al momento.',
+      'webInfo':
+          'L’abbonamento web viene elaborato in sicurezza tramite Stripe Checkout.',
+      'storeInfo':
+          'Il pagamento viene elaborato in sicurezza tramite lo store dell’app sul dispositivo.',
+    },
+    'el': {
+      'notConfigured':
+          'Αυτό το πακέτο δεν είναι ακόμη διαθέσιμο στο κατάστημα.',
+      'failed': 'Η αγορά δεν ολοκληρώθηκε. Δοκιμάστε ξανά.',
+      'checking': 'Ελέγχουμε προηγούμενες αγορές…',
+      'unavailable': 'Οι αγορές δεν είναι διαθέσιμες αυτή τη στιγμή.',
+      'webInfo':
+          'Η διαδικτυακή συνδρομή διεκπεραιώνεται με ασφάλεια μέσω Stripe Checkout.',
+      'storeInfo':
+          'Η πληρωμή διεκπεραιώνεται με ασφάλεια μέσω του καταστήματος εφαρμογών της συσκευής.',
+    },
+    'sq': {
+      'notConfigured': 'Ky plan nuk është ende i disponueshëm në dyqan.',
+      'failed': 'Blerja nuk u krye. Ju lutemi provoni përsëri.',
+      'checking': 'Po kontrollojmë blerjet e mëparshme…',
+      'unavailable': 'Blerjet nuk janë të disponueshme për momentin.',
+      'webInfo':
+          'Abonimi në ueb përpunohet në mënyrë të sigurt përmes Stripe Checkout.',
+      'storeInfo':
+          'Pagesa përpunohet në mënyrë të sigurt përmes dyqanit të aplikacioneve në pajisje.',
+    },
+  };
 
   static const LocalizationsDelegate<AppStrings> delegate =
       _AppStringsDelegate();

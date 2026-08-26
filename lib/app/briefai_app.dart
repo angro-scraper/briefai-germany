@@ -47,15 +47,36 @@ class _BriefAiAppState extends State<BriefAiApp> {
     _state.restoreOnboarding(
       preferences.getBool('briefai.onboarding-complete') ?? false,
     );
-    final requestedLanguage = kIsWeb ? Uri.base.queryParameters['lang'] : null;
-    final language =
-        requestedLanguage != null &&
-            AppStrings.languageLabels.containsKey(requestedLanguage)
-        ? requestedLanguage
-        : preferences.getString('briefai.ui-language') ??
+    final requestedAiLanguage = kIsWeb
+        ? (Uri.base.queryParameters['ai_lang'] ??
+              Uri.base.queryParameters['lang'])
+        : null;
+    final storedLegacyLanguage = preferences.getString('briefai.ui-language');
+    final aiLanguage =
+        requestedAiLanguage != null &&
+            AppStrings.languageLabels.containsKey(requestedAiLanguage)
+        ? requestedAiLanguage
+        : preferences.getString('briefai.ai-language') ??
+              storedLegacyLanguage ??
               await widget.services.auth.preferredLanguage();
-    _state.setLocale(language);
-    await preferences.setString('briefai.ui-language', language);
+    final storedInterfaceLanguage = preferences.getString(
+      'briefai.interface-language',
+    );
+    final interfaceLanguage =
+        storedInterfaceLanguage != null &&
+            AppStrings.hasFullyLocalizedInterface(storedInterfaceLanguage)
+        ? storedInterfaceLanguage
+        : AppStrings.hasFullyLocalizedInterface(aiLanguage)
+        ? aiLanguage
+        : 'en';
+    _state
+      ..setLocale(interfaceLanguage)
+      ..setAiLanguage(aiLanguage);
+    await preferences.setString(
+      'briefai.interface-language',
+      interfaceLanguage,
+    );
+    await preferences.setString('briefai.ai-language', aiLanguage);
     if (mounted) setState(() => _restored = true);
   }
 
@@ -712,20 +733,61 @@ class _LanguageMenu extends StatelessWidget {
     icon: const Icon(Icons.translate),
     onSelected: (language) async {
       state.setLocale(language);
+      final preferences = await SharedPreferences.getInstance();
       try {
-        await services.auth.setPreferredLanguage(language);
+        await preferences.setString('briefai.interface-language', language);
       } on Object {
         // The visible language changes immediately. Persistence can be retried
         // without reverting the user's explicit selection.
       }
     },
-    itemBuilder: (_) => AppStrings.orderedLanguageEntries
+    itemBuilder: (_) => AppStrings.interfaceLanguageEntries
         .map(
           (entry) => PopupMenuItem<String>(
             value: entry.key,
             child: Row(
               children: [
                 if (entry.key == state.localeCode)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(Icons.check, size: 18),
+                  ),
+                Flexible(child: Text(AppStrings.languagePickerLabel(entry))),
+              ],
+            ),
+          ),
+        )
+        .toList(),
+  );
+}
+
+class _AiLanguageMenu extends StatelessWidget {
+  const _AiLanguageMenu({required this.state, required this.services});
+
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<String>(
+    tooltip: context.strings.text('preferredLanguage'),
+    initialValue: state.aiLanguageCode,
+    icon: const Icon(Icons.keyboard_arrow_down),
+    onSelected: (language) async {
+      state.setAiLanguage(language);
+      try {
+        await services.auth.setPreferredLanguage(language);
+      } on Object {
+        // AI language remains selected locally even if cloud profile sync is
+        // temporarily unavailable.
+      }
+    },
+    itemBuilder: (_) => AppStrings.aiLanguageEntries
+        .map(
+          (entry) => PopupMenuItem<String>(
+            value: entry.key,
+            child: Row(
+              children: [
+                if (entry.key == state.aiLanguageCode)
                   const Padding(
                     padding: EdgeInsets.only(right: 8),
                     child: Icon(Icons.check, size: 18),
@@ -1301,7 +1363,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     final enterTextFirst = context.strings.text('enterTextFirst');
     try {
       final id = newLetterId();
-      final language = widget.state.localeCode;
+      final language = widget.state.aiLanguageCode;
       if (_documents.isNotEmpty && _text.text.trim().isEmpty) {
         setState(() {
           _recognizing = true;
@@ -1941,7 +2003,7 @@ class ArchiveScreen extends StatelessWidget {
                 } else {
                   await services.reminders.schedule(
                     letter.copyWith(status: status),
-                    language: state.localeCode,
+                    language: state.aiLanguageCode,
                   );
                 }
               },
@@ -2009,7 +2071,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final selectedLetter =
         letters.where((letter) => letter.id == _selectedLetterId).firstOrNull ??
         (letters.isEmpty ? null : letters.first);
-    final archiveCopy = _assistantArchiveCopy(widget.state.localeCode);
+    final archiveCopy = _assistantArchiveCopy(widget.state.aiLanguageCode);
     final visibleMessages = _messages.isEmpty
         ? [
             _ChatMessage(
@@ -2159,7 +2221,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       _sending = true;
     });
     try {
-      final language = widget.state.localeCode;
+      final language = widget.state.aiLanguageCode;
       final answer = await widget.services.ai.askLetterAssistant(
         question: question,
         language: language,
@@ -2322,13 +2384,21 @@ _AssistantArchiveCopy _assistantArchiveCopy(String language) {
         explainAgain:
             'Ma shpjego përsëri këtë letër me hollësi dhe me gjuhë të thjeshtë. Çfarë kërkohet saktësisht nga unë dhe cili është hapi tjetër?',
       );
-    default:
+    case 'sr':
       return const _AssistantArchiveCopy(
         label: 'Pismo iz arhive',
         ready: 'Izabrano pismo iz lokalne arhive:',
         explainButton: 'Objasni ovo pismo ponovo',
         explainAgain:
             'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sledeći korak?',
+      );
+    default:
+      return const _AssistantArchiveCopy(
+        label: 'Letter from archive',
+        ready: 'Selected letter from the local archive:',
+        explainButton: 'Explain this letter again',
+        explainAgain:
+            'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
       );
   }
 }
@@ -2369,7 +2439,7 @@ class ProfileScreen extends StatelessWidget {
             stream: services.auth.profileChanges(),
             builder: (context, snapshot) {
               final profile = snapshot.data ?? const <String, dynamic>{};
-              final language = state.localeCode;
+              final aiLanguage = state.aiLanguageCode;
               final country = profile['countryOfOrigin'] as String? ?? '';
               final name = profile['displayName'] as String? ?? '';
               return Column(
@@ -2391,22 +2461,57 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   ListTile(
                     leading: const Icon(Icons.language),
-                    title: Text(strings.text('preferredLanguage')),
+                    title: Text(strings.text('appLanguage')),
                     subtitle: Text(
-                      AppStrings.languageLabels[language] ?? language,
+                      AppStrings.languageLabels[state.localeCode] ??
+                          state.localeCode,
                     ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) async {
                         state.setLocale(value);
                         try {
-                          await services.auth.setPreferredLanguage(value);
+                          final preferences =
+                              await SharedPreferences.getInstance();
+                          await preferences.setString(
+                            'briefai.interface-language',
+                            value,
+                          );
                         } on Object {
                           // Keep the selected UI language even during a
                           // temporary local-storage or cloud synchronization
                           // failure.
                         }
                       },
-                      itemBuilder: (_) => AppStrings.orderedLanguageEntries
+                      itemBuilder: (_) => AppStrings.interfaceLanguageEntries
+                          .map(
+                            (entry) => PopupMenuItem(
+                              value: entry.key,
+                              child: Text(
+                                AppStrings.languagePickerLabel(entry),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome_outlined),
+                    title: Text(strings.text('preferredLanguage')),
+                    subtitle: Text(
+                      AppStrings.languageLabels[aiLanguage] ?? aiLanguage,
+                    ),
+                    trailing: PopupMenuButton<String>(
+                      initialValue: aiLanguage,
+                      onSelected: (value) async {
+                        state.setAiLanguage(value);
+                        try {
+                          await services.auth.setPreferredLanguage(value);
+                        } on Object {
+                          // A local choice remains active if profile sync is
+                          // temporarily unavailable.
+                        }
+                      },
+                      itemBuilder: (_) => AppStrings.aiLanguageEntries
                           .map(
                             (entry) => PopupMenuItem(
                               value: entry.key,
@@ -2445,6 +2550,15 @@ class ProfileScreen extends StatelessWidget {
               AppStrings.languageLabels[state.localeCode] ?? state.localeCode,
             ),
             trailing: _LanguageMenu(state: state, services: services),
+          ),
+          ListTile(
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: Text(strings.text('preferredLanguage')),
+            subtitle: Text(
+              AppStrings.languageLabels[state.aiLanguageCode] ??
+                  state.aiLanguageCode,
+            ),
+            trailing: _AiLanguageMenu(state: state, services: services),
           ),
           ListTile(
             leading: const Icon(Icons.public),
@@ -3035,10 +3149,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     const SizedBox(height: 12),
                   Text(
                     snapshot.hasError
-                        ? 'Kupovine trenutno nisu dostupne: ${snapshot.error}'
+                        ? strings.purchaseMessage('unavailable')
                         : kIsWeb && snapshot.data?.nativeWrapper != true
-                        ? 'Web pretplata se obrađuje preko Stripe Checkout-a. Entitlement aktivira potpisani webhook.'
-                        : 'Plaćanje se bezbedno obrađuje preko prodavnice aplikacija na ovom uređaju. Paket se aktivira tek nakon serverske potvrde kupovine.',
+                        ? strings.purchaseMessage('webInfo')
+                        : strings.purchaseMessage('storeInfo'),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -3051,18 +3165,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _buy(ProductDetails? product) async {
     if (product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Proizvod još nije konfigurisan u prodavnici.'),
+        SnackBar(
+          content: Text(context.strings.purchaseMessage('notConfigured')),
         ),
       );
       return;
     }
     try {
       await widget.services.purchases.buy(product);
-    } on Object catch (error) {
+    } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kupovina nije pokrenuta: $error')),
+          SnackBar(content: Text(context.strings.purchaseMessage('failed'))),
         );
       }
     }
@@ -3082,10 +3196,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         successUrl: success,
         cancelUrl: cancel,
       );
-    } on Object catch (error) {
+    } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Stripe Checkout nije pokrenut: $error')),
+          SnackBar(content: Text(context.strings.purchaseMessage('failed'))),
         );
       }
     }
@@ -3096,13 +3210,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       await widget.services.purchases.restore();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Proveravamo ranije kupovine…')),
+          SnackBar(content: Text(context.strings.purchaseMessage('checking'))),
         );
       }
-    } on Object catch (error) {
+    } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kupovine nije moguće vratiti: $error')),
+          SnackBar(content: Text(context.strings.purchaseMessage('failed'))),
         );
       }
     }
@@ -3111,10 +3225,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _manageSubscription() async {
     try {
       await widget.services.purchases.openSubscriptionManagement();
-    } on Object catch (error) {
+    } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pretplatu nije moguće otvoriti: $error')),
+          SnackBar(content: Text(context.strings.purchaseMessage('failed'))),
         );
       }
     }

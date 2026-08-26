@@ -250,14 +250,104 @@ class AppState extends ChangeNotifier {
   bool onboardingComplete = false;
   int freeAnalysesUsed = 0;
   bool isPremium = false;
+
+  /// Language used by the static application interface. It is deliberately
+  /// limited to bundles shipped with the app.
   String localeCode = 'sr';
+
+  /// Language sent to AI for explanations, chat and reminders. This may use
+  /// the wider AI language catalogue without changing interface copy.
+  String aiLanguageCode = 'sr';
   final List<LetterAnalysis> letters = [];
 
   bool get canAnalyse => isPremium || freeAnalysesUsed < kFreeAnalysisLimit;
 
   void setLocale(String value) {
+    if (!const <String>{
+      'ar',
+      'bg',
+      'bs',
+      'de',
+      'el',
+      'en',
+      'hr',
+      'it',
+      'mk',
+      'pl',
+      'ro',
+      'ru',
+      'sq',
+      'sr',
+      'tr',
+      'uk',
+    }.contains(value)) {
+      value = 'en';
+    }
     if (localeCode == value) return;
     localeCode = value;
+    notifyListeners();
+  }
+
+  void setAiLanguage(String value) {
+    if (!const <String>{
+      'sq',
+      'ar',
+      'hy',
+      'az',
+      'bn',
+      'bs',
+      'bg',
+      'zh',
+      'hr',
+      'cs',
+      'da',
+      'nl',
+      'en',
+      'et',
+      'fa',
+      'fi',
+      'fr',
+      'ka',
+      'de',
+      'el',
+      'he',
+      'hi',
+      'hu',
+      'is',
+      'id',
+      'it',
+      'ja',
+      'kk',
+      'ko',
+      'ku',
+      'lv',
+      'lt',
+      'mk',
+      'ms',
+      'no',
+      'ps',
+      'pl',
+      'pt',
+      'ro',
+      'ru',
+      'sr',
+      'sk',
+      'sl',
+      'es',
+      'sw',
+      'sv',
+      'ta',
+      'th',
+      'tr',
+      'uk',
+      'ur',
+      'uz',
+      'vi',
+    }.contains(value)) {
+      value = 'en';
+    }
+    if (aiLanguageCode == value) return;
+    aiLanguageCode = value;
     notifyListeners();
   }
 
