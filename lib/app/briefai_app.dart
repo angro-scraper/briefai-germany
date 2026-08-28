@@ -1110,8 +1110,9 @@ class _GoogleSignInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: 48,
-      child: OutlinedButton.icon(
+      child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
@@ -1128,11 +1129,27 @@ class _GoogleSignInButton extends StatelessWidget {
             letterSpacing: 0.1,
           ),
         ),
-        icon: const SizedBox.square(
-          dimension: 20,
-          child: CustomPaint(painter: _GoogleGLogoPainter()),
+        // Google’s sign-in layout keeps its mark on the leading edge while
+        // the label remains centered in the full button. OutlinedButton.icon
+        // centers both as a single group, which makes the control look wrong
+        // on wide screens and tablets.
+        child: SizedBox(
+          width: double.infinity,
+          height: 20,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox.square(
+                  dimension: 20,
+                  child: CustomPaint(painter: _GoogleGLogoPainter()),
+                ),
+              ),
+              Center(child: label),
+            ],
+          ),
         ),
-        label: label,
       ),
     );
   }
