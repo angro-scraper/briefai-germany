@@ -37,6 +37,10 @@ void main() {
         letter('alice-letter', 'Alice OCR'),
         document: document,
       );
+      await repository.save(
+        LetterRepository.anonymousVaultKey,
+        letter('alice-anonymous-letter', 'Alice anonymous OCR'),
+      );
 
       final aliceVault = LetterRepository.userVaultKey('alice');
       final bobVault = LetterRepository.userVaultKey('bob');
@@ -44,7 +48,10 @@ void main() {
       await repository.claimLegacyDeviceVault(bobVault);
 
       final archive = await repository.exportRecords(aliceVault);
-      expect(archive.map((record) => record['id']), ['alice-letter']);
+      expect(
+        archive.map((record) => record['id']),
+        unorderedEquals(['alice-letter', 'alice-anonymous-letter']),
+      );
       expect(await repository.exportRecords(bobVault), isEmpty);
       expect(
         await repository.loadDocument(aliceVault, 'alice-letter'),
@@ -187,7 +194,7 @@ void main() {
       ),
     );
 
-    await repository.saveGeneratedReply(
+    final saved = await repository.saveGeneratedReply(
       ownerVault,
       'reply-letter',
       const GeneratedReply(
@@ -196,6 +203,7 @@ void main() {
       ),
       userContext: 'Deca nisu mogla da nastave trening.',
     );
+    expect(saved, isTrue);
 
     final restored = await repository.loadGeneratedReply(
       ownerVault,
@@ -208,6 +216,15 @@ void main() {
     expect(
       await repository.loadGeneratedReply(otherVault, 'reply-letter'),
       isNull,
+    );
+    expect(
+      await repository.saveGeneratedReply(
+        otherVault,
+        'reply-letter',
+        const GeneratedReply(letter: 'Other', email: 'Other'),
+        userContext: '',
+      ),
+      isFalse,
     );
   });
 }

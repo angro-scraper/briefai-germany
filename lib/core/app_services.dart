@@ -1007,9 +1007,11 @@ class LetterRepository {
       await (databaseFactory?.openDatabase(databasePath) ??
           openBriefAiLocalDatabase());
 
-  /// Assigns the archive left by device-wide builds to the first authenticated
-  /// account that opens it after this update. The operation is local-only and
-  /// idempotent: once claimed, those letters cannot appear in another account.
+  /// Assigns a locally unclaimed archive to the first authenticated account
+  /// that opens it. This includes both the original device-wide archive and
+  /// letters created before a user had signed in. The operation is local-only
+  /// and idempotent: once claimed, those letters cannot appear in another
+  /// account on this device.
   Future<void> claimLegacyDeviceVault(String destinationOwnerKey) async {
     if (destinationOwnerKey == anonymousVaultKey ||
         destinationOwnerKey == deviceVaultKey) {
@@ -1020,7 +1022,11 @@ class LetterRepository {
       final records = await _store.find(transaction);
       for (final record in records) {
         final ownerKey = record.value['ownerKey'];
-        if (ownerKey != null && ownerKey != deviceVaultKey) continue;
+        if (ownerKey != null &&
+            ownerKey != deviceVaultKey &&
+            ownerKey != anonymousVaultKey) {
+          continue;
+        }
         await _store.record(record.key).update(transaction, {
           'ownerKey': destinationOwnerKey,
           'updatedAt': DateTime.now().toIso8601String(),
@@ -1100,7 +1106,10 @@ class LetterRepository {
 
   /// Stores the generated German letter and e-mail beside the local analysis.
   /// The record never leaves the user's device and remains isolated by vault.
-  Future<void> saveGeneratedReply(
+  /// Returns `true` only if the response was written beside the owned letter.
+  /// A caller can surface a useful recovery message instead of falsely saying
+  /// that an answer was saved when a stale view points to another vault.
+  Future<bool> saveGeneratedReply(
     String uid,
     String letterId,
     GeneratedReply reply, {
@@ -1108,7 +1117,7 @@ class LetterRepository {
   }) async {
     final database = await _db();
     final existing = await _store.record(letterId).get(database);
-    if (!_ownedBy(existing, uid)) return;
+    if (!_ownedBy(existing, uid)) return false;
     await _store.record(letterId).update(database, {
       'generatedReplyLetter': reply.letter,
       'generatedReplyEmail': reply.email,
@@ -1116,6 +1125,7 @@ class LetterRepository {
       'generatedReplyUpdatedAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     });
+    return true;
   }
 
   Future<SavedGeneratedReply?> loadGeneratedReply(

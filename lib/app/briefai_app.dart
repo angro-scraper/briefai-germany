@@ -1775,6 +1775,7 @@ class ResponseScreen extends StatefulWidget {
 
 class _ResponseScreenState extends State<ResponseScreen> {
   final _facts = TextEditingController();
+  late final String _vaultKey;
   Future<GeneratedReply>? _response;
   bool _emailVersion = false;
   bool _restoringReply = true;
@@ -1782,6 +1783,10 @@ class _ResponseScreenState extends State<ResponseScreen> {
   @override
   void initState() {
     super.initState();
+    // Keep a response tied to the same local owner that opened this letter.
+    // An auth refresh or a manual sign-out while AI is generating must never
+    // redirect the save to another account's archive.
+    _vaultKey = widget.services.auth.localVaultKey;
     unawaited(_restoreSavedReply());
   }
 
@@ -1945,16 +1950,23 @@ class _ResponseScreenState extends State<ResponseScreen> {
   }
 
   Future<void> _restoreSavedReply() async {
-    final saved = await widget.services.letters.loadGeneratedReply(
-      widget.services.auth.localVaultKey,
-      widget.letter.id,
-    );
-    if (!mounted) return;
-    if (saved != null) {
-      _facts.text = saved.userContext;
-      _response = Future<GeneratedReply>.value(saved.reply);
+    try {
+      // Analyses created moments before the user signs in lived in the local
+      // anonymous vault. Claim them once for this account before reading the
+      // reply, so a long letter never appears to vanish during that handoff.
+      await widget.services.letters.claimLegacyDeviceVault(_vaultKey);
+      final saved = await widget.services.letters.loadGeneratedReply(
+        _vaultKey,
+        widget.letter.id,
+      );
+      if (!mounted) return;
+      if (saved != null) {
+        _facts.text = saved.userContext;
+        _response = Future<GeneratedReply>.value(saved.reply);
+      }
+    } finally {
+      if (mounted) setState(() => _restoringReply = false);
     }
-    setState(() => _restoringReply = false);
   }
 
   Future<void> _generateReply() async {
@@ -1971,19 +1983,32 @@ class _ResponseScreenState extends State<ResponseScreen> {
     });
     try {
       final generated = await response;
-      await widget.services.letters.saveGeneratedReply(
-        widget.services.auth.localVaultKey,
+      await widget.services.letters.claimLegacyDeviceVault(_vaultKey);
+      final saved = await widget.services.letters.saveGeneratedReply(
+        _vaultKey,
         widget.letter.id,
         generated,
         userContext: facts,
       );
+      if (!saved) {
+        throw StateError('The letter is not available in this local archive.');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.strings.text('replySavedLocally'))),
         );
       }
     } on Object {
-      // FutureBuilder displays the AI error and leaves the form recoverable.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${context.strings.text('responseUnavailable')}. '
+              '${context.strings.text('tryAgain')}',
+            ),
+          ),
+        );
+      }
     }
   }
 
