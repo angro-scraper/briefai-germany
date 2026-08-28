@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-    'Apple sign in does not show or require the email registration form',
+    'Apple sign in is a direct primary action and email stays optional',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -25,9 +25,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Continue with Google'), findsOneWidget);
       expect(find.byKey(const ValueKey('apple-sign-in')), findsOneWidget);
       expect(find.text('Continue with Apple'), findsOneWidget);
-      expect(find.textContaining('do not ask you'), findsOneWidget);
       expect(find.byKey(const ValueKey('email-auth-field')), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('show-email-auth')));

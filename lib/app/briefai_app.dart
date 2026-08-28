@@ -829,133 +829,142 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final appleAvailable =
+        kIsWeb || Theme.of(context).platform == TargetPlatform.iOS;
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FC),
       appBar: AppBar(
         title: Text(
           _create ? strings.text('createAccount') : strings.text('signIn'),
         ),
+        backgroundColor: const Color(0xFF0B1533),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text(
-            strings.text('secureLetters'),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          if (Theme.of(context).platform == TargetPlatform.iOS)
-            IgnorePointer(
-              ignoring: _loading,
-              child: Opacity(
-                opacity: _loading ? 0.6 : 1,
-                child: SignInWithAppleButton(
-                  key: const ValueKey('apple-sign-in'),
-                  onPressed: _apple,
-                  text: strings.text('continueApple'),
-                  height: 48,
-                  borderRadius: const BorderRadius.all(Radius.circular(6)),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 36, 24, 28),
+              children: [
+                Text(
+                  _create
+                      ? strings.text('createAccount')
+                      : strings.text('signIn'),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: const Color(0xFF0B1533),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            ),
-          if (Theme.of(context).platform == TargetPlatform.iOS)
-            Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 2),
-              child: Text(
-                strings.text('appleNoExtraData'),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          const SizedBox(height: 10),
-          _GoogleSignInButton(
-            onPressed: _loading ? null : _google,
-            label: Text(strings.text('continueGoogle')),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            key: const ValueKey('show-email-auth'),
-            onPressed: _loading
-                ? null
-                : () => setState(() => _showEmailForm = !_showEmailForm),
-            icon: Icon(_showEmailForm ? Icons.expand_less : Icons.mail_outline),
-            label: Text(strings.text('continueEmail')),
-          ),
-          if (_showEmailForm) ...[
-            const SizedBox(height: 20),
-            SegmentedButton<bool>(
-              segments: [
-                ButtonSegment<bool>(
-                  value: true,
-                  label: Text(strings.text('createAccount')),
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                const SizedBox(height: 10),
+                Text(
+                  strings.text('secureLetters'),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: const Color(0xFF4C5B78),
+                    height: 1.4,
+                  ),
                 ),
-                ButtonSegment<bool>(
-                  value: false,
-                  label: Text(strings.text('signIn')),
-                  icon: const Icon(Icons.login),
+                const SizedBox(height: 28),
+                _GoogleSignInButton(
+                  onPressed: _loading ? null : _google,
+                  label: Text(strings.text('continueGoogle')),
                 ),
+                if (appleAvailable) ...[
+                  const SizedBox(height: 12),
+                  IgnorePointer(
+                    ignoring: _loading,
+                    child: Opacity(
+                      opacity: _loading ? 0.6 : 1,
+                      child: SignInWithAppleButton(
+                        key: const ValueKey('apple-sign-in'),
+                        onPressed: _apple,
+                        text: strings.text('continueApple'),
+                        height: 48,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                Divider(color: const Color(0xFFD8DFEC), height: 1),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  key: const ValueKey('show-email-auth'),
+                  onPressed: _loading
+                      ? null
+                      : () => setState(() => _showEmailForm = !_showEmailForm),
+                  icon: Icon(
+                    _showEmailForm ? Icons.expand_less : Icons.mail_outline,
+                  ),
+                  label: Text(strings.text('continueEmail')),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: !_showEmailForm
+                      ? const SizedBox.shrink(
+                          key: ValueKey('email-auth-hidden'),
+                        )
+                      : Padding(
+                          key: const ValueKey('email-auth-visible'),
+                          padding: const EdgeInsets.only(top: 16),
+                          child: _EmailAuthForm(
+                            create: _create,
+                            loading: _loading,
+                            email: _email,
+                            password: _password,
+                            strings: strings,
+                            onModeChanged: (value) =>
+                                setState(() => _create = value),
+                            onSubmit: _emailSignIn,
+                          ),
+                        ),
+                ),
+                if (_loading) ...[
+                  const SizedBox(height: 22),
+                  const Center(
+                    child: SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ],
               ],
-              selected: {_create},
-              onSelectionChanged: _loading
-                  ? null
-                  : (selection) => setState(() => _create = selection.single),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              key: const ValueKey('email-auth-field'),
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: InputDecoration(labelText: strings.text('email')),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _password,
-              obscureText: true,
-              autofillHints: _create
-                  ? const [AutofillHints.newPassword]
-                  : const [AutofillHints.password],
-              decoration: InputDecoration(labelText: strings.text('password')),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loading ? null : _emailSignIn,
-              child: Text(
-                _create
-                    ? strings.text('createAccount')
-                    : strings.text('signIn'),
-              ),
-            ),
-            TextButton(
-              onPressed: _loading
-                  ? null
-                  : () => setState(() => _create = !_create),
-              child: Text(
-                _create
-                    ? strings.text('haveAccount')
-                    : strings.text('needAccount'),
-              ),
-            ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _emailSignIn() => _run(() async {
+  Future<void> _emailSignIn() async {
     final email = _email.text.trim();
     if (!email.contains('@') || _password.text.length < 6) {
-      throw const FormatException('Proverite email i lozinku.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${context.strings.text('signInFailed')}. '
+            '${context.strings.text('tryAgain')}',
+          ),
+        ),
+      );
+      return;
     }
-    await widget.services.auth.signInWithEmail(
-      email,
-      _password.text,
-      create: _create,
-    );
-    if (_create) unawaited(widget.services.analytics.trackRegistration());
-  });
+    await _run(() async {
+      await widget.services.auth.signInWithEmail(
+        email,
+        _password.text,
+        create: _create,
+      );
+      if (_create) unawaited(widget.services.analytics.trackRegistration());
+    });
+  }
+
   Future<void> _google() => _run(widget.services.auth.signInWithGoogle);
   Future<void> _apple() => _run(widget.services.auth.signInWithApple);
 
@@ -989,16 +998,19 @@ class _SignInScreenState extends State<SignInScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${context.strings.text('analysisFailed')}: '
-            '${error.message ?? context.strings.text('tryAgain')}',
+            '${context.strings.text('signInFailed')}. '
+            '${context.strings.text('tryAgain')}',
           ),
         ),
       );
-    } on Object catch (error) {
+    } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${context.strings.text('signInFailed')}: $error'),
+            content: Text(
+              '${context.strings.text('signInFailed')}. '
+              '${context.strings.text('tryAgain')}',
+            ),
           ),
         );
       }
@@ -1009,27 +1021,84 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  String _authenticationError(FirebaseAuthException error) {
-    // Firebase's raw messages are inconsistent between Android, iOS and web.
-    // Give the user a concrete next step for the common registration cases.
-    return switch (error.code) {
-      'email-already-in-use' =>
-        'Ovaj email već ima nalog. Izaberite „Prijavi se“.',
-      'invalid-email' => 'Unesite ispravnu email adresu.',
-      'weak-password' => 'Lozinka mora imati najmanje 6 znakova.',
-      'wrong-password' ||
-      'invalid-credential' => 'Email ili lozinka nisu ispravni.',
-      'network-request-failed' =>
-        'Nema veze sa internetom. Proverite vezu i pokušajte ponovo.',
-      'too-many-requests' =>
-        'Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.',
-      'operation-not-allowed' =>
-        'Registracija emailom trenutno nije dostupna. Pokušajte Google prijavu.',
-      _ =>
-        '${context.strings.text('signInFailed')}: '
-            '${error.message ?? error.code}',
-    };
-  }
+  String _authenticationError(FirebaseAuthException _) =>
+      '${context.strings.text('signInFailed')}. '
+      '${context.strings.text('tryAgain')}';
+}
+
+class _EmailAuthForm extends StatelessWidget {
+  const _EmailAuthForm({
+    required this.create,
+    required this.loading,
+    required this.email,
+    required this.password,
+    required this.strings,
+    required this.onModeChanged,
+    required this.onSubmit,
+  });
+
+  final bool create;
+  final bool loading;
+  final TextEditingController email;
+  final TextEditingController password;
+  final AppStrings strings;
+  final ValueChanged<bool> onModeChanged;
+  final Future<void> Function() onSubmit;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SegmentedButton<bool>(
+        segments: [
+          ButtonSegment<bool>(
+            value: true,
+            label: Text(strings.text('createAccount')),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+          ),
+          ButtonSegment<bool>(
+            value: false,
+            label: Text(strings.text('signIn')),
+            icon: const Icon(Icons.login),
+          ),
+        ],
+        selected: {create},
+        onSelectionChanged: loading
+            ? null
+            : (selection) => onModeChanged(selection.single),
+      ),
+      const SizedBox(height: 20),
+      TextField(
+        key: const ValueKey('email-auth-field'),
+        controller: email,
+        keyboardType: TextInputType.emailAddress,
+        autofillHints: const [AutofillHints.email],
+        decoration: InputDecoration(labelText: strings.text('email')),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: password,
+        obscureText: true,
+        autofillHints: create
+            ? const [AutofillHints.newPassword]
+            : const [AutofillHints.password],
+        decoration: InputDecoration(labelText: strings.text('password')),
+      ),
+      const SizedBox(height: 16),
+      FilledButton(
+        onPressed: loading ? null : () => unawaited(onSubmit()),
+        child: Text(
+          create ? strings.text('createAccount') : strings.text('signIn'),
+        ),
+      ),
+      TextButton(
+        onPressed: loading ? null : () => onModeChanged(!create),
+        child: Text(
+          create ? strings.text('haveAccount') : strings.text('needAccount'),
+        ),
+      ),
+    ],
+  );
 }
 
 class _GoogleSignInButton extends StatelessWidget {
