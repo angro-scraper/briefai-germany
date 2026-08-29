@@ -791,9 +791,15 @@ class _LanguageMenu extends StatelessWidget {
     icon: const Icon(Icons.translate),
     onSelected: (language) async {
       state.setLocale(language);
+      // A user-facing language choice must also become the language of new AI
+      // explanations. Keeping two unrelated values made it possible for a
+      // Serbian interface to keep producing answers in a previously selected
+      // language such as Russian.
+      state.setAiLanguage(language);
       final preferences = await SharedPreferences.getInstance();
       try {
         await preferences.setString('briefai.interface-language', language);
+        await services.auth.setPreferredLanguage(language);
       } on Object {
         // The visible language changes immediately. Persistence can be retried
         // without reverting the user's explicit selection.

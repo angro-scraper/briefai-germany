@@ -874,6 +874,13 @@ class AiService {
   final bool cloudEnabled;
   final _local = const AnalysisEngine();
 
+  /// The product calls the Serbian UI simply `sr`; for generated explanations
+  /// we explicitly request its Latin script. This prevents a model from
+  /// choosing Cyrillic, which can look like Russian to users expecting Serbian
+  /// Latin text.
+  String _apiOutputLanguage(String language) =>
+      language == 'sr' ? 'sr-Latn' : language;
+
   Future<LetterAnalysis> analyse({
     required String letterId,
     required String text,
@@ -890,7 +897,7 @@ class AiService {
           .call<Map<Object?, Object?>>({
             'letterId': letterId,
             'ocrText': text,
-            'preferredLanguage': language,
+            'preferredLanguage': _apiOutputLanguage(language),
           });
       final data = Map<String, dynamic>.from(result.data['analysis'] as Map);
       return LetterAnalysis.fromMap(id: letterId, map: data, sourceText: text);
@@ -954,7 +961,7 @@ class AiService {
     }
     final request = <String, String>{
       'question': question,
-      'preferredLanguage': language,
+      'preferredLanguage': _apiOutputLanguage(language),
     };
     if (letter != null) {
       request['letterContext'] = jsonEncode({
@@ -2128,7 +2135,13 @@ class ReplyExportService {
     document.addPage(
       pw.MultiPage(
         build: (_) => [
-          pw.Header(level: 0, child: pw.Text(title)),
+          // pw.Header decorates the title with a framework-provided line. It
+          // rendered as unexplained marks in some Android/iOS share previews,
+          // so the document uses a plain, readable title instead.
+          pw.Text(
+            title,
+            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+          ),
           pw.SizedBox(height: 16),
           pw.Paragraph(text: body),
         ],
