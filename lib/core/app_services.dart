@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart' hide Filter;
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cryptography/cryptography.dart' as cryptography;
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -77,6 +80,8 @@ class AppServices {
     required this.reminders,
     required this.purchases,
     required this.exports,
+    required this.backups,
+    required this.household,
   });
 
   final bool cloudEnabled;
@@ -90,6 +95,13 @@ class AppServices {
   final ReminderService reminders;
   final PurchaseService purchases;
   final ReplyExportService exports;
+  final EncryptedBackupService backups;
+  final HouseholdProfileService household;
+
+  /// The active local profile gets a dedicated vault.  This keeps a parent's
+  /// letters invisible while another household profile is active, even when
+  /// the same signed-in account is used on one device.
+  String get currentVaultKey => household.scopedVault(auth.localVaultKey);
 
   static AppServices unavailable(String configurationError) => AppServices._(
     cloudEnabled: false,
@@ -103,6 +115,8 @@ class AppServices {
     reminders: ReminderService(cloudEnabled: false),
     purchases: PurchaseService(cloudEnabled: false),
     exports: ReplyExportService(),
+    backups: EncryptedBackupService(),
+    household: HouseholdProfileService(),
   );
 
   static Future<AppServices> bootstrap() async {
@@ -185,6 +199,8 @@ class AppServices {
       reminders: reminders,
       purchases: PurchaseService(cloudEnabled: cloudEnabled),
       exports: ReplyExportService(),
+      backups: EncryptedBackupService(),
+      household: HouseholdProfileService(),
     );
   }
 
@@ -1104,6 +1120,52 @@ class LetterRepository {
     });
   }
 
+  /// One-time migration for builds that predate household profiles.  Only the
+  /// exact old base vault is moved into the personal profile; sibling profiles
+  /// are never touched.
+  Future<void> moveBaseVaultToPersonal(
+    String baseVault,
+    String personalVault,
+  ) async {
+    if (baseVault == personalVault) return;
+    final database = await _db();
+    await _store.update(database, {
+      'ownerKey': personalVault,
+      'updatedAt': DateTime.now().toIso8601String(),
+    }, finder: Finder(filter: Filter.equals('ownerKey', baseVault)));
+  }
+
+  /// Updates only user-curated local organisation data.  OCR, documents and
+  /// analysis content are never copied to a server by this operation.
+  Future<void> updateOrganisation(
+    String uid,
+    String letterId, {
+    LetterStatus? status,
+    LetterFolder? folder,
+    List<String>? tags,
+    bool? paymentPaid,
+  }) async {
+    final database = await _db();
+    final existing = await _store.record(letterId).get(database);
+    if (!_ownedBy(existing, uid)) return;
+    final cleanedTags = tags
+        ?.map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toSet()
+        .take(12)
+        .toList(growable: false);
+    await _store.record(letterId).update(database, {
+      if (status != null) 'status': status.name,
+      if (folder != null) 'folder': folder.name,
+      if (cleanedTags != null) 'tags': cleanedTags,
+      if (paymentPaid != null) ...{
+        'paymentPaid': paymentPaid,
+        'paymentPaidAt': paymentPaid ? DateTime.now().toIso8601String() : null,
+      },
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
+  }
+
   /// Stores the generated German letter and e-mail beside the local analysis.
   /// The record never leaves the user's device and remains isolated by vault.
   /// Returns `true` only if the response was written beside the owned letter.
@@ -1174,6 +1236,43 @@ class LetterRepository {
           return values;
         })
         .toList(growable: false);
+  }
+
+  /// Imports records from a previously created encrypted local backup.  The
+  /// selected current vault is always imposed, so a backup can never create a
+  /// record visible in another local profile on the same device.
+  Future<int> importRecords(
+    String uid,
+    List<Map<String, dynamic>> records,
+  ) async {
+    final database = await _db();
+    var imported = 0;
+    await database.transaction((transaction) async {
+      for (final raw in records) {
+        final rawId = raw['id'];
+        if (rawId is! String || rawId.trim().isEmpty) continue;
+        final values = <String, Object?>{};
+        for (final entry in raw.entries) {
+          if (entry.key == 'id' || entry.key == 'ownerKey') continue;
+          final value = entry.value;
+          if (value == null ||
+              value is String ||
+              value is bool ||
+              value is num ||
+              value is List ||
+              value is Map) {
+            values[entry.key] = value as Object?;
+          }
+        }
+        values['ownerKey'] = uid;
+        values['updatedAt'] = DateTime.now().toIso8601String();
+        final existing = await _store.record(rawId).get(transaction);
+        if (existing != null && !_ownedBy(existing, uid)) continue;
+        await _store.record(rawId).put(transaction, values, merge: true);
+        imported += 1;
+      }
+    });
+    return imported;
   }
 
   Future<void> clearAll(String uid) async {
@@ -1263,6 +1362,244 @@ class LetterRepository {
     if (values == null) return false;
     final owner = values['ownerKey'];
     return owner == uid;
+  }
+}
+
+/// Password-encrypted portable archive.  The passphrase is deliberately never
+/// persisted or sent to Firebase/Render/OpenAI: losing it means the backup
+/// cannot be opened, which is the intended privacy property.
+class HouseholdProfile {
+  const HouseholdProfile({
+    required this.id,
+    required this.name,
+    this.hasPin = false,
+  });
+
+  final String id;
+  final String name;
+  final bool hasPin;
+
+  Map<String, dynamic> toMap() => {'id': id, 'name': name, 'hasPin': hasPin};
+
+  factory HouseholdProfile.fromMap(Map<String, dynamic> map) =>
+      HouseholdProfile(
+        id: map['id'] as String? ?? '',
+        name: map['name'] as String? ?? '',
+        hasPin: map['hasPin'] == true,
+      );
+}
+
+/// Local household profiles never leave the device.  A profile may have a
+/// short local PIN; this is a privacy gate for a shared device, while account
+/// authentication continues to protect the actual cloud account.
+class HouseholdProfileService extends ChangeNotifier {
+  static const personalId = 'personal';
+  String _baseVault = LetterRepository.anonymousVaultKey;
+  String _activeId = personalId;
+  bool _bound = false;
+  List<HouseholdProfile> _profiles = const [
+    HouseholdProfile(id: personalId, name: 'Personal'),
+  ];
+
+  List<HouseholdProfile> get profiles => List.unmodifiable(_profiles);
+  String get activeId => _activeId;
+  HouseholdProfile get active => _profiles.firstWhere(
+    (profile) => profile.id == _activeId,
+    orElse: () => _profiles.first,
+  );
+
+  String scopedVault(String baseVault) => '$baseVault::profile::$_activeId';
+  String personalVault(String baseVault) => '$baseVault::profile::$personalId';
+
+  Future<void> bindOwner(String baseVault) async {
+    if (_bound && baseVault == _baseVault && _profiles.isNotEmpty) return;
+    _baseVault = baseVault;
+    final preferences = await SharedPreferences.getInstance();
+    final raw = preferences.getString(_profilesKey(baseVault));
+    final rawActive = preferences.getString(_activeKey(baseVault));
+    try {
+      final decoded = raw == null ? null : jsonDecode(raw);
+      final loaded = decoded is List
+          ? decoded
+                .whereType<Map>()
+                .map(
+                  (entry) => HouseholdProfile.fromMap(
+                    Map<String, dynamic>.from(entry),
+                  ),
+                )
+                .where(
+                  (profile) => profile.id.isNotEmpty && profile.name.isNotEmpty,
+                )
+                .toList(growable: false)
+          : const <HouseholdProfile>[];
+      _profiles = loaded.any((profile) => profile.id == personalId)
+          ? loaded
+          : [
+              const HouseholdProfile(id: personalId, name: 'Personal'),
+              ...loaded,
+            ];
+    } on Object {
+      _profiles = const [HouseholdProfile(id: personalId, name: 'Personal')];
+    }
+    _activeId = _profiles.any((profile) => profile.id == rawActive)
+        ? rawActive!
+        : personalId;
+    _bound = true;
+    notifyListeners();
+  }
+
+  Future<void> add({required String name, String? pin}) async {
+    final cleanedName = name.trim();
+    if (cleanedName.isEmpty || cleanedName.length > 36) {
+      throw ArgumentError('Enter a profile name between 1 and 36 characters.');
+    }
+    final id = const Uuid().v4();
+    final hasPin = pin != null && pin.isNotEmpty;
+    _profiles = [
+      ..._profiles,
+      HouseholdProfile(id: id, name: cleanedName, hasPin: hasPin),
+    ];
+    final preferences = await SharedPreferences.getInstance();
+    if (hasPin) {
+      await preferences.setString(_pinKey(_baseVault, id), _pinDigest(pin));
+    }
+    await _persist(preferences);
+    notifyListeners();
+  }
+
+  Future<bool> activate(String profileId, {String pin = ''}) async {
+    final target = _profiles
+        .where((profile) => profile.id == profileId)
+        .firstOrNull;
+    if (target == null) return false;
+    final preferences = await SharedPreferences.getInstance();
+    if (target.hasPin) {
+      final expected = preferences.getString(_pinKey(_baseVault, target.id));
+      if (expected == null || expected != _pinDigest(pin)) return false;
+    }
+    _activeId = target.id;
+    await preferences.setString(_activeKey(_baseVault), target.id);
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> remove(String profileId) async {
+    if (profileId == personalId) return;
+    final preferences = await SharedPreferences.getInstance();
+    _profiles = _profiles.where((profile) => profile.id != profileId).toList();
+    await preferences.remove(_pinKey(_baseVault, profileId));
+    if (_activeId == profileId) _activeId = personalId;
+    await _persist(preferences);
+    await preferences.setString(_activeKey(_baseVault), _activeId);
+    notifyListeners();
+  }
+
+  Future<void> _persist(SharedPreferences preferences) => preferences.setString(
+    _profilesKey(_baseVault),
+    jsonEncode(_profiles.map((profile) => profile.toMap()).toList()),
+  );
+
+  String _profilesKey(String owner) => 'briefai.household.$owner.profiles';
+  String _activeKey(String owner) => 'briefai.household.$owner.active';
+  String _pinKey(String owner, String id) => 'briefai.household.$owner.$id.pin';
+  String _pinDigest(String value) =>
+      crypto.sha256.convert(utf8.encode('BriefAI/$value')).toString();
+}
+
+class EncryptedBackupService {
+  static const _iterations = 210000;
+  final cryptography.Cipher _cipher = cryptography.AesGcm.with256bits();
+  final _kdf = cryptography.Pbkdf2(
+    macAlgorithm: cryptography.Hmac.sha256(),
+    iterations: _iterations,
+    bits: 256,
+  );
+
+  Future<String> encrypt({
+    required Map<String, dynamic> payload,
+    required String passphrase,
+  }) async {
+    if (passphrase.trim().length < 10) {
+      throw ArgumentError(
+        'Backup password must contain at least 10 characters.',
+      );
+    }
+    final random = Random.secure();
+    final salt = List<int>.generate(16, (_) => random.nextInt(256));
+    final key = await _kdf.deriveKey(
+      secretKey: cryptography.SecretKey(utf8.encode(passphrase)),
+      nonce: salt,
+    );
+    final box = await _cipher.encrypt(
+      utf8.encode(jsonEncode(payload)),
+      secretKey: key,
+    );
+    return jsonEncode({
+      'format': 'briefai-encrypted-backup',
+      'version': 1,
+      'kdf': 'PBKDF2-HMAC-SHA256',
+      'iterations': _iterations,
+      'cipher': 'AES-256-GCM',
+      'salt': base64Encode(salt),
+      'nonce': base64Encode(box.nonce),
+      'ciphertext': base64Encode(box.cipherText),
+      'mac': base64Encode(box.mac.bytes),
+    });
+  }
+
+  Future<Map<String, dynamic>> decrypt({
+    required String encodedBackup,
+    required String passphrase,
+  }) async {
+    try {
+      final envelope = Map<String, dynamic>.from(
+        jsonDecode(encodedBackup) as Map,
+      );
+      if (envelope['format'] != 'briefai-encrypted-backup' ||
+          envelope['version'] != 1) {
+        throw const FormatException('Unsupported BriefAI backup.');
+      }
+      final iterations = envelope['iterations'];
+      if (iterations is! int || iterations < 100000 || iterations > 1000000) {
+        throw const FormatException('Invalid backup security parameters.');
+      }
+      final salt = base64Decode(envelope['salt'] as String);
+      final key =
+          await cryptography.Pbkdf2(
+            macAlgorithm: cryptography.Hmac.sha256(),
+            iterations: iterations,
+            bits: 256,
+          ).deriveKey(
+            secretKey: cryptography.SecretKey(utf8.encode(passphrase)),
+            nonce: salt,
+          );
+      final clear = await _cipher.decrypt(
+        cryptography.SecretBox(
+          base64Decode(envelope['ciphertext'] as String),
+          nonce: base64Decode(envelope['nonce'] as String),
+          mac: cryptography.Mac(base64Decode(envelope['mac'] as String)),
+        ),
+        secretKey: key,
+      );
+      return Map<String, dynamic>.from(jsonDecode(utf8.decode(clear)) as Map);
+    } on cryptography.SecretBoxAuthenticationError {
+      throw const FormatException('Incorrect password or a damaged backup.');
+    } on FormatException {
+      rethrow;
+    } on Object {
+      throw const FormatException('The backup could not be opened.');
+    }
+  }
+
+  Future<String?> pickEncryptedBackup() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['briefai', 'json'],
+      withData: true,
+    );
+    final files = picked?.files;
+    final bytes = files == null || files.isEmpty ? null : files.first.bytes;
+    return bytes == null ? null : utf8.decode(bytes);
   }
 }
 
@@ -1802,6 +2139,23 @@ class ReplyExportService {
           ),
         ],
         fileNameOverrides: const ['briefai-izvoz-podataka.json'],
+      ),
+    );
+  }
+
+  Future<void> shareEncryptedBackup(String encryptedBackup) async {
+    await SharePlus.instance.share(
+      ShareParams(
+        subject: 'BriefAI Germany — encrypted local backup',
+        text: 'Encrypted BriefAI archive backup. Keep the password separately.',
+        files: [
+          XFile.fromData(
+            utf8.encode(encryptedBackup),
+            mimeType: 'application/json',
+            name: 'briefai-local-backup.briefai',
+          ),
+        ],
+        fileNameOverrides: const ['briefai-local-backup.briefai'],
       ),
     );
   }

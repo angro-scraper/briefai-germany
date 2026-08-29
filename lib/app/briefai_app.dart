@@ -369,6 +369,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    widget.services.household.addListener(_onHouseholdProfileChanged);
     unawaited(_bindLocalVault());
     unawaited(widget.services.analytics.trackPageView());
     if (widget.services.cloudEnabled) {
@@ -400,6 +401,8 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  void _onHouseholdProfileChanged() => unawaited(_bindLocalVault());
+
   Future<void> _bindLocalVault() async {
     final binding = ++_vaultBinding;
     await _lettersSubscription?.cancel();
@@ -407,8 +410,15 @@ class _AppShellState extends State<AppShell> {
     if (!mounted || binding != _vaultBinding) return;
     widget.state.replaceLetters(const []);
 
-    final ownerKey = widget.services.auth.localVaultKey;
-    await widget.services.letters.claimLegacyDeviceVault(ownerKey);
+    final baseVault = widget.services.auth.localVaultKey;
+    await widget.services.household.bindOwner(baseVault);
+    final personalVault = widget.services.household.personalVault(baseVault);
+    await widget.services.letters.claimLegacyDeviceVault(personalVault);
+    await widget.services.letters.moveBaseVaultToPersonal(
+      baseVault,
+      personalVault,
+    );
+    final ownerKey = widget.services.currentVaultKey;
     if (!mounted || binding != _vaultBinding) return;
     _lettersSubscription = widget.services.letters
         .watch(ownerKey)
@@ -421,6 +431,7 @@ class _AppShellState extends State<AppShell> {
     _entitlementSubscription?.cancel();
     _usageSubscription?.cancel();
     _authSubscription?.cancel();
+    widget.services.household.removeListener(_onHouseholdProfileChanged);
     super.dispose();
   }
 
@@ -572,6 +583,8 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 18),
+        _DeadlineOverviewCard(state: state, services: services),
         const SizedBox(height: 28),
         Text(
           strings.text('recentLetters'),
@@ -603,6 +616,44 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
       ],
+    );
+  }
+}
+
+class _DeadlineOverviewCard extends StatelessWidget {
+  const _DeadlineOverviewCard({required this.state, required this.services});
+
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    final overview = _deadlineOverview(state.letters);
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: overview.overdue > 0
+              ? Colors.red.withValues(alpha: .12)
+              : Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(
+            Icons.calendar_month_outlined,
+            color: overview.overdue > 0 ? Colors.red.shade700 : null,
+          ),
+        ),
+        title: const Text('Kalendar rokova'),
+        subtitle: Text(
+          overview.total == 0
+              ? 'Nema otvorenih rokova.'
+              : '${overview.today} danas · ${overview.thisWeek} ove nedelje · ${overview.overdue} kasni',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                DeadlineCenterScreen(state: state, services: services),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1479,7 +1530,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         language: language,
       );
       await widget.services.letters.save(
-        widget.services.auth.localVaultKey,
+        widget.services.currentVaultKey,
         analysis,
         documents: List<PickedDocument>.unmodifiable(_documents),
       );
@@ -1674,6 +1725,8 @@ class ResultScreen extends StatelessWidget {
               title: strings.text('paymentRecipient'),
               content: letter.paymentRecipient!,
             ),
+          if (letter.paymentIban != null)
+            _ResultSection(title: 'IBAN', content: letter.paymentIban!),
           if (letter.invoiceNumber != null)
             _ResultSection(
               title: strings.text('invoiceNumber'),
@@ -1697,6 +1750,9 @@ class ResultScreen extends StatelessWidget {
             title: strings.text('category'),
             content: strings.category(letter.category.name),
           ),
+          _ResultSection(title: 'Folder', content: _folderLabel(letter.folder)),
+          if (letter.tags.isNotEmpty)
+            _ResultSection(title: 'Oznake', content: letter.tags.join(', ')),
           if (letter.deadline != null)
             _ResultSection(
               title: strings.text('deadline'),
@@ -1706,7 +1762,7 @@ class ResultScreen extends StatelessWidget {
           if (letter.isPaymentObligation)
             _ResultSection(
               title: strings.text('paymentObligation'),
-              content: letter.status == LetterStatus.done
+              content: letter.paymentPaid
                   ? strings.text('paymentPaid')
                   : strings.text('paymentOpen'),
             ),
@@ -1729,7 +1785,7 @@ class ResultScreen extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () async {
               final documents = await services.letters.loadDocuments(
-                services.auth.localVaultKey,
+                services.currentVaultKey,
                 letter.id,
               );
               if (!context.mounted) return;
@@ -1803,7 +1859,7 @@ class _ResponseScreenState extends State<ResponseScreen> {
     // Keep a response tied to the same local owner that opened this letter.
     // An auth refresh or a manual sign-out while AI is generating must never
     // redirect the save to another account's archive.
-    _vaultKey = widget.services.auth.localVaultKey;
+    _vaultKey = widget.services.currentVaultKey;
     unawaited(_restoreSavedReply());
   }
 
@@ -2010,6 +2066,12 @@ class _ResponseScreenState extends State<ResponseScreen> {
       if (!saved) {
         throw StateError('The letter is not available in this local archive.');
       }
+      await widget.services.letters.updateOrganisation(
+        _vaultKey,
+        widget.letter.id,
+        status: LetterStatus.replyPrepared,
+      );
+      widget.state.updateStatus(widget.letter.id, LetterStatus.replyPrepared);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.strings.text('replySavedLocally'))),
@@ -2055,6 +2117,12 @@ class _ResponseScreenState extends State<ResponseScreen> {
         subject: 'Antwort: ${widget.letter.title}',
         body: reply.email,
       );
+      await widget.services.letters.updateOrganisation(
+        _vaultKey,
+        widget.letter.id,
+        status: LetterStatus.sent,
+      );
+      widget.state.updateStatus(widget.letter.id, LetterStatus.sent);
     } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2065,13 +2133,26 @@ class _ResponseScreenState extends State<ResponseScreen> {
   }
 }
 
-class ArchiveScreen extends StatelessWidget {
+class ArchiveScreen extends StatefulWidget {
   const ArchiveScreen({super.key, required this.state, required this.services});
   final AppState state;
   final AppServices services;
+
+  @override
+  State<ArchiveScreen> createState() => _ArchiveScreenState();
+}
+
+class _ArchiveScreenState extends State<ArchiveScreen> {
+  LetterFolder? _folder;
+
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final letters = _folder == null
+        ? widget.state.letters
+        : widget.state.letters
+              .where((letter) => letter.folder == _folder)
+              .toList(growable: false);
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -2084,40 +2165,68 @@ class ArchiveScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Text(strings.text('archiveSubtitle')),
         const SizedBox(height: 20),
-        if (state.letters.isEmpty)
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: const Text('Sve'),
+              selected: _folder == null,
+              onSelected: (_) => setState(() => _folder = null),
+            ),
+            ...LetterFolder.values.map(
+              (folder) => ChoiceChip(
+                label: Text(_folderLabel(folder)),
+                selected: _folder == folder,
+                onSelected: (_) => setState(() => _folder = folder),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (letters.isEmpty)
           _EmptyState(
             icon: Icons.folder_off_outlined,
-            text: strings.text('emptyLetters'),
+            text: _folder == null
+                ? strings.text('emptyLetters')
+                : 'Nema pisama u ovom folderu.',
           )
         else
-          ...state.letters.map(
+          ...letters.map(
             (letter) => LetterCard(
               letter: letter,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ResultScreen(
-                    state: state,
+                    state: widget.state,
                     letter: letter,
-                    services: services,
+                    services: widget.services,
                   ),
                 ),
               ),
               onStatus: (status) async {
-                state.updateStatus(letter.id, status);
-                await services.letters.updateStatus(
-                  services.auth.localVaultKey,
+                widget.state.updateStatus(letter.id, status);
+                await widget.services.letters.updateStatus(
+                  widget.services.currentVaultKey,
                   letter.id,
                   status,
                 );
                 if (status == LetterStatus.done) {
-                  await services.reminders.cancel(letter.id);
+                  await widget.services.reminders.cancel(letter.id);
                 } else {
-                  await services.reminders.schedule(
+                  await widget.services.reminders.schedule(
                     letter.copyWith(status: status),
-                    language: state.aiLanguageCode,
+                    language: widget.state.aiLanguageCode,
                   );
                 }
               },
+              onOrganize: () => _showLetterOrganiser(
+                context,
+                letter: letter,
+                state: widget.state,
+                services: widget.services,
+              ),
               onDelete: () => showDialog<void>(
                 context: context,
                 builder: (dialogContext) => AlertDialog(
@@ -2130,11 +2239,11 @@ class ArchiveScreen extends StatelessWidget {
                     ),
                     FilledButton(
                       onPressed: () async {
-                        await services.letters.delete(
-                          services.auth.localVaultKey,
+                        await widget.services.letters.delete(
+                          widget.services.currentVaultKey,
                           letter.id,
                         );
-                        await services.reminders.cancel(letter.id);
+                        await widget.services.reminders.cancel(letter.id);
                         if (dialogContext.mounted) {
                           Navigator.of(dialogContext).pop();
                         }
@@ -2727,6 +2836,29 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         ListTile(
+          leading: const Icon(Icons.family_restroom_outlined),
+          title: const Text('Porodični profili'),
+          subtitle: Text('Aktivan profil: ${services.household.active.name}'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => HouseholdProfilesScreen(services: services),
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.enhanced_encryption_outlined),
+          title: const Text('Šifrovani backup arhive'),
+          subtitle: const Text('Izvoz i vraćanje samo uz vašu lozinku'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  EncryptedBackupScreen(state: state, services: services),
+            ),
+          ),
+        ),
+        ListTile(
           leading: const Icon(Icons.download_outlined),
           title: Text(strings.text('exportData')),
           subtitle: Text(strings.text('exportSubtitle')),
@@ -2749,9 +2881,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   FilledButton(
                     onPressed: () async {
-                      await services.letters.clearAll(
-                        services.auth.localVaultKey,
-                      );
+                      await services.letters.clearAll(services.currentVaultKey);
                       await services.reminders.cancelAll();
                       state.replaceLetters(const []);
                       if (dialogContext.mounted) {
@@ -2785,7 +2915,7 @@ class ProfileScreen extends StatelessWidget {
                     onPressed: () async {
                       try {
                         await services.letters.clearAll(
-                          services.auth.localVaultKey,
+                          services.currentVaultKey,
                         );
                         await services.reminders.cancelAll();
                         state.replaceLetters(const []);
@@ -2815,6 +2945,302 @@ class ProfileScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+class HouseholdProfilesScreen extends StatefulWidget {
+  const HouseholdProfilesScreen({super.key, required this.services});
+  final AppServices services;
+
+  @override
+  State<HouseholdProfilesScreen> createState() =>
+      _HouseholdProfilesScreenState();
+}
+
+class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
+  Future<void> _add() async {
+    final name = TextEditingController();
+    final pin = TextEditingController();
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Novi porodični profil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Ime profila'),
+              ),
+              TextField(
+                controller: pin,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'PIN (opciono)',
+                  helperText: 'Za zajednički uređaj preporučujemo PIN.',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Otkaži'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Kreiraj'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      await widget.services.household.add(
+        name: name.text,
+        pin: pin.text.isEmpty ? null : pin.text,
+      );
+      if (mounted) setState(() {});
+    } on Object catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+    } finally {
+      name.dispose();
+      pin.dispose();
+    }
+  }
+
+  Future<void> _activate(HouseholdProfile profile) async {
+    var pin = '';
+    if (profile.hasPin) {
+      final controller = TextEditingController();
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('PIN: ${profile.name}'),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'PIN'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Otkaži'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Otvori'),
+            ),
+          ],
+        ),
+      );
+      pin = controller.text;
+      controller.dispose();
+      if (ok != true) return;
+    }
+    final activated = await widget.services.household.activate(
+      profile.id,
+      pin: pin,
+    );
+    if (!mounted) return;
+    if (!activated) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('PIN nije ispravan.')));
+      return;
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profiles = widget.services.household.profiles;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Porodični profili')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _add,
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('Dodaj profil'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text(
+            'Svaki profil ima odvojenu lokalnu arhivu. Originali, OCR i odgovori ne odlaze u cloud.',
+          ),
+          const SizedBox(height: 16),
+          ...profiles.map(
+            (profile) => Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Icon(
+                    profile.hasPin ? Icons.lock_outline : Icons.person_outline,
+                  ),
+                ),
+                title: Text(profile.name),
+                subtitle: Text(
+                  profile.id == widget.services.household.activeId
+                      ? 'Aktivan profil'
+                      : 'Odvojena lokalna arhiva',
+                ),
+                trailing: profile.id == widget.services.household.activeId
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : const Icon(Icons.chevron_right),
+                onTap: () => _activate(profile),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EncryptedBackupScreen extends StatefulWidget {
+  const EncryptedBackupScreen({
+    super.key,
+    required this.state,
+    required this.services,
+  });
+  final AppState state;
+  final AppServices services;
+
+  @override
+  State<EncryptedBackupScreen> createState() => _EncryptedBackupScreenState();
+}
+
+class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
+  final _password = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _export() async {
+    if (_password.text.trim().length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lozinka mora imati najmanje 10 znakova.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final payload = <String, dynamic>{
+        'schemaVersion': 1,
+        'createdAt': DateTime.now().toUtc().toIso8601String(),
+        'profile': widget.services.household.active.name,
+        'letters': await widget.services.letters.exportRecords(
+          widget.services.currentVaultKey,
+        ),
+      };
+      final encrypted = await widget.services.backups.encrypt(
+        payload: payload,
+        passphrase: _password.text,
+      );
+      await widget.services.exports.shareEncryptedBackup(encrypted);
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Šifrovani backup je spreman za čuvanje.'),
+          ),
+        );
+    } on Object catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Backup nije uspeo: $error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    if (_password.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unesite lozinku backupa.')));
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final encoded = await widget.services.backups.pickEncryptedBackup();
+      if (encoded == null) return;
+      final payload = await widget.services.backups.decrypt(
+        encodedBackup: encoded,
+        passphrase: _password.text,
+      );
+      final rawLetters = payload['letters'];
+      if (rawLetters is! List)
+        throw const FormatException('Backup does not contain an archive.');
+      final records = rawLetters
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList(growable: false);
+      final count = await widget.services.letters.importRecords(
+        widget.services.currentVaultKey,
+        records,
+      );
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Vraćeno lokalno: $count pisama.')),
+        );
+    } on Object catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Vraćanje nije uspelo: $error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Šifrovani backup')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Icon(Icons.enhanced_encryption_outlined, size: 48),
+        const SizedBox(height: 16),
+        const Text(
+          'Backup je AES-256-GCM šifrovan vašom lozinkom. Lozinku ne čuvamo i ne možemo je vratiti.',
+        ),
+        const SizedBox(height: 20),
+        TextField(
+          controller: _password,
+          obscureText: true,
+          enableSuggestions: false,
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'Lozinka za backup',
+            helperText: 'Najmanje 10 znakova',
+          ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _busy ? null : _export,
+          icon: const Icon(Icons.upload_file_outlined),
+          label: const Text('Napravi šifrovani backup'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _busy ? null : _restore,
+          icon: const Icon(Icons.restore_page_outlined),
+          label: const Text('Vrati backup na ovaj profil'),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<bool> _ensureCloudAiAccess(
@@ -2975,9 +3401,7 @@ Future<void> _exportAccountData(
           'Original documents and the archive are stored locally. With consent, OCR text is sent transiently to OpenAI for the requested analysis and is not stored in the Firebase archive.',
       'account': await services.auth.localAccountData(),
       'premiumActive': state.isPremium,
-      'letters': await services.letters.exportRecords(
-        services.auth.localVaultKey,
-      ),
+      'letters': await services.letters.exportRecords(services.currentVaultKey),
     };
     await services.exports.shareJsonExport(jsonEncode(payload));
   } catch (_) {
@@ -3351,11 +3775,13 @@ class LetterCard extends StatelessWidget {
     super.key,
     required this.letter,
     this.onStatus,
+    this.onOrganize,
     this.onDelete,
     this.onTap,
   });
   final LetterAnalysis letter;
   final ValueChanged<LetterStatus>? onStatus;
+  final VoidCallback? onOrganize;
   final VoidCallback? onDelete;
   final VoidCallback? onTap;
   @override
@@ -3372,10 +3798,10 @@ class LetterCard extends StatelessWidget {
       title: Text(letter.title),
       subtitle: Text(
         '${context.strings.category(letter.category.name)}'
-        '${letter.isPaymentObligation ? ' • ${letter.status == LetterStatus.done ? context.strings.text('paymentPaid') : context.strings.text('paymentOpen')}' : ''}'
+        '${letter.isPaymentObligation ? ' • ${letter.paymentPaid ? context.strings.text('paymentPaid') : context.strings.text('paymentOpen')}' : ''}'
         '${(letter.paymentDueDate ?? letter.deadline) == null ? '' : ' • ${context.strings.text(letter.paymentDueDate != null ? 'paymentDueDate' : 'deadline')} ${(letter.paymentDueDate ?? letter.deadline)!.day}.${(letter.paymentDueDate ?? letter.deadline)!.month}.'}',
       ),
-      trailing: onStatus == null && onDelete == null
+      trailing: onStatus == null && onDelete == null && onOrganize == null
           ? null
           : Row(
               mainAxisSize: MainAxisSize.min,
@@ -3385,6 +3811,12 @@ class LetterCard extends StatelessWidget {
                     tooltip: context.strings.text('deleteDocument'),
                     onPressed: onDelete,
                     icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                if (onOrganize != null)
+                  IconButton(
+                    tooltip: 'Organizuj',
+                    onPressed: onOrganize,
+                    icon: const Icon(Icons.tune_rounded),
                   ),
                 if (onStatus != null)
                   PopupMenuButton<LetterStatus>(
@@ -3400,6 +3832,18 @@ class LetterCard extends StatelessWidget {
                         child: Text(context.strings.text('progressStatus')),
                       ),
                       PopupMenuItem(
+                        value: LetterStatus.replyPrepared,
+                        child: Text(_statusLabel(LetterStatus.replyPrepared)),
+                      ),
+                      PopupMenuItem(
+                        value: LetterStatus.sent,
+                        child: Text(_statusLabel(LetterStatus.sent)),
+                      ),
+                      PopupMenuItem(
+                        value: LetterStatus.awaitingReply,
+                        child: Text(_statusLabel(LetterStatus.awaitingReply)),
+                      ),
+                      PopupMenuItem(
                         value: LetterStatus.done,
                         child: Text(context.strings.text('doneStatus')),
                       ),
@@ -3410,6 +3854,371 @@ class LetterCard extends StatelessWidget {
     ),
   );
 }
+
+class DeadlineCenterScreen extends StatelessWidget {
+  const DeadlineCenterScreen({
+    super.key,
+    required this.state,
+    required this.services,
+  });
+
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = _deadlineGroups(state.letters);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Kalendar rokova')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text(
+            'Otvoreni rokovi i računi ostaju lokalno na ovom uređaju.',
+          ),
+          const SizedBox(height: 20),
+          _DeadlineGroup(
+            title: 'Kasni',
+            icon: Icons.warning_amber_rounded,
+            color: Colors.red,
+            letters: groups.overdue,
+            state: state,
+            services: services,
+          ),
+          _DeadlineGroup(
+            title: 'Danas',
+            icon: Icons.today_outlined,
+            color: Colors.orange,
+            letters: groups.today,
+            state: state,
+            services: services,
+          ),
+          _DeadlineGroup(
+            title: 'Ove nedelje',
+            icon: Icons.date_range_outlined,
+            color: Colors.blue,
+            letters: groups.thisWeek,
+            state: state,
+            services: services,
+          ),
+          _DeadlineGroup(
+            title: 'Kasnije',
+            icon: Icons.event_available_outlined,
+            color: Colors.teal,
+            letters: groups.later,
+            state: state,
+            services: services,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeadlineGroup extends StatelessWidget {
+  const _DeadlineGroup({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.letters,
+    required this.state,
+    required this.services,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color color;
+  final List<LetterAnalysis> letters;
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 8),
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              Text('${letters.length}'),
+            ],
+          ),
+          if (letters.isNotEmpty) const Divider(),
+          ...letters.map(
+            (letter) => ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(letter.title),
+              subtitle: Text(_dueText(letter)),
+              trailing: letter.isPaymentObligation && !letter.paymentPaid
+                  ? const Icon(Icons.payments_outlined)
+                  : null,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ResultScreen(
+                    state: state,
+                    letter: letter,
+                    services: services,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (letters.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 10),
+              child: Text('Nema stavki.'),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _showLetterOrganiser(
+  BuildContext context, {
+  required LetterAnalysis letter,
+  required AppState state,
+  required AppServices services,
+}) async {
+  var folder = letter.folder;
+  var status = letter.status;
+  var paid = letter.paymentPaid;
+  final tags = TextEditingController(text: letter.tags.join(', '));
+  try {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            8,
+            20,
+            24 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Organizuj pismo',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<LetterFolder>(
+                  initialValue: folder,
+                  decoration: const InputDecoration(labelText: 'Folder'),
+                  items: LetterFolder.values
+                      .map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(_folderLabel(value)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setSheetState(() => folder = value ?? folder),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<LetterStatus>(
+                  initialValue: status,
+                  decoration: const InputDecoration(
+                    labelText: 'Status komunikacije',
+                  ),
+                  items: LetterStatus.values
+                      .map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(_statusLabel(value)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setSheetState(() => status = value ?? status),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: tags,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Oznake',
+                    hintText: 'npr. hitno, žalba, deca',
+                    helperText: 'Odvojite oznake zarezom.',
+                  ),
+                ),
+                if (letter.isPaymentObligation) ...[
+                  const SizedBox(height: 8),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Račun je plaćen'),
+                    subtitle: Text(letter.amount ?? 'Iznos nije prepoznat'),
+                    value: paid,
+                    onChanged: (value) => setSheetState(() => paid = value),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () async {
+                    final cleanedTags = tags.text
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .where((tag) => tag.isNotEmpty)
+                        .toSet()
+                        .take(12)
+                        .toList(growable: false);
+                    final updated = letter.copyWith(
+                      folder: folder,
+                      status: status,
+                      tags: cleanedTags,
+                      paymentPaid: paid,
+                      paymentPaidAt: paid ? DateTime.now() : null,
+                      clearPaymentPaidAt: !paid,
+                    );
+                    await services.letters.updateOrganisation(
+                      services.currentVaultKey,
+                      letter.id,
+                      folder: folder,
+                      status: status,
+                      tags: cleanedTags,
+                      paymentPaid: paid,
+                    );
+                    state.replaceLetters([
+                      for (final item in state.letters)
+                        if (item.id == letter.id) updated else item,
+                    ]);
+                    if (status == LetterStatus.done || paid) {
+                      await services.reminders.cancel(letter.id);
+                    } else {
+                      await services.reminders.schedule(
+                        updated,
+                        language: state.aiLanguageCode,
+                      );
+                    }
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: const Text('Sačuvaj lokalno'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  } finally {
+    tags.dispose();
+  }
+}
+
+class _DeadlineOverview {
+  const _DeadlineOverview({
+    required this.today,
+    required this.thisWeek,
+    required this.overdue,
+    required this.total,
+  });
+  final int today;
+  final int thisWeek;
+  final int overdue;
+  final int total;
+}
+
+class _DeadlineGroups {
+  const _DeadlineGroups({
+    required this.overdue,
+    required this.today,
+    required this.thisWeek,
+    required this.later,
+  });
+  final List<LetterAnalysis> overdue;
+  final List<LetterAnalysis> today;
+  final List<LetterAnalysis> thisWeek;
+  final List<LetterAnalysis> later;
+}
+
+_DeadlineOverview _deadlineOverview(List<LetterAnalysis> letters) {
+  final groups = _deadlineGroups(letters);
+  return _DeadlineOverview(
+    today: groups.today.length,
+    thisWeek: groups.thisWeek.length,
+    overdue: groups.overdue.length,
+    total:
+        groups.overdue.length +
+        groups.today.length +
+        groups.thisWeek.length +
+        groups.later.length,
+  );
+}
+
+_DeadlineGroups _deadlineGroups(List<LetterAnalysis> letters) {
+  final now = DateTime.now();
+  final todayStart = DateTime(now.year, now.month, now.day);
+  final weekEnd = todayStart.add(const Duration(days: 7));
+  final overdue = <LetterAnalysis>[];
+  final today = <LetterAnalysis>[];
+  final thisWeek = <LetterAnalysis>[];
+  final later = <LetterAnalysis>[];
+  for (final letter in letters) {
+    if (letter.status == LetterStatus.done || letter.paymentPaid) continue;
+    final due = letter.paymentDueDate ?? letter.deadline;
+    if (due == null) continue;
+    final day = DateTime(due.year, due.month, due.day);
+    if (day.isBefore(todayStart)) {
+      overdue.add(letter);
+    } else if (day == todayStart) {
+      today.add(letter);
+    } else if (day.isBefore(weekEnd)) {
+      thisWeek.add(letter);
+    } else {
+      later.add(letter);
+    }
+  }
+  int byDue(LetterAnalysis a, LetterAnalysis b) =>
+      (a.paymentDueDate ?? a.deadline)!.compareTo(
+        b.paymentDueDate ?? b.deadline!,
+      );
+  for (final group in [overdue, today, thisWeek, later]) {
+    group.sort(byDue);
+  }
+  return _DeadlineGroups(
+    overdue: overdue,
+    today: today,
+    thisWeek: thisWeek,
+    later: later,
+  );
+}
+
+String _dueText(LetterAnalysis letter) {
+  final due = letter.paymentDueDate ?? letter.deadline;
+  if (due == null) return 'Bez roka';
+  return '${letter.isPaymentObligation ? 'Plaćanje do' : 'Rok'} ${due.day.toString().padLeft(2, '0')}.${due.month.toString().padLeft(2, '0')}.${due.year}';
+}
+
+String _statusLabel(LetterStatus status) => switch (status) {
+  LetterStatus.newLetter => 'Novo',
+  LetterStatus.inProgress => 'Rešavam',
+  LetterStatus.replyPrepared => 'Odgovor pripremljen',
+  LetterStatus.sent => 'Poslato',
+  LetterStatus.awaitingReply => 'Čeka se odgovor',
+  LetterStatus.done => 'Završeno',
+};
+
+String _folderLabel(LetterFolder folder) => switch (folder) {
+  LetterFolder.inbox => 'Prijemno',
+  LetterFolder.housing => 'Stanovanje',
+  LetterFolder.work => 'Posao',
+  LetterFolder.family => 'Porodica',
+  LetterFolder.insurance => 'Osiguranje',
+  LetterFolder.taxes => 'Porezi',
+  LetterFolder.finance => 'Finansije',
+};
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.icon, required this.text});

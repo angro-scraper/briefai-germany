@@ -266,6 +266,7 @@ type Analysis = {
   senderName: string | null;
   recipientName: string | null;
   paymentRecipient: string | null;
+  paymentIban: string | null;
   documentType: string | null;
   invoiceNumber: string | null;
   servicePeriod: string | null;
@@ -523,7 +524,7 @@ const analysisSchema = {
   additionalProperties: false,
   required: [
     "title", "plainExplanation", "senderName", "recipientName",
-    "paymentRecipient", "documentType", "invoiceNumber", "servicePeriod",
+    "paymentRecipient", "paymentIban", "documentType", "invoiceNumber", "servicePeriod",
     "totalAmount", "paymentReference",
     "category", "urgency", "deadline", "paymentDueDate",
     "isPaymentObligation", "amounts", "suggestedAction",
@@ -535,6 +536,7 @@ const analysisSchema = {
     senderName: {type: ["string", "null"]},
     recipientName: {type: ["string", "null"]},
     paymentRecipient: {type: ["string", "null"]},
+    paymentIban: {type: ["string", "null"], description: "Exact IBAN only when clearly visible; preserve spaces if shown and never invent an IBAN."},
     documentType: {type: ["string", "null"]},
     invoiceNumber: {type: ["string", "null"]},
     servicePeriod: {type: ["string", "null"]},
@@ -1256,7 +1258,7 @@ First identify the actual sender from letterhead, authority name, contact detail
 Party identification is a required evidence task, especially for invoices and payment demands:
 - senderName is the organization or person that issued/sent the document. Use the company/authority in the letterhead, logo, imprint, sender line, signature, or clearly identified invoice issuer. A name merely appearing in the postal address window is usually the recipient, not the sender.
 - recipientName is the person or organization to whom the document or invoice is addressed. Prefer the address window, "An", "Rechnung an", "Rechnungsempfänger", customer/account holder, and salutation evidence.
-- paymentRecipient is the named beneficiary/payee who should receive the payment. It can differ from both the sender and the recipient. Do not infer it from an IBAN alone.
+- paymentRecipient is the named beneficiary/payee who should receive the payment. It can differ from both the sender and the recipient. Do not infer it from an IBAN alone. paymentIban must be the exact visible IBAN, or null when it is not clearly printed.
 - Never swap issuer and customer. Distinguish invoice issuer/supplier, billing agent, addressed customer, delivery/service address, and bank/payment beneficiary.
 - When a party is not reliably supported by OCR text, return null instead of guessing. Mention the uncertainty in plainExplanation and tell the user exactly where to verify it on the original.
 

@@ -62,7 +62,21 @@ enum LetterCategory {
 
 enum Urgency { low, medium, high }
 
-enum LetterStatus { newLetter, inProgress, done }
+/// The practical communication state of a letter.  Payment state is stored
+/// separately because a sent reply and a paid invoice are independent facts.
+enum LetterStatus {
+  newLetter,
+  inProgress,
+  replyPrepared,
+  sent,
+  awaitingReply,
+  done,
+}
+
+/// A small, stable set of local folders.  They intentionally complement the
+/// automatically detected sender category; a Familienkasse letter can, for
+/// example, be filed under `family` without losing its original category.
+enum LetterFolder { inbox, housing, work, family, insurance, taxes, finance }
 
 class GeneratedReply {
   const GeneratedReply({required this.letter, required this.email});
@@ -99,11 +113,16 @@ class LetterAnalysis {
     this.invoiceNumber,
     this.servicePeriod,
     this.paymentReference,
+    this.paymentIban,
     this.deadline,
     this.paymentDueDate,
     this.isPaymentObligation = false,
+    this.paymentPaid = false,
+    this.paymentPaidAt,
     this.amount,
     this.status = LetterStatus.newLetter,
+    this.folder = LetterFolder.inbox,
+    this.tags = const <String>[],
     this.sourceText = '',
   });
 
@@ -121,14 +140,26 @@ class LetterAnalysis {
   final String? invoiceNumber;
   final String? servicePeriod;
   final String? paymentReference;
+  final String? paymentIban;
   final DateTime? deadline;
   final DateTime? paymentDueDate;
   final bool isPaymentObligation;
+  final bool paymentPaid;
+  final DateTime? paymentPaidAt;
   final String? amount;
   final LetterStatus status;
+  final LetterFolder folder;
+  final List<String> tags;
   final String sourceText;
 
-  LetterAnalysis copyWith({LetterStatus? status}) => LetterAnalysis(
+  LetterAnalysis copyWith({
+    LetterStatus? status,
+    LetterFolder? folder,
+    List<String>? tags,
+    bool? paymentPaid,
+    DateTime? paymentPaidAt,
+    bool clearPaymentPaidAt = false,
+  }) => LetterAnalysis(
     id: id,
     title: title,
     plainExplanation: plainExplanation,
@@ -143,11 +174,18 @@ class LetterAnalysis {
     invoiceNumber: invoiceNumber,
     servicePeriod: servicePeriod,
     paymentReference: paymentReference,
+    paymentIban: paymentIban,
     deadline: deadline,
     paymentDueDate: paymentDueDate,
     isPaymentObligation: isPaymentObligation,
+    paymentPaid: paymentPaid ?? this.paymentPaid,
+    paymentPaidAt: clearPaymentPaidAt
+        ? null
+        : paymentPaidAt ?? this.paymentPaidAt,
     amount: amount,
     status: status ?? this.status,
+    folder: folder ?? this.folder,
+    tags: tags ?? this.tags,
     sourceText: sourceText,
   );
 
@@ -169,8 +207,13 @@ class LetterAnalysis {
     'invoiceNumber': invoiceNumber,
     'servicePeriod': servicePeriod,
     'paymentReference': paymentReference,
+    'paymentIban': paymentIban,
     'totalAmount': amount,
     'status': status.name,
+    'folder': folder.name,
+    'tags': tags,
+    'paymentPaid': paymentPaid,
+    'paymentPaidAt': paymentPaidAt?.toIso8601String(),
     'sourceText': sourceText,
   };
 
@@ -181,6 +224,7 @@ class LetterAnalysis {
   }) {
     final deadlineValue = map['deadline'] as String?;
     final paymentDueDateValue = map['paymentDueDate'] as String?;
+    final paymentPaidAtValue = map['paymentPaidAt'] as String?;
     final amountValues = map['amounts'];
     final createdAt = _readCreatedAt(map['createdAt']);
     return LetterAnalysis(
@@ -204,11 +248,16 @@ class LetterAnalysis {
       invoiceNumber: _nonEmptyString(map['invoiceNumber']),
       servicePeriod: _nonEmptyString(map['servicePeriod']),
       paymentReference: _nonEmptyString(map['paymentReference']),
+      paymentIban: _nonEmptyString(map['paymentIban']),
       deadline: deadlineValue == null ? null : DateTime.tryParse(deadlineValue),
       paymentDueDate: paymentDueDateValue == null
           ? null
           : DateTime.tryParse(paymentDueDateValue),
       isPaymentObligation: map['isPaymentObligation'] == true,
+      paymentPaid: map['paymentPaid'] == true,
+      paymentPaidAt: paymentPaidAtValue == null
+          ? null
+          : DateTime.tryParse(paymentPaidAtValue),
       amount:
           _nonEmptyString(map['totalAmount']) ??
           _nonEmptyString(map['amount']) ??
@@ -219,6 +268,18 @@ class LetterAnalysis {
         (value) => value.name == map['status'],
         orElse: () => LetterStatus.newLetter,
       ),
+      folder: LetterFolder.values.firstWhere(
+        (value) => value.name == map['folder'],
+        orElse: () => LetterFolder.inbox,
+      ),
+      tags:
+          (map['tags'] as List?)
+              ?.whereType<String>()
+              .map((value) => value.trim())
+              .where((value) => value.isNotEmpty)
+              .toSet()
+              .toList(growable: false) ??
+          const <String>[],
       sourceText: sourceText ?? map['sourceText'] as String? ?? '',
     );
   }

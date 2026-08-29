@@ -52,6 +52,10 @@ class AnalysisEngine {
       r'(?:verwendungszweck|zahlungsreferenz|referenz)\s*:?\s*([^\r\n]+)',
       caseSensitive: false,
     ).firstMatch(text)?.group(1)?.trim();
+    final paymentIban = RegExp(
+      r'\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b',
+      caseSensitive: false,
+    ).firstMatch(text)?.group(0)?.replaceAll(RegExp(r'\s+'), ' ');
     final documentType = _documentType(normalized);
     final isPaymentObligation =
         amount != null &&
@@ -101,6 +105,7 @@ class AnalysisEngine {
       invoiceNumber: invoiceNumber,
       servicePeriod: servicePeriod,
       paymentReference: paymentReference,
+      paymentIban: paymentIban,
       deadline: deadline,
       paymentDueDate: isPaymentObligation ? deadline : null,
       isPaymentObligation: isPaymentObligation,
