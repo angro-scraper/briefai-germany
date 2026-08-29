@@ -366,6 +366,7 @@ class _AppShellState extends State<AppShell> {
   StreamSubscription<dynamic>? _entitlementSubscription;
   StreamSubscription<dynamic>? _usageSubscription;
   int _vaultBinding = 0;
+  String? _roleRefreshUid;
 
   @override
   void initState() {
@@ -380,6 +381,10 @@ class _AppShellState extends State<AppShell> {
         _usageSubscription?.cancel();
         if (mounted) setState(() {});
         if (user != null) {
+          if (_roleRefreshUid != user.uid) {
+            _roleRefreshUid = user.uid;
+            unawaited(widget.services.auth.refreshCurrentProfile());
+          }
           unawaited(widget.services.auth.touchActivity());
           unawaited(widget.services.reminders.syncToken());
           _entitlementSubscription = widget.services.entitlements
@@ -389,6 +394,7 @@ class _AppShellState extends State<AppShell> {
               .watchFreeUsage(user.uid)
               .listen(widget.state.setFreeAnalysesUsed);
         } else {
+          _roleRefreshUid = null;
           widget.state.setPremium(false);
           _usageSubscription = widget.services.entitlements
               .watchFreeUsage('local-device')

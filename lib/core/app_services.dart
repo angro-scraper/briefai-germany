@@ -284,9 +284,20 @@ class AuthService {
   final StreamController<Map<String, dynamic>?> _profileUpdates =
       StreamController<Map<String, dynamic>?>.broadcast();
 
+  /// Token changes are needed in addition to sign-in/sign-out events: roles
+  /// such as the founder entitlement are granted by a callable Function after
+  /// the identity provider finishes. Listening only to authStateChanges left
+  /// that refreshed claim invisible until the next app launch.
   Stream<User?> get authChanges => cloudEnabled
-      ? FirebaseAuth.instance.authStateChanges()
+      ? FirebaseAuth.instance.idTokenChanges()
       : Stream<User?>.value(null);
+
+  /// Re-applies account-side roles after a session restored from disk. This is
+  /// particularly important for the founder account, whose custom claim is
+  /// issued by the server and may have been added after the local session was
+  /// first created.
+  Future<void> refreshCurrentProfile() => _ensureProfile();
+
   bool get isSignedIn =>
       cloudEnabled && FirebaseAuth.instance.currentUser != null;
   String? get uid =>
