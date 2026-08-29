@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -1194,7 +1195,10 @@ class _GoogleSignInButton extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: SizedBox.square(
                   dimension: 20,
-                  child: CustomPaint(painter: _GoogleGLogoPainter()),
+                  child: Padding(
+                    padding: EdgeInsets.all(1),
+                    child: _GoogleMark(),
+                  ),
                 ),
               ),
               Center(child: label),
@@ -1206,47 +1210,14 @@ class _GoogleSignInButton extends StatelessWidget {
   }
 }
 
-class _GoogleGLogoPainter extends CustomPainter {
-  const _GoogleGLogoPainter();
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.shortestSide * 0.36;
-    final stroke = size.shortestSide * 0.19;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    void arc(Color color, double start, double sweep) {
-      canvas.drawArc(
-        rect,
-        start,
-        sweep,
-        false,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke
-          ..strokeCap = StrokeCap.butt,
-      );
-    }
-
-    arc(const Color(0xFF4285F4), -math.pi / 4, math.pi * 0.72);
-    arc(const Color(0xFF34A853), math.pi * 0.47, math.pi * 0.55);
-    arc(const Color(0xFFFBBC05), math.pi * 1.02, math.pi * 0.30);
-    arc(const Color(0xFFEA4335), math.pi * 1.32, math.pi * 0.43);
-
-    canvas.drawLine(
-      Offset(center.dx, center.dy),
-      Offset(center.dx + radius + stroke / 2, center.dy),
-      Paint()
-        ..color = const Color(0xFF4285F4)
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.square,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _GoogleGLogoPainter oldDelegate) => false;
+  Widget build(BuildContext context) => SvgPicture.asset(
+    'assets/branding/google_g_logo.svg',
+    semanticsLabel: 'Google',
+  );
 }
 
 class AnalysisScreen extends StatefulWidget {
