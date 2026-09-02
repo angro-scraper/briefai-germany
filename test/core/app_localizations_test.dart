@@ -2,6 +2,7 @@ import 'package:briefai_germany/core/app_localizations.dart';
 import 'package:briefai_germany/core/domain.dart';
 import 'package:briefai_germany/core/eu_major_language_translations.dart';
 import 'package:briefai_germany/core/major_language_translations.dart';
+import 'package:briefai_germany/core/workflow_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -230,6 +231,40 @@ void main() {
         euMajorInterfaceTranslations[language]!['premiumName'],
         'BriefAI Premium',
       );
+    }
+  });
+
+  test('workflow translations are complete and preserve placeholders', () {
+    final english = const AppStrings(Locale('en'));
+    final placeholderPattern = RegExp(r'\{[^}]+\}');
+    final referenceKeys = workflowInterfaceTranslations['en']!.keys.toSet();
+
+    expect(
+      workflowInterfaceTranslations.keys.toSet(),
+      AppStrings.fullyLocalizedLanguageCodes,
+    );
+    for (final language in AppStrings.fullyLocalizedLanguageCodes) {
+      final translations = workflowInterfaceTranslations[language]!;
+      expect(
+        translations.keys.toSet(),
+        referenceKeys,
+        reason: '$language is missing workflow interface strings',
+      );
+      for (final entry in translations.entries) {
+        final expected = placeholderPattern
+            .allMatches(english.text(entry.key))
+            .map((match) => match.group(0))
+            .toList();
+        final actual = placeholderPattern
+            .allMatches(entry.value)
+            .map((match) => match.group(0))
+            .toList();
+        expect(
+          actual,
+          expected,
+          reason: '$language changed placeholders for ${entry.key}',
+        );
+      }
     }
   });
 

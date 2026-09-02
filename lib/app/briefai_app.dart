@@ -213,11 +213,6 @@ class SplashScreen extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Razumi nemačko pismo.',
-            style: TextStyle(color: Color(0xFFC7D5FF)),
-          ),
           SizedBox(height: 28),
           SizedBox(
             width: 24,
@@ -568,10 +563,9 @@ class HomeScreen extends StatelessWidget {
               ),
               if (cloudUnavailable) ...[
                 const SizedBox(height: 10),
-                const Text(
-                  'Online AI trenutno nije dostupan. '
-                  'OCR i lokalna analiza i dalje rade na ovom uređaju.',
-                  style: TextStyle(color: Color(0xFFFFE0B2)),
+                Text(
+                  strings.text('offlineAiUnavailable'),
+                  style: const TextStyle(color: Color(0xFFFFE0B2)),
                 ),
               ],
               const SizedBox(height: 20),
@@ -658,11 +652,15 @@ class _DeadlineOverviewCard extends StatelessWidget {
             color: overview.overdue > 0 ? Colors.red.shade700 : null,
           ),
         ),
-        title: const Text('Kalendar rokova'),
+        title: Text(context.strings.text('deadlineCalendar')),
         subtitle: Text(
           overview.total == 0
-              ? 'Nema otvorenih rokova.'
-              : '${overview.today} danas · ${overview.thisWeek} ove nedelje · ${overview.overdue} kasni',
+              ? context.strings.text('deadlineNone')
+              : context.strings.format('deadlineSummary', {
+                  'today': overview.today,
+                  'week': overview.thisWeek,
+                  'overdue': overview.overdue,
+                }),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).push(
@@ -712,45 +710,7 @@ class _AnalyticsConsentCardState extends State<AnalyticsConsentCard> {
   @override
   Widget build(BuildContext context) {
     if (_loading || !_visible) return const SizedBox.shrink();
-    final code = Localizations.localeOf(context).languageCode;
-    final copy = switch (code) {
-      'de' => (
-        'Datenschutz-Einstellung',
-        'Dürfen wir anonyme Besuchs- und Installationsmetriken erfassen? Keine Briefe, OCR-Texte, Chats oder E-Mail-Adressen werden dafür gespeichert.',
-        'Ablehnen',
-        'Akzeptieren',
-      ),
-      'en' => (
-        'Privacy choice',
-        'May we measure anonymous visits and installation clicks? We never store letters, OCR text, chats or email addresses for this.',
-        'Decline',
-        'Accept',
-      ),
-      'tr' => (
-        'Gizlilik seçimi',
-        'Anonim ziyaret ve kurulum tıklamalarını ölçmemize izin veriyor musunuz? Mektuplar, OCR metinleri, sohbetler veya e-posta adresleri saklanmaz.',
-        'Reddet',
-        'Kabul et',
-      ),
-      'bg' => (
-        'Поверителност',
-        'Позволявате ли анонимно измерване на посещения и кликвания за инсталация? Не се съхраняват писма, OCR текстове, чатове или имейл адреси.',
-        'Отказ',
-        'Приемам',
-      ),
-      'mk' => (
-        'Приватност',
-        'Дали дозволувате анонимно мерење на посети и кликови за инсталација? Не се чуваат писма, OCR текстови, разговори или е-пошта.',
-        'Одбиј',
-        'Прифати',
-      ),
-      _ => (
-        'Izbor privatnosti',
-        'Da li dozvoljavate anonimno merenje poseta i klikova za instalaciju? Ne čuvamo pisma, OCR tekst, chat ni email adresu.',
-        'Odbij',
-        'Prihvatam',
-      ),
-    };
+    final strings = context.strings;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Card(
@@ -760,24 +720,24 @@ class _AnalyticsConsentCardState extends State<AnalyticsConsentCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                copy.$1,
+                strings.text('privacyChoiceTitle'),
                 style: Theme.of(
                   context,
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
-              Text(copy.$2),
+              Text(strings.text('privacyChoiceBody')),
               const SizedBox(height: 10),
               Row(
                 children: [
                   TextButton(
                     onPressed: () => unawaited(_choose(false)),
-                    child: Text(copy.$3),
+                    child: Text(strings.text('decline')),
                   ),
                   const Spacer(),
                   FilledButton(
                     onPressed: () => unawaited(_choose(true)),
-                    child: Text(copy.$4),
+                    child: Text(strings.text('accept')),
                   ),
                 ],
               ),
@@ -1706,13 +1666,18 @@ class ResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final currentLanguage = Localizations.localeOf(context).languageCode;
+    final analysisLanguage = letter.analysisLanguage
+        ?.split(RegExp('[-_]'))
+        .first;
+    final analysisMatchesLanguage = analysisLanguage == currentLanguage;
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('resultTitle'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           _Badge(
-            label: letter.urgency.name.toUpperCase(),
+            label: _urgencyLabel(context, letter.urgency),
             color: letter.urgency == Urgency.high
                 ? Colors.red
                 : letter.urgency == Urgency.medium
@@ -1764,17 +1729,29 @@ class ResultScreen extends StatelessWidget {
               title: strings.text('paymentReference'),
               content: letter.paymentReference!,
             ),
-          _ResultSection(
-            title: strings.text('simpleExplanation'),
-            content: letter.plainExplanation,
-          ),
+          if (analysisMatchesLanguage)
+            _ResultSection(
+              title: strings.text('simpleExplanation'),
+              content: letter.plainExplanation,
+            )
+          else
+            _ResultSection(
+              title: strings.text('simpleExplanation'),
+              content: strings.text('analysisLanguageMismatch'),
+            ),
           _ResultSection(
             title: strings.text('category'),
             content: strings.category(letter.category.name),
           ),
-          _ResultSection(title: 'Folder', content: _folderLabel(letter.folder)),
+          _ResultSection(
+            title: strings.text('folder'),
+            content: _folderLabel(context, letter.folder),
+          ),
           if (letter.tags.isNotEmpty)
-            _ResultSection(title: 'Oznake', content: letter.tags.join(', ')),
+            _ResultSection(
+              title: strings.text('tags'),
+              content: letter.tags.join(', '),
+            ),
           if (letter.deadline != null)
             _ResultSection(
               title: strings.text('deadline'),
@@ -1799,10 +1776,11 @@ class ResultScreen extends StatelessWidget {
               title: strings.text('amount'),
               content: letter.amount!,
             ),
-          _ResultSection(
-            title: strings.text('nextSteps'),
-            content: letter.suggestedAction,
-          ),
+          if (analysisMatchesLanguage)
+            _ResultSection(
+              title: strings.text('nextSteps'),
+              content: letter.suggestedAction,
+            ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () async {
@@ -2193,13 +2171,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           runSpacing: 8,
           children: [
             ChoiceChip(
-              label: const Text('Sve'),
+              label: Text(strings.text('allFolders')),
               selected: _folder == null,
               onSelected: (_) => setState(() => _folder = null),
             ),
             ...LetterFolder.values.map(
               (folder) => ChoiceChip(
-                label: Text(_folderLabel(folder)),
+                label: Text(_folderLabel(context, folder)),
                 selected: _folder == folder,
                 onSelected: (_) => setState(() => _folder = folder),
               ),
@@ -2212,7 +2190,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             icon: Icons.folder_off_outlined,
             text: _folder == null
                 ? strings.text('emptyLetters')
-                : 'Nema pisama u ovom folderu.',
+                : strings.text('emptyFolder'),
           )
         else
           ...letters.map(
@@ -2316,8 +2294,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
     // These labels belong to the interface, not to the optional AI answer
     // language.  Keeping them tied to the app locale prevents a Serbian UI
     // from inheriting a previously chosen Russian/Turkish AI language.
-    final archiveCopy = _assistantArchiveCopy(
-      Localizations.localeOf(context).languageCode,
+    final archiveCopy = _AssistantArchiveCopy(
+      label: strings.text('assistantArchiveLabel'),
+      ready: strings.text('assistantArchiveReady'),
+      explainButton: strings.text('assistantExplainAgainButton'),
+      explainAgain: strings.text('assistantExplainAgainPrompt'),
     );
     final selectedHeading = selectedLetter == null
         ? null
@@ -2509,147 +2490,6 @@ class _AssistantArchiveCopy {
   final String ready;
   final String explainButton;
   final String explainAgain;
-}
-
-_AssistantArchiveCopy _assistantArchiveCopy(String language) {
-  switch (language) {
-    case 'hr':
-      return const _AssistantArchiveCopy(
-        label: 'Pismo iz arhive',
-        ready: 'Odabrano pismo iz lokalne arhive:',
-        explainButton: 'Ponovno objasni ovo pismo',
-        explainAgain:
-            'Objasni mi ovo pismo ponovno detaljno i jednostavnim jezikom. Što se točno traži od mene i koji je sljedeći korak?',
-      );
-    case 'bs':
-      return const _AssistantArchiveCopy(
-        label: 'Pismo iz arhive',
-        ready: 'Izabrano pismo iz lokalne arhive:',
-        explainButton: 'Ponovo objasni ovo pismo',
-        explainAgain:
-            'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sljedeći korak?',
-      );
-    case 'mk':
-      return const _AssistantArchiveCopy(
-        label: 'Писмо од архивата',
-        ready: 'Избрано писмо од локалната архива:',
-        explainButton: 'Објасни го писмово повторно',
-        explainAgain:
-            'Објасни ми го ова писмо повторно детално и со едноставен јазик. Што точно се бара од мене и кој е следниот чекор?',
-      );
-    case 'bg':
-      return const _AssistantArchiveCopy(
-        label: 'Писмо от архива',
-        ready: 'Избрано писмо от локалния архив:',
-        explainButton: 'Обясни отново това писмо',
-        explainAgain:
-            'Обясни ми това писмо отново подробно и на разбираем език. Какво точно се иска от мен и каква е следващата стъпка?',
-      );
-    case 'de':
-      return const _AssistantArchiveCopy(
-        label: 'Brief aus dem Archiv',
-        ready: 'Ausgewählter Brief aus dem lokalen Archiv:',
-        explainButton: 'Diesen Brief erneut erklären',
-        explainAgain:
-            'Erkläre mir diesen Brief noch einmal ausführlich und einfach. Was wird genau von mir verlangt und was ist mein nächster Schritt?',
-      );
-    case 'en':
-      return const _AssistantArchiveCopy(
-        label: 'Letter from archive',
-        ready: 'Selected letter from the local archive:',
-        explainButton: 'Explain this letter again',
-        explainAgain:
-            'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
-      );
-    case 'tr':
-      return const _AssistantArchiveCopy(
-        label: 'Arşivdeki mektup',
-        ready: 'Yerel arşivden seçilen mektup:',
-        explainButton: 'Bu mektubu yeniden açıkla',
-        explainAgain:
-            'Bu mektubu tekrar ayrıntılı ve sade bir dille açıkla. Benden tam olarak ne isteniyor ve sonraki adımım nedir?',
-      );
-    case 'ru':
-      return const _AssistantArchiveCopy(
-        label: 'Письмо из архива',
-        ready: 'Выбрано письмо из локального архива:',
-        explainButton: 'Объяснить это письмо ещё раз',
-        explainAgain:
-            'Объясни это письмо ещё раз подробно и простыми словами. Что именно от меня требуется и что мне делать дальше?',
-      );
-    case 'uk':
-      return const _AssistantArchiveCopy(
-        label: 'Лист з архіву',
-        ready: 'Вибрано лист із локального архіву:',
-        explainButton: 'Пояснити цей лист ще раз',
-        explainAgain:
-            'Поясни цей лист ще раз докладно й простими словами. Що саме від мене вимагається і що мені робити далі?',
-      );
-    case 'ar':
-      return const _AssistantArchiveCopy(
-        label: 'رسالة من الأرشيف',
-        ready: 'تم اختيار رسالة من الأرشيف المحلي:',
-        explainButton: 'اشرح هذه الرسالة مرة أخرى',
-        explainAgain:
-            'اشرح لي هذه الرسالة مرة أخرى بالتفصيل وبلغة بسيطة. ما المطلوب مني تحديداً وما الخطوة التالية؟',
-      );
-    case 'ro':
-      return const _AssistantArchiveCopy(
-        label: 'Scrisoare din arhivă',
-        ready: 'Scrisoare selectată din arhiva locală:',
-        explainButton: 'Explică din nou această scrisoare',
-        explainAgain:
-            'Explică-mi din nou această scrisoare, detaliat și în limbaj simplu. Ce mi se cere exact și care este următorul pas?',
-      );
-    case 'pl':
-      return const _AssistantArchiveCopy(
-        label: 'Pismo z archiwum',
-        ready: 'Wybrane pismo z lokalnego archiwum:',
-        explainButton: 'Wyjaśnij to pismo ponownie',
-        explainAgain:
-            'Wyjaśnij mi to pismo ponownie, szczegółowo i prostym językiem. Czego dokładnie się ode mnie wymaga i jaki jest następny krok?',
-      );
-    case 'it':
-      return const _AssistantArchiveCopy(
-        label: 'Lettera dall’archivio',
-        ready: 'Lettera selezionata dall’archivio locale:',
-        explainButton: 'Spiega di nuovo questa lettera',
-        explainAgain:
-            'Spiegami di nuovo questa lettera in modo dettagliato e semplice. Che cosa mi viene richiesto esattamente e qual è il prossimo passo?',
-      );
-    case 'el':
-      return const _AssistantArchiveCopy(
-        label: 'Επιστολή από το αρχείο',
-        ready: 'Επιλεγμένη επιστολή από το τοπικό αρχείο:',
-        explainButton: 'Εξήγησε ξανά αυτή την επιστολή',
-        explainAgain:
-            'Εξήγησέ μου ξανά αυτή την επιστολή αναλυτικά και με απλά λόγια. Τι ακριβώς ζητείται από εμένα και ποιο είναι το επόμενο βήμα;',
-      );
-    case 'sq':
-      return const _AssistantArchiveCopy(
-        label: 'Letër nga arkivi',
-        ready: 'Letra e zgjedhur nga arkivi lokal:',
-        explainButton: 'Shpjegoje përsëri këtë letër',
-        explainAgain:
-            'Ma shpjego përsëri këtë letër me hollësi dhe me gjuhë të thjeshtë. Çfarë kërkohet saktësisht nga unë dhe cili është hapi tjetër?',
-      );
-    case 'sr':
-      return const _AssistantArchiveCopy(
-        label: 'Pismo iz arhive',
-        ready: 'Izabrano pismo iz lokalne arhive:',
-        explainButton: 'Objasni ovo pismo ponovo',
-        explainAgain:
-            'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sledeći korak?',
-      );
-    default:
-      return const _AssistantArchiveCopy(
-        label: 'Letter from archive',
-        ready: 'Selected letter from the local archive:',
-        explainButton: 'Explain this letter again',
-        explainAgain:
-            'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
-      );
-  }
 }
 
 class _ChatMessage {
@@ -2887,8 +2727,12 @@ class ProfileScreen extends StatelessWidget {
         ),
         ListTile(
           leading: const Icon(Icons.family_restroom_outlined),
-          title: const Text('Porodični profili'),
-          subtitle: Text('Aktivan profil: ${services.household.active.name}'),
+          title: Text(strings.text('householdProfiles')),
+          subtitle: Text(
+            strings.format('activeProfileNamed', {
+              'name': services.household.active.name,
+            }),
+          ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -2898,8 +2742,8 @@ class ProfileScreen extends StatelessWidget {
         ),
         ListTile(
           leading: const Icon(Icons.enhanced_encryption_outlined),
-          title: const Text('Šifrovani backup arhive'),
-          subtitle: const Text('Izvoz i vraćanje samo uz vašu lozinku'),
+          title: Text(strings.text('encryptedArchiveBackup')),
+          subtitle: Text(strings.text('backupSubtitle')),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -2973,13 +2817,12 @@ class ProfileScreen extends StatelessWidget {
                         if (dialogContext.mounted) {
                           Navigator.of(dialogContext).pop();
                         }
-                      } on Object catch (error) {
+                      } on Object catch (_) {
                         if (dialogContext.mounted) {
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Lokalni podaci su obrisani, ali brisanje naloga '
-                                'nije završeno: $error',
+                                strings.text('accountDeletePartial'),
                               ),
                             ),
                           );
@@ -3008,27 +2851,30 @@ class HouseholdProfilesScreen extends StatefulWidget {
 
 class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
   Future<void> _add() async {
+    final strings = context.strings;
     final name = TextEditingController();
     final pin = TextEditingController();
     try {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Novi porodični profil'),
+          title: Text(strings.text('newHouseholdProfile')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: name,
-                decoration: const InputDecoration(labelText: 'Ime profila'),
+                decoration: InputDecoration(
+                  labelText: strings.text('profileName'),
+                ),
               ),
               TextField(
                 controller: pin,
                 obscureText: true,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'PIN (opciono)',
-                  helperText: 'Za zajednički uređaj preporučujemo PIN.',
+                decoration: InputDecoration(
+                  labelText: strings.text('optionalPin'),
+                  helperText: strings.text('pinRecommended'),
                 ),
               ),
             ],
@@ -3036,11 +2882,11 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Otkaži'),
+              child: Text(strings.text('cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Kreiraj'),
+              child: Text(strings.text('create')),
             ),
           ],
         ),
@@ -3053,11 +2899,11 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
       if (mounted) {
         setState(() {});
       }
-    } on Object catch (error) {
+    } on Object catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        ).showSnackBar(SnackBar(content: Text(strings.text('tryAgain'))));
       }
     } finally {
       name.dispose();
@@ -3066,6 +2912,7 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
   }
 
   Future<void> _activate(HouseholdProfile profile) async {
+    final strings = context.strings;
     var pin = '';
     if (profile.hasPin) {
       final controller = TextEditingController();
@@ -3083,11 +2930,11 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Otkaži'),
+              child: Text(strings.text('cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Otvori'),
+              child: Text(strings.text('open')),
             ),
           ],
         ),
@@ -3104,7 +2951,7 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
     if (!activated) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('PIN nije ispravan.')));
+      ).showSnackBar(SnackBar(content: Text(strings.text('invalidPin'))));
       return;
     }
     setState(() {});
@@ -3113,19 +2960,18 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
   @override
   Widget build(BuildContext context) {
     final profiles = widget.services.household.profiles;
+    final strings = context.strings;
     return Scaffold(
-      appBar: AppBar(title: const Text('Porodični profili')),
+      appBar: AppBar(title: Text(strings.text('householdProfiles'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
         icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Dodaj profil'),
+        label: Text(strings.text('addProfile')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Svaki profil ima odvojenu lokalnu arhivu. Originali, OCR i odgovori ne odlaze u cloud.',
-          ),
+          Text(strings.text('householdPrivacy')),
           const SizedBox(height: 16),
           ...profiles.map(
             (profile) => Card(
@@ -3138,8 +2984,8 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
                 title: Text(profile.name),
                 subtitle: Text(
                   profile.id == widget.services.household.activeId
-                      ? 'Aktivan profil'
-                      : 'Odvojena lokalna arhiva',
+                      ? strings.text('activeProfile')
+                      : strings.text('separateLocalArchive'),
                 ),
                 trailing: profile.id == widget.services.household.activeId
                     ? const Icon(Icons.check_circle, color: Colors.green)
@@ -3178,11 +3024,10 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
   }
 
   Future<void> _export() async {
+    final strings = context.strings;
     if (_password.text.trim().length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lozinka mora imati najmanje 10 znakova.'),
-        ),
+        SnackBar(content: Text(strings.text('passwordMin10Error'))),
       );
       return;
     }
@@ -3202,17 +3047,15 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
       );
       await widget.services.exports.shareEncryptedBackup(encrypted);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Šifrovani backup je spreman za čuvanje.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.text('backupReady'))));
       }
-    } on Object catch (error) {
+    } on Object catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Backup nije uspeo: $error')));
+        ).showSnackBar(SnackBar(content: Text(strings.text('backupFailed'))));
       }
     } finally {
       if (mounted) {
@@ -3222,10 +3065,11 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
   }
 
   Future<void> _restore() async {
+    final strings = context.strings;
     if (_password.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Unesite lozinku backupa.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.text('backupPasswordRequired'))),
+      );
       return;
     }
     setState(() => _busy = true);
@@ -3238,7 +3082,7 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
       );
       final rawLetters = payload['letters'];
       if (rawLetters is! List) {
-        throw const FormatException('Backup does not contain an archive.');
+        throw const FormatException('Invalid backup archive.');
       }
       final records = rawLetters
           .whereType<Map>()
@@ -3250,14 +3094,16 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Vraćeno lokalno: $count pisama.')),
+          SnackBar(
+            content: Text(strings.format('restoreCount', {'count': count})),
+          ),
         );
       }
-    } on Object catch (error) {
+    } on Object catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Vraćanje nije uspelo: $error')));
+        ).showSnackBar(SnackBar(content: Text(strings.text('restoreFailed'))));
       }
     } finally {
       if (mounted) {
@@ -3267,42 +3113,43 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Šifrovani backup')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Icon(Icons.enhanced_encryption_outlined, size: 48),
-        const SizedBox(height: 16),
-        const Text(
-          'Backup je AES-256-GCM šifrovan vašom lozinkom. Lozinku ne čuvamo i ne možemo je vratiti.',
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _password,
-          obscureText: true,
-          enableSuggestions: false,
-          autocorrect: false,
-          decoration: const InputDecoration(
-            labelText: 'Lozinka za backup',
-            helperText: 'Najmanje 10 znakova',
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('backupTitle'))),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Icon(Icons.enhanced_encryption_outlined, size: 48),
+          const SizedBox(height: 16),
+          Text(strings.text('backupDescription')),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            enableSuggestions: false,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: strings.text('backupPassword'),
+              helperText: strings.text('min10Characters'),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: _busy ? null : _export,
-          icon: const Icon(Icons.upload_file_outlined),
-          label: const Text('Napravi šifrovani backup'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _busy ? null : _restore,
-          icon: const Icon(Icons.restore_page_outlined),
-          label: const Text('Vrati backup na ovaj profil'),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _busy ? null : _export,
+            icon: const Icon(Icons.upload_file_outlined),
+            label: Text(strings.text('createEncryptedBackup')),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _restore,
+            icon: const Icon(Icons.restore_page_outlined),
+            label: Text(strings.text('restoreBackup')),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Future<bool> _ensureCloudAiAccess(
@@ -3482,7 +3329,23 @@ class LegalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final sections = privacy ? _privacySections : _termsSections;
+    final sections = privacy
+        ? [
+            (strings.text('dataController'), strings.text('legalPrivacyData')),
+            (
+              strings.text('privacyPolicy'),
+              strings.text('legalPrivacyProcessing'),
+            ),
+            (strings.text('exportData'), strings.text('legalPrivacyRights')),
+          ]
+        : [
+            (strings.text('terms'), strings.text('legalTermsPurpose')),
+            (
+              strings.text('choosePlan'),
+              strings.text('legalTermsSubscriptions'),
+            ),
+            (strings.text('privacyPolicy'), strings.text('legalTermsUse')),
+          ];
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -3530,52 +3393,6 @@ class LegalScreen extends StatelessWidget {
     );
   }
 }
-
-const _privacySections = [
-  (
-    '1. Odgovorno lice i obim',
-    'BriefAI Germany koristi podatke potrebne za rad aplikacije: nalog, lokalni profil i jezik, dokumente koje korisnik doda, OCR tekst, analize, status pretplate i, ako korisnik dozvoli, uređajni token za obaveštenja.',
-  ),
-  (
-    '2. Lokalno čuvanje dokumenata',
-    'Originalni dokument, lokalno prepoznati OCR tekst, analiza, odgovor i razgovor o pismu čuvaju se u lokalnom skladištu uređaja. BriefAI ih ne otprema u Firebase Storage niti u Firestore arhivu. Brisanje podataka pregledača ili aplikacije može nepovratno ukloniti ovu lokalnu arhivu.',
-  ),
-  (
-    '3. Obrada i primaoci',
-    'Firebase se koristi za autentifikaciju, status pretplate, ograničenje korišćenja i opcionalne push tokene. Kada je cloud AI uključen, samo OCR tekst potreban za trenutni zahtev šalje se OpenAI-ju radi analize ili odgovora i ne upisuje se u cloud arhivu. Web i mobilnu naplatu obrađuju odgovarajući ovlašćeni pružaoci plaćanja.',
-  ),
-  (
-    '4. Rok čuvanja i bezbednost',
-    'Lokalni dokumenti i analize ostaju na uređaju do pojedinačnog brisanja, brisanja naloga ili podataka aplikacije. Prenos naloga i kratkotrajnog AI zahteva je zaštićen, a podsetnici na zaključanom ekranu ne sadrže tekst pisma.',
-  ),
-  (
-    '5. Vaša prava',
-    'U aplikaciji možete ispraviti profil, napraviti lokalni JSON izvoz koji uključuje analize i originalne dokumente u Base64 obliku ili trajno obrisati lokalne podatke i nalog. Za dodatne zahteve koristite kontakt na kraju dokumenta.',
-  ),
-];
-
-const _termsSections = [
-  (
-    '1. Prihvatanje i namena',
-    'Korišćenjem BriefAI Germany prihvatate ove uslove. Aplikacija pomaže da se razumeju nemačka službena pisma na običnom jeziku.',
-  ),
-  (
-    '2. Nije pravni, poreski, medicinski ili finansijski savet',
-    'AI analiza može pogrešiti i ne zamenjuje advokata, poreskog savetnika, lekara, osiguranje ili nadležni organ. Korisnik je odgovoran da proveri rokove, iznose i sadržaj originalnog pisma.',
-  ),
-  (
-    '3. Pretplate i otkazivanje',
-    'Svaki novi nalog uključuje 5 uvodnih analiza bez naplate. Posle toga korisnik bira mesečni paket od 50, 100 ili 150 analiza. Neiskorišćene analize se ne prenose u sledeći mesec. Pretplata se automatski obnavlja dok je korisnik ne otkaže u podešavanjima naloga prodavnice aplikacija najmanje 24 sata pre obnove. Brisanje aplikacije ne otkazuje pretplatu.',
-  ),
-  (
-    '4. Prihvatljivo korišćenje',
-    'Ne smete koristiti aplikaciju za nezakonite radnje, unos tuđih dokumenata bez ovlašćenja, pokušaj zaobilaženja ograničenja ili napad na uslugu.',
-  ),
-  (
-    '5. Izmene',
-    'Uslovi mogu biti izmenjeni kada je to potrebno zbog zakona, bezbednosti ili funkcionalnosti. Važne izmene biće prikazane u aplikaciji pre nastavka korišćenja kada je to zakonski potrebno.',
-  ),
-];
 
 Future<void> _editTextProfile(
   BuildContext context,
@@ -4085,15 +3902,19 @@ class LetterCard extends StatelessWidget {
                       ),
                       PopupMenuItem(
                         value: _LetterCardAction.replyPrepared,
-                        child: Text(_statusLabel(LetterStatus.replyPrepared)),
+                        child: Text(
+                          _statusLabel(context, LetterStatus.replyPrepared),
+                        ),
                       ),
                       PopupMenuItem(
                         value: _LetterCardAction.sent,
-                        child: Text(_statusLabel(LetterStatus.sent)),
+                        child: Text(_statusLabel(context, LetterStatus.sent)),
                       ),
                       PopupMenuItem(
                         value: _LetterCardAction.awaitingReply,
-                        child: Text(_statusLabel(LetterStatus.awaitingReply)),
+                        child: Text(
+                          _statusLabel(context, LetterStatus.awaitingReply),
+                        ),
                       ),
                       PopupMenuItem(
                         value: _LetterCardAction.done,
@@ -4104,9 +3925,9 @@ class LetterCard extends StatelessWidget {
                         (onOrganize != null || onDelete != null))
                       const PopupMenuDivider(),
                     if (onOrganize != null)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: _LetterCardAction.organise,
-                        child: Text('Organizuj'),
+                        child: Text(strings.text('organize')),
                       ),
                     if (onDelete != null)
                       PopupMenuItem(
@@ -4185,17 +4006,16 @@ class DeadlineCenterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = _deadlineGroups(state.letters);
+    final strings = context.strings;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kalendar rokova')),
+      appBar: AppBar(title: Text(strings.text('deadlineCalendar'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Otvoreni rokovi i računi ostaju lokalno na ovom uređaju.',
-          ),
+          Text(strings.text('deadlineLocal')),
           const SizedBox(height: 20),
           _DeadlineGroup(
-            title: 'Kasni',
+            title: strings.text('overdue'),
             icon: Icons.warning_amber_rounded,
             color: Colors.red,
             letters: groups.overdue,
@@ -4203,7 +4023,7 @@ class DeadlineCenterScreen extends StatelessWidget {
             services: services,
           ),
           _DeadlineGroup(
-            title: 'Danas',
+            title: strings.text('today'),
             icon: Icons.today_outlined,
             color: Colors.orange,
             letters: groups.today,
@@ -4211,7 +4031,7 @@ class DeadlineCenterScreen extends StatelessWidget {
             services: services,
           ),
           _DeadlineGroup(
-            title: 'Ove nedelje',
+            title: strings.text('thisWeek'),
             icon: Icons.date_range_outlined,
             color: Colors.blue,
             letters: groups.thisWeek,
@@ -4219,7 +4039,7 @@ class DeadlineCenterScreen extends StatelessWidget {
             services: services,
           ),
           _DeadlineGroup(
-            title: 'Kasnije',
+            title: strings.text('later'),
             icon: Icons.event_available_outlined,
             color: Colors.teal,
             letters: groups.later,
@@ -4270,8 +4090,8 @@ class _DeadlineGroup extends StatelessWidget {
             (letter) => ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: Text(letter.title),
-              subtitle: Text(_dueText(letter)),
+              title: Text(_letterHeading(context, letter)),
+              subtitle: Text(_dueText(context, letter)),
               trailing: letter.isPaymentObligation && !letter.paymentPaid
                   ? const Icon(Icons.payments_outlined)
                   : null,
@@ -4287,9 +4107,9 @@ class _DeadlineGroup extends StatelessWidget {
             ),
           ),
           if (letters.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 10),
-              child: Text('Nema stavki.'),
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(context.strings.text('noItems')),
             ),
         ],
       ),
@@ -4303,6 +4123,7 @@ Future<void> _showLetterOrganiser(
   required AppState state,
   required AppServices services,
 }) async {
+  final strings = context.strings;
   var folder = letter.folder;
   var status = letter.status;
   var paid = letter.paymentPaid;
@@ -4326,18 +4147,20 @@ Future<void> _showLetterOrganiser(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Organizuj pismo',
+                  strings.text('organizeLetter'),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<LetterFolder>(
                   initialValue: folder,
-                  decoration: const InputDecoration(labelText: 'Folder'),
+                  decoration: InputDecoration(
+                    labelText: strings.text('folder'),
+                  ),
                   items: LetterFolder.values
                       .map(
                         (value) => DropdownMenuItem(
                           value: value,
-                          child: Text(_folderLabel(value)),
+                          child: Text(_folderLabel(context, value)),
                         ),
                       )
                       .toList(),
@@ -4347,14 +4170,14 @@ Future<void> _showLetterOrganiser(
                 const SizedBox(height: 12),
                 DropdownButtonFormField<LetterStatus>(
                   initialValue: status,
-                  decoration: const InputDecoration(
-                    labelText: 'Status komunikacije',
+                  decoration: InputDecoration(
+                    labelText: strings.text('communicationStatus'),
                   ),
                   items: LetterStatus.values
                       .map(
                         (value) => DropdownMenuItem(
                           value: value,
-                          child: Text(_statusLabel(value)),
+                          child: Text(_statusLabel(context, value)),
                         ),
                       )
                       .toList(),
@@ -4365,18 +4188,20 @@ Future<void> _showLetterOrganiser(
                 TextField(
                   controller: tags,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Oznake',
-                    hintText: 'npr. hitno, žalba, deca',
-                    helperText: 'Odvojite oznake zarezom.',
+                  decoration: InputDecoration(
+                    labelText: strings.text('tags'),
+                    hintText: strings.text('tagsHint'),
+                    helperText: strings.text('tagsHelper'),
                   ),
                 ),
                 if (letter.isPaymentObligation) ...[
                   const SizedBox(height: 8),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Račun je plaćen'),
-                    subtitle: Text(letter.amount ?? 'Iznos nije prepoznat'),
+                    title: Text(strings.text('invoicePaid')),
+                    subtitle: Text(
+                      letter.amount ?? strings.text('amountNotRecognized'),
+                    ),
                     value: paid,
                     onChanged: (value) => setSheetState(() => paid = value),
                   ),
@@ -4421,7 +4246,7 @@ Future<void> _showLetterOrganiser(
                     }
                     if (context.mounted) Navigator.of(context).pop();
                   },
-                  child: const Text('Sačuvaj lokalno'),
+                  child: Text(strings.text('saveLocally')),
                 ),
               ],
             ),
@@ -4512,30 +4337,42 @@ _DeadlineGroups _deadlineGroups(List<LetterAnalysis> letters) {
   );
 }
 
-String _dueText(LetterAnalysis letter) {
+String _dueText(BuildContext context, LetterAnalysis letter) {
   final due = letter.paymentDueDate ?? letter.deadline;
-  if (due == null) return 'Bez roka';
-  return '${letter.isPaymentObligation ? 'Plaćanje do' : 'Rok'} ${due.day.toString().padLeft(2, '0')}.${due.month.toString().padLeft(2, '0')}.${due.year}';
+  if (due == null) return context.strings.text('noDeadline');
+  final prefix = letter.isPaymentObligation
+      ? context.strings.text('paymentDuePrefix')
+      : context.strings.text('deadlinePrefix');
+  return '$prefix ${due.day.toString().padLeft(2, '0')}.${due.month.toString().padLeft(2, '0')}.${due.year}';
 }
 
-String _statusLabel(LetterStatus status) => switch (status) {
-  LetterStatus.newLetter => 'Novo',
-  LetterStatus.inProgress => 'Rešavam',
-  LetterStatus.replyPrepared => 'Odgovor pripremljen',
-  LetterStatus.sent => 'Poslato',
-  LetterStatus.awaitingReply => 'Čeka se odgovor',
-  LetterStatus.done => 'Završeno',
-};
+String _statusLabel(BuildContext context, LetterStatus status) =>
+    switch (status) {
+      LetterStatus.newLetter => context.strings.text('newStatus'),
+      LetterStatus.inProgress => context.strings.text('progressStatus'),
+      LetterStatus.replyPrepared => context.strings.text('replyPreparedStatus'),
+      LetterStatus.sent => context.strings.text('sentStatus'),
+      LetterStatus.awaitingReply => context.strings.text('awaitingReplyStatus'),
+      LetterStatus.done => context.strings.text('doneStatus'),
+    };
 
-String _folderLabel(LetterFolder folder) => switch (folder) {
-  LetterFolder.inbox => 'Prijemno',
-  LetterFolder.housing => 'Stanovanje',
-  LetterFolder.work => 'Posao',
-  LetterFolder.family => 'Porodica',
-  LetterFolder.insurance => 'Osiguranje',
-  LetterFolder.taxes => 'Porezi',
-  LetterFolder.finance => 'Finansije',
-};
+String _urgencyLabel(BuildContext context, Urgency urgency) =>
+    switch (urgency) {
+      Urgency.high => context.strings.text('urgencyHigh'),
+      Urgency.medium => context.strings.text('urgencyMedium'),
+      Urgency.low => context.strings.text('urgencyLow'),
+    };
+
+String _folderLabel(BuildContext context, LetterFolder folder) =>
+    switch (folder) {
+      LetterFolder.inbox => context.strings.text('folderInbox'),
+      LetterFolder.housing => context.strings.text('folderHousing'),
+      LetterFolder.work => context.strings.text('folderWork'),
+      LetterFolder.family => context.strings.text('folderFamily'),
+      LetterFolder.insurance => context.strings.text('folderInsurance'),
+      LetterFolder.taxes => context.strings.text('folderTaxes'),
+      LetterFolder.finance => context.strings.text('folderFinance'),
+    };
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.icon, required this.text});

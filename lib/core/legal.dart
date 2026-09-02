@@ -22,9 +22,9 @@ class LegalConfig {
       entityName.trim().isEmpty ? 'BriefAI Germany' : entityName;
 
   static String get displayedContact =>
-      contactEmail.trim().isEmpty ? 'Kontakt nije konfigurisan' : contactEmail;
+      contactEmail.trim().isEmpty ? '—' : contactEmail;
 
   static String get displayedAddress => postalAddress.trim().isEmpty
-      ? 'Adresa nije konfigurisana'
+      ? '—'
       : postalAddress;
 }

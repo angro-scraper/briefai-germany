@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'eu_major_language_translations.dart';
 import 'major_language_translations.dart';
+import 'workflow_translations.dart';
 
 class AppStrings {
   const AppStrings(this.locale);
@@ -125,6 +126,14 @@ class AppStrings {
       (_values[locale.languageCode] ?? _values['en']!)[key] ??
       _values['en']![key] ??
       key;
+
+  String format(String key, Map<String, Object> values) {
+    var value = text(key);
+    for (final entry in values.entries) {
+      value = value.replaceAll('{${entry.key}}', entry.value.toString());
+    }
+    return value;
+  }
 
   /// Used by tests to ensure a language advertised as a complete interface
   /// never resolves through the English fallback.
@@ -722,7 +731,7 @@ class AppStrings {
     },
   };
 
-  static final _values = <String, Map<String, String>>{
+  static final _baseValues = <String, Map<String, String>>{
     ...euMajorInterfaceTranslations,
     ...majorInterfaceTranslations,
     'tr': _categories['_trUi']!,
@@ -1880,6 +1889,11 @@ class AppStrings {
       'start': 'Започни сигурно',
       'skip': 'Пропусни',
     },
+  };
+
+  static final _values = <String, Map<String, String>>{
+    for (final entry in _baseValues.entries)
+      entry.key: {...entry.value, ...?workflowInterfaceTranslations[entry.key]},
   };
 }
 
