@@ -2082,7 +2082,7 @@ class PurchaseService {
 
 class ReplyExportService {
   Future<void> copy(String reply) =>
-      Clipboard.setData(ClipboardData(text: reply));
+      Clipboard.setData(ClipboardData(text: preparePlainTextForExport(reply)));
 
   Future<void> composeEmail({
     required String subject,
@@ -2094,14 +2094,17 @@ class ReplyExportService {
     );
     if (kIsWeb && await nativeStoreAvailable()) {
       try {
-        final result = await nativeStoreRequest('composeEmail', {
-          'subject': draft.subject,
-          'body': draft.body,
-        });
-        if (result['ok'] == true) return;
+        // Use the Web Share API inside already-installed wrappers. Passing a
+        // percent-encoded mailto URL through the web-to-native bridge caused
+        // some Gmail/Apple Mail versions to display the encoded signs instead
+        // of the actual Unicode response text.
+        await SharePlus.instance.share(
+          ShareParams(subject: draft.subject, text: draft.body),
+        );
+        return;
       } on Object {
-        // Installed wrappers without this bridge still use the safe mailto
-        // fallback until the next store update is installed.
+        // Fall through to a standards-compliant mailto link when Web Share is
+        // unavailable in an older WebView.
       }
     }
     if (!await launchUrl(

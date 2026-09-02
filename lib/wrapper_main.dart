@@ -16,6 +16,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -520,15 +521,9 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             fallbackSubject: subject,
             generatedBody: body,
           );
-          final opened = await launchUrl(
-            draft.toMailtoUri(),
-            mode: LaunchMode.externalApplication,
+          await SharePlus.instance.share(
+            ShareParams(subject: draft.subject, text: draft.body),
           );
-          if (!opened) {
-            throw StateError(
-              'Aplikacija za e-mail nije dostupna na ovom uređaju.',
-            );
-          }
           await _resolveNative(requestId, {'ok': true});
         default:
           throw StateError('Nepoznata native akcija.');

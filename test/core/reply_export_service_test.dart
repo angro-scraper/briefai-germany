@@ -46,4 +46,20 @@ void main() {
     expect(uri.queryParameters['subject'], draft.subject);
     expect(uri.queryParameters['body'], draft.body);
   });
+
+  test('plain-text export removes formatting signs but keeps real letters', () {
+    final exported = preparePlainTextForExport(
+      '\uFEFF**Odgovor za porodicu**\u2028\u2028Poštovani, Grüße aus München.\u200B',
+    );
+
+    expect(exported, 'Odgovor za porodicu\n\nPoštovani, Grüße aus München.');
+    expect(exported, isNot(contains('**')));
+  });
+
+  test('plain-text export recovers accidentally escaped paragraphs', () {
+    expect(
+      preparePlainTextForExport(r'Poštovani,\n\nOvo je odgovor.'),
+      'Poštovani,\n\nOvo je odgovor.',
+    );
+  });
 }

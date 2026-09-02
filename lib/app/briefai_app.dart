@@ -53,23 +53,34 @@ class _BriefAiAppState extends State<BriefAiApp> {
               Uri.base.queryParameters['lang'])
         : null;
     final storedLegacyLanguage = preferences.getString('briefai.ui-language');
-    final aiLanguage =
+    final requestedLanguageIsValid =
         requestedAiLanguage != null &&
-            AppStrings.languageLabels.containsKey(requestedAiLanguage)
-        ? requestedAiLanguage
-        : preferences.getString('briefai.ai-language') ??
-              storedLegacyLanguage ??
-              await widget.services.auth.preferredLanguage();
+        AppStrings.languageLabels.containsKey(requestedAiLanguage);
+    final storedAiLanguage =
+        preferences.getString('briefai.ai-language') ??
+        storedLegacyLanguage ??
+        await widget.services.auth.preferredLanguage();
     final storedInterfaceLanguage = preferences.getString(
       'briefai.interface-language',
     );
+    final inferredInterfaceLanguage = requestedLanguageIsValid
+        ? requestedAiLanguage
+        : storedAiLanguage;
     final interfaceLanguage =
         storedInterfaceLanguage != null &&
             AppStrings.hasFullyLocalizedInterface(storedInterfaceLanguage)
         ? storedInterfaceLanguage
-        : AppStrings.hasFullyLocalizedInterface(aiLanguage)
-        ? aiLanguage
+        : AppStrings.hasFullyLocalizedInterface(inferredInterfaceLanguage)
+        ? inferredInterfaceLanguage
         : 'en';
+    // Older builds could leave the visible interface and AI explanation
+    // language out of sync. Unless the user explicitly chose a separate AI
+    // language in Profile, the visible interface is the source of truth.
+    final aiLanguage = requestedLanguageIsValid
+        ? requestedAiLanguage
+        : preferences.getBool('briefai.ai-language-explicit') == true
+        ? storedAiLanguage
+        : interfaceLanguage;
     _state
       ..setLocale(interfaceLanguage)
       ..setAiLanguage(aiLanguage);
@@ -823,6 +834,8 @@ class _LanguageMenu extends StatelessWidget {
       final preferences = await SharedPreferences.getInstance();
       try {
         await preferences.setString('briefai.interface-language', language);
+        await preferences.setString('briefai.ai-language', language);
+        await preferences.setBool('briefai.ai-language-explicit', false);
         await services.auth.setPreferredLanguage(language);
       } on Object {
         // The visible language changes immediately. Persistence can be retried
@@ -863,6 +876,8 @@ class _AiLanguageMenu extends StatelessWidget {
     onSelected: (language) async {
       state.setAiLanguage(language);
       try {
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setBool('briefai.ai-language-explicit', true);
         await services.auth.setPreferredLanguage(language);
       } on Object {
         // AI language remains selected locally even if cloud profile sync is
@@ -2720,6 +2735,10 @@ class ProfileScreen extends StatelessWidget {
                             'briefai.ai-language',
                             value,
                           );
+                          await preferences.setBool(
+                            'briefai.ai-language-explicit',
+                            false,
+                          );
                           await services.auth.setPreferredLanguage(value);
                         } on Object {
                           // Keep the selected UI language even during a
@@ -2750,6 +2769,12 @@ class ProfileScreen extends StatelessWidget {
                       onSelected: (value) async {
                         state.setAiLanguage(value);
                         try {
+                          final preferences =
+                              await SharedPreferences.getInstance();
+                          await preferences.setBool(
+                            'briefai.ai-language-explicit',
+                            true,
+                          );
                           await services.auth.setPreferredLanguage(value);
                         } on Object {
                           // A local choice remains active if profile sync is
