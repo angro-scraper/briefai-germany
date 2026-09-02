@@ -106,6 +106,7 @@ class LetterAnalysis {
     required this.urgency,
     required this.suggestedAction,
     required this.createdAt,
+    this.analysisLanguage,
     this.senderName,
     this.recipientName,
     this.paymentRecipient,
@@ -133,6 +134,9 @@ class LetterAnalysis {
   final Urgency urgency;
   final String suggestedAction;
   final DateTime createdAt;
+  /// Interface/AI language used when this analysis was generated. Legacy
+  /// records have no value and are rendered with a neutral local heading.
+  final String? analysisLanguage;
   final String? senderName;
   final String? recipientName;
   final String? paymentRecipient;
@@ -167,6 +171,7 @@ class LetterAnalysis {
     urgency: urgency,
     suggestedAction: suggestedAction,
     createdAt: createdAt,
+    analysisLanguage: analysisLanguage,
     senderName: senderName,
     recipientName: recipientName,
     paymentRecipient: paymentRecipient,
@@ -200,6 +205,7 @@ class LetterAnalysis {
     'amounts': amount == null ? <String>[] : [amount],
     'amount': amount,
     'suggestedAction': suggestedAction,
+    'analysisLanguage': analysisLanguage,
     'senderName': senderName,
     'recipientName': recipientName,
     'paymentRecipient': paymentRecipient,
@@ -241,6 +247,7 @@ class LetterAnalysis {
       ),
       suggestedAction: map['suggestedAction'] as String? ?? '',
       createdAt: createdAt,
+      analysisLanguage: map['analysisLanguage'] as String?,
       senderName: _nonEmptyString(map['senderName']),
       recipientName: _nonEmptyString(map['recipientName']),
       paymentRecipient: _nonEmptyString(map['paymentRecipient']),

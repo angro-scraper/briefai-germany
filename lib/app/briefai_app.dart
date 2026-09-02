@@ -788,7 +788,31 @@ class _LanguageMenu extends StatelessWidget {
   Widget build(BuildContext context) => PopupMenuButton<String>(
     tooltip: context.strings.text('appLanguage'),
     initialValue: state.localeCode,
-    icon: const Icon(Icons.translate),
+    child: Semantics(
+      button: true,
+      label: context.strings.text('appLanguage'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.translate_outlined, size: 19),
+            const SizedBox(width: 6),
+            Text(
+              AppStrings.languageLabels[state.localeCode] ??
+                  state.localeCode.toUpperCase(),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+          ],
+        ),
+      ),
+    ),
     onSelected: (language) async {
       state.setLocale(language);
       // A user-facing language choice must also become the language of new AI
@@ -1682,7 +1706,7 @@ class ResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            letter.title,
+            _letterHeading(context, letter),
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -3776,6 +3800,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 }
 
+enum _LetterCardAction {
+  newLetter,
+  inProgress,
+  replyPrepared,
+  sent,
+  awaitingReply,
+  done,
+  organise,
+  delete,
+}
+
 class LetterCard extends StatelessWidget {
   const LetterCard({
     super.key,
@@ -3791,74 +3826,192 @@ class LetterCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => Card(
-    child: ListTile(
-      onTap: onTap,
-      leading: CircleAvatar(
-        child: Icon(
-          letter.urgency == Urgency.high
-              ? Icons.priority_high
-              : Icons.description_outlined,
-        ),
-      ),
-      title: Text(letter.title),
-      subtitle: Text(
-        '${context.strings.category(letter.category.name)}'
-        '${letter.isPaymentObligation ? ' • ${letter.paymentPaid ? context.strings.text('paymentPaid') : context.strings.text('paymentOpen')}' : ''}'
-        '${(letter.paymentDueDate ?? letter.deadline) == null ? '' : ' • ${context.strings.text(letter.paymentDueDate != null ? 'paymentDueDate' : 'deadline')} ${(letter.paymentDueDate ?? letter.deadline)!.day}.${(letter.paymentDueDate ?? letter.deadline)!.month}.'}',
-      ),
-      trailing: onStatus == null && onDelete == null && onOrganize == null
-          ? null
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (onDelete != null)
-                  IconButton(
-                    tooltip: context.strings.text('deleteDocument'),
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline_rounded),
-                  ),
-                if (onOrganize != null)
-                  IconButton(
-                    tooltip: 'Organizuj',
-                    onPressed: onOrganize,
-                    icon: const Icon(Icons.tune_rounded),
-                  ),
-                if (onStatus != null)
-                  PopupMenuButton<LetterStatus>(
-                    tooltip: context.strings.text('progressStatus'),
-                    onSelected: onStatus,
-                    itemBuilder: (_) => [
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final due = letter.paymentDueDate ?? letter.deadline;
+    final hasActions = onStatus != null || onDelete != null || onOrganize != null;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 23,
+                backgroundColor: letter.urgency == Urgency.high
+                    ? Colors.red.withValues(alpha: .12)
+                    : Theme.of(context).colorScheme.primaryContainer,
+                child: Icon(
+                  letter.urgency == Urgency.high
+                      ? Icons.priority_high_rounded
+                      : Icons.description_outlined,
+                  color: letter.urgency == Urgency.high
+                      ? Colors.red.shade700
+                      : Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _letterHeading(context, letter),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _LetterMetaPill(
+                          icon: Icons.folder_outlined,
+                          label: strings.category(letter.category.name),
+                        ),
+                        if (letter.isPaymentObligation)
+                          _LetterMetaPill(
+                            icon: letter.paymentPaid
+                                ? Icons.check_circle_outline
+                                : Icons.payments_outlined,
+                            label: letter.paymentPaid
+                                ? strings.text('paymentPaid')
+                                : strings.text('paymentOpen'),
+                          ),
+                        if (due != null)
+                          _LetterMetaPill(
+                            icon: Icons.event_outlined,
+                            label:
+                                '${due.day.toString().padLeft(2, '0')}.${due.month.toString().padLeft(2, '0')}.${due.year}',
+                            warning: due.isBefore(DateTime.now()),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (hasActions)
+                PopupMenuButton<_LetterCardAction>(
+                  tooltip: strings.text('progressStatus'),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _LetterCardAction.newLetter:
+                        onStatus?.call(LetterStatus.newLetter);
+                      case _LetterCardAction.inProgress:
+                        onStatus?.call(LetterStatus.inProgress);
+                      case _LetterCardAction.replyPrepared:
+                        onStatus?.call(LetterStatus.replyPrepared);
+                      case _LetterCardAction.sent:
+                        onStatus?.call(LetterStatus.sent);
+                      case _LetterCardAction.awaitingReply:
+                        onStatus?.call(LetterStatus.awaitingReply);
+                      case _LetterCardAction.done:
+                        onStatus?.call(LetterStatus.done);
+                      case _LetterCardAction.organise:
+                        onOrganize?.call();
+                      case _LetterCardAction.delete:
+                        onDelete?.call();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    if (onStatus != null) ...[
                       PopupMenuItem(
-                        value: LetterStatus.newLetter,
-                        child: Text(context.strings.text('newStatus')),
+                        value: _LetterCardAction.newLetter,
+                        child: Text(strings.text('newStatus')),
                       ),
                       PopupMenuItem(
-                        value: LetterStatus.inProgress,
-                        child: Text(context.strings.text('progressStatus')),
+                        value: _LetterCardAction.inProgress,
+                        child: Text(strings.text('progressStatus')),
                       ),
                       PopupMenuItem(
-                        value: LetterStatus.replyPrepared,
+                        value: _LetterCardAction.replyPrepared,
                         child: Text(_statusLabel(LetterStatus.replyPrepared)),
                       ),
                       PopupMenuItem(
-                        value: LetterStatus.sent,
+                        value: _LetterCardAction.sent,
                         child: Text(_statusLabel(LetterStatus.sent)),
                       ),
                       PopupMenuItem(
-                        value: LetterStatus.awaitingReply,
+                        value: _LetterCardAction.awaitingReply,
                         child: Text(_statusLabel(LetterStatus.awaitingReply)),
                       ),
                       PopupMenuItem(
-                        value: LetterStatus.done,
-                        child: Text(context.strings.text('doneStatus')),
+                        value: _LetterCardAction.done,
+                        child: Text(strings.text('doneStatus')),
                       ),
                     ],
-                  ),
-              ],
-            ),
+                    if (onStatus != null && (onOrganize != null || onDelete != null))
+                      const PopupMenuDivider(),
+                    if (onOrganize != null)
+                      const PopupMenuItem(
+                        value: _LetterCardAction.organise,
+                        child: Text('Organizuj'),
+                      ),
+                    if (onDelete != null)
+                      PopupMenuItem(
+                        value: _LetterCardAction.delete,
+                        child: Text(strings.text('deleteDocument')),
+                      ),
+                  ],
+                  icon: const Icon(Icons.more_horiz_rounded),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LetterMetaPill extends StatelessWidget {
+  const _LetterMetaPill({required this.icon, required this.label, this.warning = false});
+  final IconData icon;
+  final String label;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: warning
+          ? Colors.red.withValues(alpha: .09)
+          : Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: warning ? Colors.red.shade700 : null),
+          const SizedBox(width: 4),
+          Text(label, style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
     ),
   );
+}
+
+String _letterHeading(BuildContext context, LetterAnalysis letter) {
+  final currentLanguage = Localizations.localeOf(context).languageCode;
+  final sourceLanguage = letter.analysisLanguage?.split(RegExp('[-_]')).first;
+  if (sourceLanguage == currentLanguage && letter.title.trim().isNotEmpty) {
+    return letter.title.trim();
+  }
+
+  // Analyses created before language provenance was stored can contain a
+  // previous user's language. A neutral sender/category heading is better
+  // than presenting a Russian or unrelated title inside a Serbian interface.
+  final sender = letter.senderName?.trim();
+  final category = context.strings.category(letter.category.name);
+  if (sender != null && sender.isNotEmpty) return '$sender — $category';
+  return category;
 }
 
 class DeadlineCenterScreen extends StatelessWidget {

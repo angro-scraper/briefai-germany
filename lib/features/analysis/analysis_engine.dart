@@ -98,6 +98,7 @@ class AnalysisEngine {
       urgency: urgency,
       suggestedAction: family?.action ?? general!.action,
       createdAt: DateTime.now(),
+      analysisLanguage: language,
       senderName: senderName,
       recipientName: recipientName,
       paymentRecipient: paymentRecipient,

@@ -900,6 +900,7 @@ class AiService {
             'preferredLanguage': _apiOutputLanguage(language),
           });
       final data = Map<String, dynamic>.from(result.data['analysis'] as Map);
+      data['analysisLanguage'] = language;
       return LetterAnalysis.fromMap(id: letterId, map: data, sourceText: text);
     } on FirebaseFunctionsException catch (error) {
       if (!_backendUnavailable(error)) rethrow;
