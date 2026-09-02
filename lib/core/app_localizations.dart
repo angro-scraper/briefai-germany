@@ -70,10 +70,6 @@ class AppStrings {
     'vi': 'Tiếng Việt',
   };
 
-  static final supportedLocales = languageLabels.keys
-      .map(Locale.new)
-      .toList(growable: false);
-
   /// Complete interface translations currently shipped with BriefAI.
   static const fullyLocalizedLanguageCodes = <String>{
     'ar',
@@ -96,6 +92,12 @@ class AppStrings {
 
   static bool hasFullyLocalizedInterface(String languageCode) =>
       fullyLocalizedLanguageCodes.contains(languageCode);
+
+  /// Flutter must never select a partial interface translation through the
+  /// device locale. Wider language support belongs only to AI output, below.
+  static final supportedLocales = fullyLocalizedLanguageCodes
+      .map(Locale.new)
+      .toList(growable: false);
 
   /// Complete, static translations available for the application interface.
   static List<MapEntry<String, String>> get interfaceLanguageEntries {

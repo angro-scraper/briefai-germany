@@ -2672,6 +2672,12 @@ class ProfileScreen extends StatelessWidget {
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) async {
                         state.setLocale(value);
+                        // Keep the default explanation language aligned with
+                        // an explicit interface-language choice. Users can
+                        // still choose a different AI language in the next
+                        // setting, but a Serbian UI must not silently keep a
+                        // previous language such as Russian.
+                        state.setAiLanguage(value);
                         try {
                           final preferences =
                               await SharedPreferences.getInstance();
@@ -2679,6 +2685,11 @@ class ProfileScreen extends StatelessWidget {
                             'briefai.interface-language',
                             value,
                           );
+                          await preferences.setString(
+                            'briefai.ai-language',
+                            value,
+                          );
+                          await services.auth.setPreferredLanguage(value);
                         } on Object {
                           // Keep the selected UI language even during a
                           // temporary local-storage or cloud synchronization
@@ -2983,12 +2994,15 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
         name: name.text,
         pin: pin.text.isEmpty ? null : pin.text,
       );
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } on Object catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('$error')));
+      }
     } finally {
       name.dispose();
       pin.dispose();
@@ -3131,19 +3145,23 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
         passphrase: _password.text,
       );
       await widget.services.exports.shareEncryptedBackup(encrypted);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Šifrovani backup je spreman za čuvanje.'),
           ),
         );
+      }
     } on Object catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Backup nije uspeo: $error')));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -3163,8 +3181,9 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
         passphrase: _password.text,
       );
       final rawLetters = payload['letters'];
-      if (rawLetters is! List)
+      if (rawLetters is! List) {
         throw const FormatException('Backup does not contain an archive.');
+      }
       final records = rawLetters
           .whereType<Map>()
           .map((entry) => Map<String, dynamic>.from(entry))
@@ -3173,17 +3192,21 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
         widget.services.currentVaultKey,
         records,
       );
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Vraćeno lokalno: $count pisama.')),
         );
+      }
     } on Object catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Vraćanje nije uspelo: $error')));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 

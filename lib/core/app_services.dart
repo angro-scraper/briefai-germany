@@ -1175,7 +1175,9 @@ class LetterRepository {
     await _store.record(letterId).update(database, {
       if (status != null) 'status': status.name,
       if (folder != null) 'folder': folder.name,
-      if (cleanedTags != null) 'tags': cleanedTags,
+      ...?(cleanedTags == null
+          ? null
+          : <String, Object?>{'tags': cleanedTags}),
       if (paymentPaid != null) ...{
         'paymentPaid': paymentPaid,
         'paymentPaidAt': paymentPaid ? DateTime.now().toIso8601String() : null,
