@@ -24,6 +24,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Explain this letter again in detail and in simple language. What exactly is required from me and what should I do next?',
     'householdProfiles': 'Family profiles',
     'activeProfileNamed': 'Active profile: {name}',
+    'personalProfile': 'Personal',
     'encryptedArchiveBackup': 'Encrypted archive backup',
     'backupSubtitle': 'Export and restore only with your password',
     'accountDeletePartial':
@@ -121,6 +122,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Erkläre mir diesen Brief noch einmal ausführlich und einfach. Was wird genau von mir verlangt und was ist mein nächster Schritt?',
     'householdProfiles': 'Familienprofile',
     'activeProfileNamed': 'Aktives Profil: {name}',
+    'personalProfile': 'Persönlich',
     'encryptedArchiveBackup': 'Verschlüsseltes Archiv-Backup',
     'backupSubtitle': 'Export und Wiederherstellung nur mit Ihrem Passwort',
     'accountDeletePartial':
@@ -219,6 +221,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sledeći korak?',
     'householdProfiles': 'Porodični profili',
     'activeProfileNamed': 'Aktivan profil: {name}',
+    'personalProfile': 'Lični',
     'encryptedArchiveBackup': 'Šifrovani backup arhive',
     'backupSubtitle': 'Izvoz i vraćanje samo uz vašu lozinku',
     'accountDeletePartial':
@@ -315,6 +318,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Objasni mi ovo pismo ponovno detaljno i jednostavnim jezikom. Što se točno traži od mene i koji je sljedeći korak?',
     'householdProfiles': 'Obiteljski profili',
     'activeProfileNamed': 'Aktivan profil: {name}',
+    'personalProfile': 'Osobni',
     'encryptedArchiveBackup': 'Šifrirana sigurnosna kopija arhive',
     'backupSubtitle': 'Izvoz i vraćanje samo uz vašu lozinku',
     'accountDeletePartial':
@@ -411,6 +415,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Objasni mi ovo pismo ponovo detaljno i jednostavnim jezikom. Šta se tačno traži od mene i koji je sljedeći korak?',
     'householdProfiles': 'Porodični profili',
     'activeProfileNamed': 'Aktivan profil: {name}',
+    'personalProfile': 'Lični',
     'encryptedArchiveBackup': 'Šifrovana sigurnosna kopija arhive',
     'backupSubtitle': 'Izvoz i vraćanje samo uz vašu lozinku',
     'accountDeletePartial':
@@ -507,6 +512,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Објасни ми го ова писмо повторно детално и со едноставен јазик. Што точно се бара од мене и кој е следниот чекор?',
     'householdProfiles': 'Семејни профили',
     'activeProfileNamed': 'Активен профил: {name}',
+    'personalProfile': 'Личен',
     'encryptedArchiveBackup': 'Шифрирана резервна копија на архивата',
     'backupSubtitle': 'Извоз и враќање само со вашата лозинка',
     'accountDeletePartial':
@@ -605,6 +611,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Обясни ми това писмо отново подробно и на разбираем език. Какво точно се иска от мен и каква е следващата стъпка?',
     'householdProfiles': 'Семейни профили',
     'activeProfileNamed': 'Активен профил: {name}',
+    'personalProfile': 'Личен',
     'encryptedArchiveBackup': 'Шифровано резервно копие на архива',
     'backupSubtitle': 'Експорт и възстановяване само с вашата парола',
     'accountDeletePartial':
@@ -702,6 +709,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Bu mektubu tekrar ayrıntılı ve sade bir dille açıkla. Benden tam olarak ne isteniyor ve sonraki adımım nedir?',
     'householdProfiles': 'Aile profilleri',
     'activeProfileNamed': 'Etkin profil: {name}',
+    'personalProfile': 'Kişisel',
     'encryptedArchiveBackup': 'Şifreli arşiv yedeği',
     'backupSubtitle': 'Yalnızca parolanızla dışa aktarın ve geri yükleyin',
     'accountDeletePartial':
@@ -800,6 +808,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Объясни это письмо ещё раз подробно и простыми словами. Что именно от меня требуется и что мне делать дальше?',
     'householdProfiles': 'Семейные профили',
     'activeProfileNamed': 'Активный профиль: {name}',
+    'personalProfile': 'Личный',
     'encryptedArchiveBackup': 'Зашифрованная резервная копия архива',
     'backupSubtitle': 'Экспорт и восстановление только с вашим паролем',
     'accountDeletePartial':
@@ -898,6 +907,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Поясни цей лист ще раз докладно й простими словами. Що саме від мене вимагається і що мені робити далі?',
     'householdProfiles': 'Сімейні профілі',
     'activeProfileNamed': 'Активний профіль: {name}',
+    'personalProfile': 'Особистий',
     'encryptedArchiveBackup': 'Зашифрована резервна копія архіву',
     'backupSubtitle': 'Експорт і відновлення лише з вашим паролем',
     'accountDeletePartial':
@@ -995,6 +1005,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'اشرح لي هذه الرسالة مرة أخرى بالتفصيل وبلغة بسيطة. ما المطلوب مني تحديدًا وما الخطوة التالية؟',
     'householdProfiles': 'الملفات العائلية',
     'activeProfileNamed': 'الملف النشط: {name}',
+    'personalProfile': 'شخصي',
     'encryptedArchiveBackup': 'نسخة احتياطية مشفرة للأرشيف',
     'backupSubtitle': 'التصدير والاستعادة باستخدام كلمة مرورك فقط',
     'accountDeletePartial':
@@ -1093,6 +1104,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Explică-mi din nou această scrisoare, detaliat și în limbaj simplu. Ce mi se cere exact și care este următorul pas?',
     'householdProfiles': 'Profiluri de familie',
     'activeProfileNamed': 'Profil activ: {name}',
+    'personalProfile': 'Personal',
     'encryptedArchiveBackup': 'Copie de rezervă criptată a arhivei',
     'backupSubtitle': 'Export și restaurare numai cu parola dvs.',
     'accountDeletePartial':
@@ -1191,6 +1203,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Wyjaśnij mi to pismo ponownie, szczegółowo i prostym językiem. Czego dokładnie się ode mnie wymaga i jaki jest następny krok?',
     'householdProfiles': 'Profile rodzinne',
     'activeProfileNamed': 'Aktywny profil: {name}',
+    'personalProfile': 'Osobisty',
     'encryptedArchiveBackup': 'Szyfrowana kopia archiwum',
     'backupSubtitle': 'Eksport i przywracanie tylko z Twoim hasłem',
     'accountDeletePartial':
@@ -1289,6 +1302,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Spiegami di nuovo questa lettera in modo dettagliato e semplice. Che cosa mi viene richiesto esattamente e qual è il prossimo passo?',
     'householdProfiles': 'Profili familiari',
     'activeProfileNamed': 'Profilo attivo: {name}',
+    'personalProfile': 'Personale',
     'encryptedArchiveBackup': 'Backup crittografato dell’archivio',
     'backupSubtitle': 'Esporta e ripristina solo con la tua password',
     'accountDeletePartial':
@@ -1387,6 +1401,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Εξήγησέ μου ξανά αυτή την επιστολή αναλυτικά και με απλά λόγια. Τι ακριβώς ζητείται από εμένα και ποιο είναι το επόμενο βήμα;',
     'householdProfiles': 'Οικογενειακά προφίλ',
     'activeProfileNamed': 'Ενεργό προφίλ: {name}',
+    'personalProfile': 'Προσωπικό',
     'encryptedArchiveBackup': 'Κρυπτογραφημένο αντίγραφο αρχείου',
     'backupSubtitle': 'Εξαγωγή και επαναφορά μόνο με τον κωδικό σας',
     'accountDeletePartial':
@@ -1484,6 +1499,7 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
         'Ma shpjego përsëri këtë letër me hollësi dhe me gjuhë të thjeshtë. Çfarë kërkohet saktësisht nga unë dhe cili është hapi tjetër?',
     'householdProfiles': 'Profile familjare',
     'activeProfileNamed': 'Profili aktiv: {name}',
+    'personalProfile': 'Personal',
     'encryptedArchiveBackup': 'Kopje e koduar e arkivit',
     'backupSubtitle': 'Eksport dhe rikthim vetëm me fjalëkalimin tuaj',
     'accountDeletePartial':

@@ -2730,7 +2730,7 @@ class ProfileScreen extends StatelessWidget {
           title: Text(strings.text('householdProfiles')),
           subtitle: Text(
             strings.format('activeProfileNamed', {
-              'name': services.household.active.name,
+              'name': _householdProfileName(strings, services.household.active),
             }),
           ),
           trailing: const Icon(Icons.chevron_right),
@@ -2981,7 +2981,7 @@ class _HouseholdProfilesScreenState extends State<HouseholdProfilesScreen> {
                     profile.hasPin ? Icons.lock_outline : Icons.person_outline,
                   ),
                 ),
-                title: Text(profile.name),
+                title: Text(_householdProfileName(strings, profile)),
                 subtitle: Text(
                   profile.id == widget.services.household.activeId
                       ? strings.text('activeProfile')
@@ -3991,6 +3991,14 @@ String _letterHeading(BuildContext context, LetterAnalysis letter) {
   final category = context.strings.category(letter.category.name);
   if (sender != null && sender.isNotEmpty) return '$sender — $category';
   return category;
+}
+
+String _householdProfileName(AppStrings strings, HouseholdProfile profile) {
+  if (profile.id == HouseholdProfileService.personalId &&
+      profile.name.trim().toLowerCase() == 'personal') {
+    return strings.text('personalProfile');
+  }
+  return profile.name;
 }
 
 class DeadlineCenterScreen extends StatelessWidget {
