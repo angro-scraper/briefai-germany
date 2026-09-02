@@ -2298,13 +2298,21 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final selectedLetter =
         letters.where((letter) => letter.id == _selectedLetterId).firstOrNull ??
         (letters.isEmpty ? null : letters.first);
-    final archiveCopy = _assistantArchiveCopy(widget.state.aiLanguageCode);
+    // These labels belong to the interface, not to the optional AI answer
+    // language.  Keeping them tied to the app locale prevents a Serbian UI
+    // from inheriting a previously chosen Russian/Turkish AI language.
+    final archiveCopy = _assistantArchiveCopy(
+      Localizations.localeOf(context).languageCode,
+    );
+    final selectedHeading = selectedLetter == null
+        ? null
+        : _letterHeading(context, selectedLetter);
     final visibleMessages = _messages.isEmpty
         ? [
             _ChatMessage(
               text: selectedLetter == null
                   ? strings.text('assistantHello')
-                  : '${archiveCopy.ready}\n${selectedLetter.title}',
+                  : '${archiveCopy.ready}\n$selectedHeading',
               fromUser: false,
             ),
           ]
@@ -2315,60 +2323,33 @@ class _AssistantScreenState extends State<AssistantScreen> {
         children: [
           if (letters.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    archiveCopy.label,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedLetter?.id,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: letters
-                        .map(
-                          (letter) => DropdownMenuItem(
-                            value: letter.id,
-                            child: Text(
-                              '${letter.title} · ${letter.category.label}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _sending
-                        ? null
-                        : (id) => setState(() {
-                            _selectedLetterId = id;
-                            // Questions about one letter must never be used as
-                            // context for another locally archived letter.
-                            _messages.clear();
-                          }),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _sending || selectedLetter == null
-                        ? null
-                        : () {
-                            _question.text = archiveCopy.explainAgain;
-                            _ask();
-                          },
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: Text(archiveCopy.explainButton),
-                  ),
-                ],
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+              child: _AssistantLetterPanel(
+                label: archiveCopy.label,
+                selectedLetterId: selectedLetter?.id,
+                letters: letters,
+                disabled: _sending,
+                explainButton: archiveCopy.explainButton,
+                letterLabel: (letter) => _letterHeading(context, letter),
+                categoryLabel: (letter) =>
+                    context.strings.category(letter.category.name),
+                onChanged: (id) => setState(() {
+                  _selectedLetterId = id;
+                  // Questions about one letter must never be used as context
+                  // for another locally archived letter.
+                  _messages.clear();
+                }),
+                onExplain: selectedLetter == null
+                    ? null
+                    : () {
+                        _question.text = archiveCopy.explainAgain;
+                        _ask();
+                      },
               ),
             ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               children: visibleMessages
                   .map(
                     (message) => Align(
@@ -2377,14 +2358,40 @@ class _AssistantScreenState extends State<AssistantScreen> {
                           : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: message.fromUser
                               ? const Color(0xFFDDE5FF)
                               : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(18),
+                            topRight: const Radius.circular(18),
+                            bottomLeft: Radius.circular(
+                              message.fromUser ? 18 : 4,
+                            ),
+                            bottomRight: Radius.circular(
+                              message.fromUser ? 4 : 18,
+                            ),
+                          ),
+                          border: Border.all(
+                            color: message.fromUser
+                                ? const Color(0xFFC9D6FF)
+                                : const Color(0xFFE5E8F2),
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A0B1535),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: Text(message.text),
+                        child: Text(
+                          message.text,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.4),
+                        ),
                       ),
                     ),
                   )
@@ -3811,6 +3818,126 @@ enum _LetterCardAction {
   delete,
 }
 
+class _AssistantLetterPanel extends StatelessWidget {
+  const _AssistantLetterPanel({
+    required this.label,
+    required this.selectedLetterId,
+    required this.letters,
+    required this.disabled,
+    required this.explainButton,
+    required this.letterLabel,
+    required this.categoryLabel,
+    required this.onChanged,
+    required this.onExplain,
+  });
+
+  final String label;
+  final String? selectedLetterId;
+  final List<LetterAnalysis> letters;
+  final bool disabled;
+  final String explainButton;
+  final String Function(LetterAnalysis letter) letterLabel;
+  final String Function(LetterAnalysis letter) categoryLabel;
+  final ValueChanged<String?> onChanged;
+  final VoidCallback? onExplain;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE1E6F4)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D0B1535),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(9),
+                    child: Icon(
+                      Icons.description_outlined,
+                      color: colors.primary,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: selectedLetterId,
+              isExpanded: true,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFF8F9FD),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFD4DBEA)),
+                ),
+              ),
+              items: letters
+                  .map(
+                    (letter) => DropdownMenuItem(
+                      value: letter.id,
+                      child: Text(
+                        '${letterLabel(letter)} · ${categoryLabel(letter)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: disabled ? null : onChanged,
+            ),
+            const SizedBox(height: 10),
+            FilledButton.tonalIcon(
+              onPressed: disabled ? null : onExplain,
+              icon: const Icon(Icons.auto_awesome_outlined, size: 19),
+              label: Text(explainButton),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(46),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(13),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class LetterCard extends StatelessWidget {
   const LetterCard({
     super.key,
@@ -3829,7 +3956,8 @@ class LetterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final due = letter.paymentDueDate ?? letter.deadline;
-    final hasActions = onStatus != null || onDelete != null || onOrganize != null;
+    final hasActions =
+        onStatus != null || onDelete != null || onOrganize != null;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -3947,7 +4075,8 @@ class LetterCard extends StatelessWidget {
                         child: Text(strings.text('doneStatus')),
                       ),
                     ],
-                    if (onStatus != null && (onOrganize != null || onDelete != null))
+                    if (onStatus != null &&
+                        (onOrganize != null || onDelete != null))
                       const PopupMenuDivider(),
                     if (onOrganize != null)
                       const PopupMenuItem(
@@ -3971,7 +4100,11 @@ class LetterCard extends StatelessWidget {
 }
 
 class _LetterMetaPill extends StatelessWidget {
-  const _LetterMetaPill({required this.icon, required this.label, this.warning = false});
+  const _LetterMetaPill({
+    required this.icon,
+    required this.label,
+    this.warning = false,
+  });
   final IconData icon;
   final String label;
   final bool warning;
