@@ -179,7 +179,9 @@
         location.reload();
       }
     </script>
-    <script>
+    <script type="module">
+      import {recordPublicAnalytics} from '/firebase-site-security.js';
+
       (() => {
         const consentKey = 'briefai.analytics-consent';
         const visitorKey = 'briefai.analytics-visitor-id';
@@ -191,12 +193,13 @@
           if (!value) { value = crypto.randomUUID(); localStorage.setItem(visitorKey, value); }
           return value;
         };
-        const send = event => {
+        const send = async event => {
           if (localStorage.getItem(consentKey) !== 'yes') return;
-          fetch('https://europe-west3-briefai-germany.cloudfunctions.net/publicAnalytics', {
-            method:'POST', headers:{'content-type':'application/json'}, keepalive:true,
-            body:JSON.stringify({event, visitorId:visitorId(), source})
-          }).catch(() => {});
+          try {
+            await recordPublicAnalytics({event, visitorId:visitorId(), source});
+          } catch {
+            // Product analytics is optional and must never interrupt browsing.
+          }
         };
         if (consent === null) banner.hidden = false;
         if (consent === 'yes') send('page_view');

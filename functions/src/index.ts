@@ -41,6 +41,7 @@ const stripeProPriceId = defineString("STRIPE_PRO_PRICE_ID", {
 export const exchangeNativeAuth = onCall(
   {region: "europe-west3", enforceAppCheck: false},
   async (request) => {
+    requirePublicBurstAllowance(request, "native-auth", 30, 60 * 1000);
     const idToken = requireString(request.data?.idToken, "idToken", 4096);
     let decoded;
     try {
@@ -212,6 +213,7 @@ async function nativeAppleFirebaseUid(payload: AppleIdentityPayload): Promise<st
 export const nativeAppleWebSession = onCall(
   {region: "europe-west3", enforceAppCheck: false},
   async (request) => {
+    requirePublicBurstAllowance(request, "native-apple-auth", 20, 60 * 1000);
     const identityToken = requireString(request.data?.identityToken, "identityToken", 8192);
     const rawNonce = requireString(request.data?.rawNonce, "rawNonce", 256);
     const payload = await verifyAppleIdentityToken(identityToken, rawNonce);
@@ -251,6 +253,7 @@ const storeProductIds = new Set<string>(
   Object.values(subscriptionPlans).map((plan) => plan.productId),
 );
 const freeAnalysisLimit = 5;
+const publicRequestBuckets = new Map<string, {count: number; resetAt: number}>();
 const allowedCategories = [
   "Finanzamt", "Krankenkasse", "Jobcenter", "Banka", "Osiguranje",
   "Telekom", "Poslodavac", "Stanodavac", "Škola", "Vrtić", "Sud",
@@ -806,6 +809,74 @@ function requireUser(uid: string | undefined): string {
   return uid;
 }
 
+function requirePublicBurstAllowance(
+  request: {rawRequest?: {ip?: string}},
+  bucket: string,
+  limit: number,
+  windowMs: number,
+): void {
+  const now = Date.now();
+  // Bound memory even if an attacker rotates addresses. Expired entries are
+  // discarded opportunistically; a very large active map is reset because
+  // App Check remains the authoritative public-endpoint gate.
+  if (publicRequestBuckets.size > 2000) {
+    for (const [entryKey, entry] of publicRequestBuckets) {
+      if (entry.resetAt <= now) publicRequestBuckets.delete(entryKey);
+    }
+    if (publicRequestBuckets.size > 5000) publicRequestBuckets.clear();
+  }
+  const ip = request.rawRequest?.ip ?? "unknown";
+  // This short-lived hash exists only in process memory. Raw IP addresses are
+  // never written to logs or Firestore, and the map disappears on cold start.
+  const key = createHash("sha256")
+    .update(`briefai-public:${bucket}:${ip}`)
+    .digest("hex");
+  const existing = publicRequestBuckets.get(key);
+  if (!existing || existing.resetAt <= now) {
+    publicRequestBuckets.set(key, {count: 1, resetAt: now + windowMs});
+    return;
+  }
+  if (existing.count >= limit) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Previše zahteva. Pokušajte ponovo malo kasnije.",
+    );
+  }
+  existing.count += 1;
+}
+
+async function requireUserRateAllowance(
+  uid: string,
+  bucket: string,
+  limit: number,
+  windowMs: number,
+): Promise<void> {
+  const ref = db
+    .collection("users")
+    .doc(uid)
+    .collection("rateLimits")
+    .doc(bucket);
+  const now = Date.now();
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.data();
+    const startedAt = Number(data?.windowStartedAt ?? 0);
+    const currentCount = Number(data?.count ?? 0);
+    const expired = !Number.isFinite(startedAt) || now - startedAt >= windowMs;
+    if (!expired && Number.isFinite(currentCount) && currentCount >= limit) {
+      throw new HttpsError(
+        "resource-exhausted",
+        "Previše zahteva u kratkom periodu. Sačekajte nekoliko minuta.",
+      );
+    }
+    transaction.set(ref, {
+      windowStartedAt: expired ? now : startedAt,
+      count: expired || !Number.isFinite(currentCount) ? 1 : currentCount + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
 async function requireAdmin(uid: string | undefined): Promise<string> {
   const authenticatedUid = requireUser(uid);
   const account = await getAuth().getUser(authenticatedUid);
@@ -1022,7 +1093,7 @@ async function recordProductAnalyticsEvent({
 }
 
 export const recordAnalyticsEvent = onCall(
-  {region: "europe-west3", enforceAppCheck: false},
+  {region: "europe-west3", enforceAppCheck: true},
   async (request) => {
     const event = request.data?.event;
     if (typeof event !== "string" || !productAnalyticsEvents.has(event as ProductAnalyticsEvent)) {
@@ -1044,50 +1115,46 @@ export const recordAnalyticsEvent = onCall(
 // Lightweight endpoint for the public landing page. It is intentionally
 // limited to anonymous page views and store-link clicks; registrations use
 // the authenticated callable above.
-export const publicAnalytics = onRequest(
-  {region: "europe-west3", cors: ["https://briefai.salvesca.com"]},
-  async (request, response) => {
-    if (request.method !== "POST") {
-      response.status(405).send("Method not allowed");
-      return;
-    }
-    const event = request.body?.event;
+export const publicAnalytics = onCall(
+  {region: "europe-west3", enforceAppCheck: true},
+  async (request) => {
+    requirePublicBurstAllowance(request, "analytics", 120, 60 * 1000);
+    const event = request.data?.event;
     if (event !== "page_view" && event !== "install_click") {
-      response.status(400).send("Invalid event");
-      return;
+      throw new HttpsError("invalid-argument", "Nepoznat analytics događaj.");
     }
-    try {
-      await recordProductAnalyticsEvent({
-        event,
-        visitorId: request.body?.visitorId,
-        source: request.body?.source,
-      });
-      response.status(204).end();
-    } catch {
-      // Analytics is best effort. Avoid echoing submitted values or exposing
-      // implementation details to a public, cookie-consent endpoint.
-      response.status(400).send("Invalid analytics request");
-    }
+    await recordProductAnalyticsEvent({
+      event,
+      visitorId: request.data?.visitorId,
+      source: request.data?.source,
+    });
+    return {recorded: true};
   },
 );
 
 // Closed testing requires us to know which Google accounts can join. This
 // consented form intentionally stores only the tester's email, source and
 // operational status. It never stores letters, OCR, analysis or chat content.
-export const submitTesterLead = onRequest(
-  {region: "europe-west3", cors: ["https://briefai.salvesca.com"]},
-  async (request, response) => {
-    if (request.method !== "POST") {
-      response.status(405).send("Method not allowed");
-      return;
+export const submitTesterLead = onCall(
+  {region: "europe-west3", enforceAppCheck: true},
+  async (request) => {
+    requirePublicBurstAllowance(request, "tester-lead", 5, 60 * 60 * 1000);
+    const honeypot = typeof request.data?.website === "string" ? request.data.website.trim() : "";
+    if (honeypot) return {ok: true};
+    const startedAt = Number(request.data?.startedAt);
+    const elapsed = Date.now() - startedAt;
+    if (!Number.isFinite(startedAt) || elapsed < 1500 || elapsed > 60 * 60 * 1000) {
+      throw new HttpsError("failed-precondition", "Obrazac je istekao. Osvežite stranicu.");
     }
-    const rawEmail = typeof request.body?.email === "string" ? request.body.email.trim().toLowerCase() : "";
-    const source = analyticsSource(request.body?.source);
-    const consent = request.body?.consent === true;
+    const rawEmail = typeof request.data?.email === "string" ? request.data.email.trim().toLowerCase() : "";
+    const source = analyticsSource(request.data?.source);
+    const consent = request.data?.consent === true;
     const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) && rawEmail.length <= 254;
     if (!validEmail || !consent) {
-      response.status(400).json({ok: false, message: "Unesite važeću email adresu i potvrdite saglasnost."});
-      return;
+      throw new HttpsError(
+        "invalid-argument",
+        "Unesite važeću email adresu i potvrdite saglasnost.",
+      );
     }
     const leadId = createHash("sha256").update(rawEmail).digest("hex");
     await db.collection("testerLeads").doc(leadId).set({
@@ -1098,7 +1165,7 @@ export const submitTesterLead = onRequest(
       status: "new",
       consentVersion: "2026-08-04",
     }, {merge: true});
-    response.status(200).json({ok: true});
+    return {ok: true};
   },
 );
 
@@ -1174,6 +1241,9 @@ export const analyzeLetter = onCall(
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
     const accessOverride = founder || isPlayReviewer(request.auth?.token);
+    if (!accessOverride) {
+      await requireUserRateAllowance(uid, "analyze-letter", 20, 5 * 60 * 1000);
+    }
     requireString(request.data?.letterId, "letterId", 128);
     // Multi-page letters are OCRed locally and sent as one ordered text. The
     // higher guard keeps every relevant page available to the analysis while
@@ -1333,6 +1403,9 @@ export const generateReply = onCall(
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
     const accessOverride = founder || isPlayReviewer(request.auth?.token);
+    if (!accessOverride) {
+      await requireUserRateAllowance(uid, "generate-reply", 20, 5 * 60 * 1000);
+    }
     requireString(request.data?.letterId, "letterId", 128);
     const sourceText = requireString(request.data?.sourceText, "sourceText", 120000);
     const facts = requireString(request.data?.facts, "facts", 30000);
@@ -1400,6 +1473,9 @@ export const askLetterAssistant = onCall(
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
     const accessOverride = founder || isPlayReviewer(request.auth?.token);
+    if (!accessOverride) {
+      await requireUserRateAllowance(uid, "letter-assistant", 60, 5 * 60 * 1000);
+    }
     const question = requireString(request.data?.question, "question", 1200);
     const language = requireString(request.data?.preferredLanguage ?? "sr", "preferredLanguage", 16);
     const context = typeof request.data?.letterContext === "string" &&
@@ -1475,6 +1551,9 @@ export const askLifeInGermanyAssistant = onCall(
     }
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
+    if (!founder) {
+      await requireUserRateAllowance(uid, "life-assistant", 40, 5 * 60 * 1000);
+    }
     const reservation = await reserveAiBudget(
       uid,
       estimateTokens(question + recentContext) + 2500,
@@ -1531,6 +1610,9 @@ export const generateLifeInGermanyEmail = onCall(
   async (request) => {
     const uid = requireUser(request.auth?.uid);
     const founder = isFounder(request.auth?.token);
+    if (!founder) {
+      await requireUserRateAllowance(uid, "life-email", 20, 5 * 60 * 1000);
+    }
     const purpose = requireString(request.data?.purpose, "purpose", 120);
     const facts = requireString(request.data?.facts, "facts", 2400);
     const language = requireString(request.data?.language ?? "sr", "language", 16);
@@ -1587,6 +1669,7 @@ export const createStripeCheckout = onCall(
   {region: "europe-west3", secrets: [stripeSecretKey], enforceAppCheck: false},
   async (request) => {
     const uid = requireUser(request.auth?.uid);
+    await requireUserRateAllowance(uid, "stripe-checkout", 10, 10 * 60 * 1000);
     const plan = requireString(request.data?.plan, "plan", 16);
     const successUrl = request.data?.successUrl;
     const cancelUrl = request.data?.cancelUrl;
@@ -1624,6 +1707,7 @@ export const createStripePortal = onCall(
   {region: "europe-west3", secrets: [stripeSecretKey], enforceAppCheck: false},
   async (request) => {
     const uid = requireUser(request.auth?.uid);
+    await requireUserRateAllowance(uid, "stripe-portal", 10, 10 * 60 * 1000);
     const returnUrl = request.data?.returnUrl;
     if (!isAllowedReturnUrl(returnUrl)) {
       throw new HttpsError("invalid-argument", "Povratni URL mora koristiti odobreni HTTPS origin.");
@@ -1652,6 +1736,7 @@ export const verifyStorePurchase = onCall(
   },
   async (request) => {
     const uid = requireUser(request.auth?.uid);
+    await requireUserRateAllowance(uid, "verify-store-purchase", 20, 10 * 60 * 1000);
     const provider = requireString(request.data?.provider, "provider", 32);
     const productId = requireString(request.data?.productId, "productId", 128);
     const verificationData = requireString(request.data?.verificationData, "verificationData", 30000);
@@ -1769,6 +1854,7 @@ export const exportAccountData = onCall(
   {region: "europe-west3", enforceAppCheck: false, timeoutSeconds: 120, memory: "512MiB"},
   async (request) => {
     const uid = requireUser(request.auth?.uid);
+    await requireUserRateAllowance(uid, "account-export", 3, 60 * 60 * 1000);
     const [profile, subscription] = await Promise.all([
       db.collection("users").doc(uid).get(),
       db.collection("subscriptions").doc(uid).get(),
