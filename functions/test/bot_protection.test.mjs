@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import test from "node:test";
+import ts from "typescript";
 
 const source = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
 const landing = readFileSync(new URL("../../install-site/index.html", import.meta.url), "utf8");
@@ -9,6 +10,17 @@ const siteSecurity = readFileSync(
   new URL("../../install-site/firebase-site-security.js", import.meta.url),
   "utf8",
 );
+
+function assertValidInlineModule(html, marker) {
+  const modules = [...html.matchAll(/<script type="module">([\s\S]*?)<\/script>/g)];
+  const moduleSource = modules.find((match) => match[1].includes(marker))?.[1];
+  assert.ok(moduleSource, `Missing inline module containing ${marker}`);
+  const result = ts.transpileModule(moduleSource, {
+    compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022},
+    reportDiagnostics: true,
+  });
+  assert.deepEqual(result.diagnostics ?? [], []);
+}
 
 function exportedFunction(name, nextName) {
   return source.slice(
@@ -31,6 +43,12 @@ test("public website obtains invisible reCAPTCHA Enterprise App Check tokens", (
   assert.match(siteSecurity, /httpsCallable\(functions, 'publicAnalytics'\)/);
   assert.match(siteSecurity, /httpsCallable\(functions, 'submitTesterLead'\)/);
   assert.match(landing, /recordPublicAnalytics/);
+  assert.match(
+    landing,
+    /querySelectorAll\('\[data-analytics-install\]'\)\.forEach\([\s\S]*?\);/,
+  );
+  assertValidInlineModule(landing, "recordPublicAnalytics");
+  assertValidInlineModule(testerPage, "submitProtectedTesterLead");
 });
 
 test("tester form combines App Check, a honeypot and minimum completion time", () => {

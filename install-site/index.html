@@ -209,7 +209,9 @@
           banner.hidden = true;
           if (accepted) send('page_view');
         }));
-        document.querySelectorAll('[data-analytics-install]').forEach(link => link.addEventListener('click', () => send('install_click'));
+        document.querySelectorAll('[data-analytics-install]').forEach(link =>
+          link.addEventListener('click', () => send('install_click')),
+        );
       })();
     </script>
     <script src="https://translate.google.com/translate_a/element.js?cb=briefaiGoogleTranslateReady"></script>
