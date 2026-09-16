@@ -10,6 +10,7 @@ void main() {
   const sourcePath = 'assets/branding/briefai_logo_v2_source.png';
   const renderedLogoPath = 'assets/branding/briefai_logo_v2.png';
   const iosDirectory = 'ios/Runner/Assets.xcassets/AppIcon.appiconset';
+  const androidDirectory = 'android/app/src/main/res';
 
   final source = img.decodeImage(File(sourcePath).readAsBytesSync());
   if (source == null) {
@@ -60,7 +61,32 @@ void main() {
     ).writeAsBytesSync(img.encodePng(resized, level: 9));
   }
 
+  const androidSizes = <String, int>{
+    'mipmap-mdpi/ic_launcher.png': 48,
+    'mipmap-hdpi/ic_launcher.png': 72,
+    'mipmap-xhdpi/ic_launcher.png': 96,
+    'mipmap-xxhdpi/ic_launcher.png': 144,
+    'mipmap-xxxhdpi/ic_launcher.png': 192,
+    'drawable-mdpi/ic_launcher_foreground.png': 108,
+    'drawable-hdpi/ic_launcher_foreground.png': 162,
+    'drawable-xhdpi/ic_launcher_foreground.png': 216,
+    'drawable-xxhdpi/ic_launcher_foreground.png': 324,
+    'drawable-xxxhdpi/ic_launcher_foreground.png': 432,
+  };
+  for (final entry in androidSizes.entries) {
+    final resized = img.copyResize(
+      opaque,
+      width: entry.value,
+      height: entry.value,
+      interpolation: img.Interpolation.cubic,
+    );
+    File(
+      '$androidDirectory/${entry.key}',
+    ).writeAsBytesSync(img.encodePng(resized, level: 9));
+  }
+
   stdout.writeln(
-    'Updated ${sizes.length} iOS AppIcon images and $renderedLogoPath',
+    'Updated ${sizes.length} iOS and ${androidSizes.length} Android icons '
+    'plus $renderedLogoPath',
   );
 }
