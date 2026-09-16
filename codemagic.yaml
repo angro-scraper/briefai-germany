@@ -17,7 +17,7 @@ workflows:
         APP_STORE_APPLE_ID: "6794959959"
         # Keep the visible iOS release in step with the source and Android.
         # Earlier ad-hoc 1.0.2 packages created a misleading version trail.
-        BUILD_NAME: "1.0.36"
+        BUILD_NAME: "1.0.37"
     scripts:
       - name: Set up iOS signing
         script: xcode-project use-profiles

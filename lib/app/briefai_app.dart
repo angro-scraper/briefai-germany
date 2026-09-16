@@ -171,7 +171,11 @@ class _BriefAiAppState extends State<BriefAiApp> {
       colorScheme: scheme,
       scaffoldBackgroundColor: const Color(0xFFF8F8FC),
       textTheme: ThemeData.light().textTheme
-          .apply(bodyColor: ink, displayColor: ink)
+          .apply(
+            bodyColor: ink,
+            displayColor: ink,
+            fontFamilyFallback: const ['NotoSansArabic'],
+          )
           .copyWith(
             headlineMedium: const TextStyle(
               fontSize: 31,
@@ -202,6 +206,7 @@ class _BriefAiAppState extends State<BriefAiApp> {
           color: Colors.white,
           fontSize: 19,
           fontWeight: FontWeight.w700,
+          fontFamilyFallback: ['NotoSansArabic'],
         ),
       ),
       cardTheme: CardThemeData(

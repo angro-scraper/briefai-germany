@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # One release identity for every platform.  Store workflows may provide their
 # own build number, but the source of truth for the next user-facing release
 # must never move backwards from the already shipped Android 1.0.35 train.
-version: 1.0.36+39
+version: 1.0.37+40
 
 environment:
   sdk: ^3.12.2
@@ -100,6 +100,12 @@ flutter:
   assets:
     - assets/branding/briefai_logo_v2.png
     - assets/branding/google_g_logo.svg
+  fonts:
+    # Android system images do not always include Arabic glyphs. Bundle an
+    # OFL-licensed fallback so every supported language is legible offline.
+    - family: NotoSansArabic
+      fonts:
+        - asset: assets/fonts/NotoSansArabic-Variable.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
