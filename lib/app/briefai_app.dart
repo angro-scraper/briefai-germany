@@ -274,23 +274,20 @@ class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
+  Widget build(BuildContext context) => Scaffold(
     backgroundColor: Color(0xFF0B1533),
     body: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF315CFF), Color(0xFF9C76FF)],
-              ),
-            ),
-            child: SizedBox(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              'assets/branding/briefai_logo_v2.png',
               width: 94,
               height: 94,
-              child: Icon(Icons.auto_awesome, color: Colors.white, size: 44),
+              fit: BoxFit.cover,
+              semanticLabel: 'BriefAI',
             ),
           ),
           SizedBox(height: 18),
