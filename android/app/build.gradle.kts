@@ -20,6 +20,35 @@ val signingProperties = Properties().apply {
     }
 }
 
+// The BriefAI Play upload certificate is kept in this local, gitignored file.
+// Prefer it when present so a machine's generic release key cannot accidentally
+// be used for Play uploads.
+val briefAiUploadCredentialsFile = rootProject.file("keystores/signing-credentials.json")
+fun jsonString(file: java.io.File, key: String): String? =
+    Regex("\\\"$key\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"")
+        .find(file.readText())
+        ?.groupValues
+        ?.getOrNull(1)
+
+val briefAiUploadCredentials = if (briefAiUploadCredentialsFile.exists()) {
+    mapOf(
+        "keyAlias" to jsonString(briefAiUploadCredentialsFile, "alias"),
+        "keyPassword" to jsonString(briefAiUploadCredentialsFile, "keyPassword"),
+        "storeFile" to jsonString(briefAiUploadCredentialsFile, "keystore"),
+        "storePassword" to jsonString(briefAiUploadCredentialsFile, "storePassword"),
+    )
+} else {
+    emptyMap()
+}
+
+val hasBriefAiUploadCredentials =
+    briefAiUploadCredentials.values.all { !it.isNullOrBlank() } &&
+        file(briefAiUploadCredentials["storeFile"]!!).exists()
+val hasReleaseSigning = hasBriefAiUploadCredentials || signingPropertiesFile.exists()
+
+fun releaseSigningValue(key: String): String? =
+    if (hasBriefAiUploadCredentials) briefAiUploadCredentials[key] else signingProperties.getProperty(key)
+
 android {
     namespace = "com.briefai.briefai_germany"
     // Google Play requires Android 16 / API 36 for new updates from Aug 2026.
@@ -65,12 +94,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            if (signingPropertiesFile.exists()) {
+            if (hasReleaseSigning) {
                 signingConfig = signingConfigs.create("release") {
-                    keyAlias = signingProperties.getProperty("keyAlias")
-                    keyPassword = signingProperties.getProperty("keyPassword")
-                    storeFile = file(signingProperties.getProperty("storeFile"))
-                    storePassword = signingProperties.getProperty("storePassword")
+                    keyAlias = releaseSigningValue("keyAlias")
+                    keyPassword = releaseSigningValue("keyPassword")
+                    storeFile = file(requireNotNull(releaseSigningValue("storeFile")))
+                    storePassword = releaseSigningValue("storePassword")
                 }
             } else {
                 // This permits local configuration but release task execution is blocked below.
@@ -87,8 +116,8 @@ dependencies {
 tasks.configureEach {
     if (name.contains("Release") && (name.startsWith("package") || name.startsWith("bundle"))) {
         doFirst {
-            check(signingPropertiesFile.exists()) {
-                "Release signing is not configured. Copy android/key.properties.example to android/key.properties and provide the production keystore."
+            check(hasReleaseSigning) {
+                "Release signing is not configured. Provide the BriefAI upload credentials or android/key.properties."
             }
         }
     }
