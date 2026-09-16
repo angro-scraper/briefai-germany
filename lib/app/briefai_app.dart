@@ -151,30 +151,119 @@ class _BriefAiAppState extends State<BriefAiApp> {
   );
 
   ThemeData _theme() {
-    const navy = Color(0xFF0B1533);
-    const cobalt = Color(0xFF315CFF);
-    final scheme = ColorScheme.fromSeed(
-      seedColor: cobalt,
-      brightness: Brightness.light,
-    ).copyWith(primary: cobalt, surface: Colors.white);
+    const navy = Color(0xFF101B3D);
+    const cobalt = Color(0xFF5B35E8);
+    const ink = Color(0xFF17203A);
+    const outline = Color(0xFFE3E5F0);
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: cobalt,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: cobalt,
+          secondary: const Color(0xFF2F62EE),
+          surface: Colors.white,
+          onSurface: ink,
+          outline: outline,
+        );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFFF6F8FF),
+      scaffoldBackgroundColor: const Color(0xFFF8F8FC),
+      textTheme: ThemeData.light().textTheme
+          .apply(bodyColor: ink, displayColor: ink)
+          .copyWith(
+            headlineMedium: const TextStyle(
+              fontSize: 31,
+              height: 1.08,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.8,
+            ),
+            headlineSmall: const TextStyle(
+              fontSize: 25,
+              height: 1.12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.45,
+            ),
+            titleLarge: const TextStyle(
+              fontSize: 20,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
+            ),
+            bodyLarge: const TextStyle(fontSize: 16, height: 1.45),
+            bodyMedium: const TextStyle(fontSize: 14, height: 1.42),
+          ),
       appBarTheme: const AppBarTheme(
         backgroundColor: navy,
         foregroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 0,
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: Colors.white,
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: outline),
+        ),
         elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFFCFCFF),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: outline),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: cobalt, width: 1.8),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(54),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+          shape: const StadiumBorder(),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(50),
+          side: const BorderSide(color: outline),
+          shape: const StadiumBorder(),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: const BorderSide(color: outline),
+        selectedColor: const Color(0xFFECE8FF),
+        backgroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        height: 76,
+        backgroundColor: Colors.white,
+        indicatorColor: Color(0xFFEAE5FF),
+        elevation: 4,
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
         ),
       ),
     );
@@ -270,37 +359,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
           child: Column(
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      'BriefAI',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                  Text(
+                    'BRIEFAI',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
                     ),
                   ),
-                  _LanguageMenu(state: widget.state, services: widget.services),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: widget.onComplete,
+                    child: Text(strings.text('skip')),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: (_page + 1) / pages.length,
+                  minHeight: 6,
+                  backgroundColor: const Color(0xFFE9E9F0),
+                ),
               ),
               const Spacer(),
               Container(
-                width: 140,
-                height: 140,
+                width: 132,
+                height: 132,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(40),
                   gradient: LinearGradient(
                     colors: [
                       Theme.of(context).colorScheme.primary,
-                      const Color(0xFF9C76FF),
+                      const Color(0xFF9A4DFF),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x2B5B35E8),
+                      blurRadius: 28,
+                      offset: Offset(0, 14),
+                    ),
+                  ],
                 ),
-                child: Icon(item.$3, color: Colors.white, size: 64),
+                child: Icon(item.$3, color: Colors.white, size: 58),
               ),
-              const SizedBox(height: 38),
+              const SizedBox(height: 34),
               Text(
                 item.$1,
                 textAlign: TextAlign.center,
@@ -308,11 +420,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Text(
                 item.$2,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: const Color(0xFF5D6375)),
               ),
               const Spacer(),
               Row(
@@ -345,10 +459,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _page == 2 ? strings.text('start') : strings.text('next'),
                 ),
               ),
-              TextButton(
-                onPressed: widget.onComplete,
-                child: Text(strings.text('skip')),
-              ),
+              const SizedBox(height: 10),
+              _LanguageMenu(state: widget.state, services: widget.services),
             ],
           ),
         ),
@@ -498,23 +610,41 @@ class HomeScreen extends StatelessWidget {
     final strings = context.strings;
     final cloudUnavailable = !services.cloudEnabled && !kDebugMode;
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                strings.text('welcome'),
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BRIEFAI',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  strings.text('welcome'),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
+            const Spacer(),
             _LanguageMenu(state: state, services: services),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(strings.text('homeSubtitle')),
+        const SizedBox(height: 9),
+        Text(
+          strings.text('homeSubtitle'),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(color: const Color(0xFF656B7C)),
+        ),
         AnalyticsConsentCard(analytics: services.analytics),
         if (services.cloudEnabled && !services.auth.isSignedIn) ...[
           const SizedBox(height: 18),
@@ -536,30 +666,61 @@ class HomeScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF0B1533),
-            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF101B3D), Color(0xFF31266E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26101B3D),
+                blurRadius: 26,
+                offset: Offset(0, 13),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.auto_awesome, color: Color(0xFF9DB5FF)),
-              const SizedBox(height: 16),
-              Text(
-                strings.text('analyzeNew'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .13),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(
+                        Icons.document_scanner_outlined,
+                        color: Color(0xFFE9E4FF),
+                        size: 25,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      strings.text('analyzeNew'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        height: 1.15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 18),
               Text(
                 state.isPremium
                     ? strings.text('monthlyPlanActive')
                     : strings.remaining(
                         kFreeAnalysisLimit - state.freeAnalysesUsed,
                       ),
-                style: const TextStyle(color: Color(0xFFD7E0FF)),
+                style: const TextStyle(color: Color(0xFFD7D4EC), height: 1.35),
               ),
               if (cloudUnavailable) ...[
                 const SizedBox(height: 10),
@@ -590,6 +751,10 @@ class HomeScreen extends StatelessWidget {
                   state.canAnalyse
                       ? strings.text('addDocument')
                       : strings.text('choosePlanButton'),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF4125B8),
                 ),
               ),
             ],
@@ -763,15 +928,27 @@ class _LanguageMenu extends StatelessWidget {
       button: true,
       label: context.strings.text('appLanguage'),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE1E3EE)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D101B3D),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.translate_outlined, size: 19),
+            Icon(
+              Icons.translate_rounded,
+              size: 19,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 6),
             Text(
               AppStrings.languageLabels[state.localeCode] ??
@@ -1781,6 +1958,55 @@ class ResultScreen extends StatelessWidget {
               title: strings.text('nextSteps'),
               content: letter.suggestedAction,
             ),
+          if (!analysisMatchesLanguage && letter.sourceText.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  if (!await _ensureCloudAiAccess(context, services) ||
+                      !context.mounted) {
+                    return;
+                  }
+                  try {
+                    final translated = await services.ai.analyse(
+                      letterId: letter.id,
+                      text: letter.sourceText,
+                      language: state.aiLanguageCode,
+                    );
+                    final saved = await services.letters.replaceAnalysis(
+                      services.currentVaultKey,
+                      translated,
+                    );
+                    if (!saved || !context.mounted) return;
+                    state.replaceAnalysis(translated);
+                    await services.reminders.schedule(
+                      translated,
+                      language: state.aiLanguageCode,
+                    );
+                    if (!context.mounted) return;
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => ResultScreen(
+                          state: state,
+                          letter: translated,
+                          services: services,
+                        ),
+                      ),
+                    );
+                  } on Object {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.strings.text('tryAgain')),
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.translate_rounded),
+                label: Text(strings.text('assistantExplainAgainButton')),
+              ),
+            ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () async {
@@ -2154,18 +2380,65 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               .where((letter) => letter.folder == _folder)
               .toList(growable: false);
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
       children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF121C40),
+            borderRadius: BorderRadius.circular(26),
+          ),
+          child: Row(
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.folder_copy_outlined,
+                    color: Color(0xFFE9E4FF),
+                    size: 25,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.text('archive'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      strings.text('archiveSubtitle'),
+                      style: const TextStyle(
+                        color: Color(0xFFD6D5E8),
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         Text(
-          strings.text('archive'),
+          strings.text('folder'),
           style: Theme.of(
             context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 8),
-        Text(strings.text('archiveSubtitle')),
-        const SizedBox(height: 20),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -3500,12 +3773,65 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               final wrapperPrices =
                   snapshot.data?.wrapperPrices ?? const <String, String>{};
               return ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
                 children: [
-                  Text(
-                    strings.text('planTagline'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2D1B7D), Color(0xFF6A32E9)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x255B35E8),
+                          blurRadius: 28,
+                          offset: Offset(0, 13),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .14),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            child: Icon(
+                              Icons.workspace_premium_outlined,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          strings.text('choosePlan'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 29,
+                            height: 1.08,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 9),
+                        Text(
+                          strings.text('planTagline'),
+                          style: const TextStyle(
+                            color: Color(0xFFE7E2FF),
+                            fontSize: 16,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -4453,37 +4779,87 @@ class _PlanCard extends StatelessWidget {
   final VoidCallback? action;
   final bool selected;
   @override
-  Widget build(BuildContext context) => Card(
-    color: selected ? const Color(0xFFE7ECFF) : null,
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFF1EEFF) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: selected ? primary : const Color(0xFFE2E4EF),
+          width: selected ? 2 : 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08101B3D),
+            blurRadius: 16,
+            offset: Offset(0, 6),
           ),
-          Text(price, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          ...features.map(
-            (f) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text('✓ $f'),
-            ),
-          ),
-          if (action != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: FilledButton(
-                onPressed: action,
-                child: Text(context.strings.text('choosePlanButton')),
-              ),
-            ),
         ],
       ),
-    ),
-  );
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (selected)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(5),
+                      child: Icon(Icons.check, size: 15, color: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              price,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: const Color(0xFF17203A),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...features.map(
+              (f) => Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: primary, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(f)),
+                  ],
+                ),
+              ),
+            ),
+            if (action != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: FilledButton.icon(
+                  onPressed: action,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: Text(context.strings.text('choosePlanButton')),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

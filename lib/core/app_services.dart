@@ -1139,6 +1139,27 @@ class LetterRepository {
     });
   }
 
+  /// Replaces AI-derived fields while retaining the original local pages and
+  /// the user's organisation data. This lets a legacy analysis be generated
+  /// again in the currently selected language without losing its archive.
+  Future<bool> replaceAnalysis(String uid, LetterAnalysis analysis) async {
+    final database = await _db();
+    final existing = await _store.record(analysis.id).get(database);
+    if (!_ownedBy(existing, uid)) return false;
+    await _store.record(analysis.id).update(database, {
+      ...analysis.toMap(),
+      'ownerKey': uid,
+      'updatedAt': DateTime.now().toIso8601String(),
+      // A response drafted against a former translation must never be
+      // presented as if it was validated against the new analysis.
+      'generatedReplyLetter': null,
+      'generatedReplyEmail': null,
+      'generatedReplyContext': null,
+      'generatedReplyUpdatedAt': null,
+    });
+    return true;
+  }
+
   /// One-time migration for builds that predate household profiles.  Only the
   /// exact old base vault is moved into the personal profile; sibling profiles
   /// are never touched.
@@ -1176,9 +1197,7 @@ class LetterRepository {
     await _store.record(letterId).update(database, {
       if (status != null) 'status': status.name,
       if (folder != null) 'folder': folder.name,
-      ...?(cleanedTags == null
-          ? null
-          : <String, Object?>{'tags': cleanedTags}),
+      ...?(cleanedTags == null ? null : <String, Object?>{'tags': cleanedTags}),
       if (paymentPaid != null) ...{
         'paymentPaid': paymentPaid,
         'paymentPaidAt': paymentPaid ? DateTime.now().toIso8601String() : null,
@@ -2137,9 +2156,15 @@ class ReplyExportService {
     required String title,
     required String body,
   }) async {
+    // The built-in PDF fonts only cover a small Latin subset. Use Noto Sans
+    // so generated Serbian, Cyrillic, Greek, Arabic and Turkish text remains
+    // readable after a user shares the PDF or opens it on another device.
+    final regular = await PdfGoogleFonts.notoSansRegular();
+    final bold = await PdfGoogleFonts.notoSansBold();
     final document = pw.Document();
     document.addPage(
       pw.MultiPage(
+        theme: pw.ThemeData.withFont(base: regular, bold: bold),
         build: (_) => [
           // pw.Header decorates the title with a framework-provided line. It
           // rendered as unexplained marks in some Android/iOS share previews,

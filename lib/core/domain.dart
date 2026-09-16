@@ -134,6 +134,7 @@ class LetterAnalysis {
   final Urgency urgency;
   final String suggestedAction;
   final DateTime createdAt;
+
   /// Interface/AI language used when this analysis was generated. Legacy
   /// records have no value and are rendered with a neutral local heading.
   final String? analysisLanguage;
@@ -431,6 +432,16 @@ class AppState extends ChangeNotifier {
 
   void addAnalysis(LetterAnalysis analysis) {
     letters.insert(0, analysis);
+    notifyListeners();
+  }
+
+  void replaceAnalysis(LetterAnalysis analysis) {
+    final index = letters.indexWhere((letter) => letter.id == analysis.id);
+    if (index == -1) {
+      letters.insert(0, analysis);
+    } else {
+      letters[index] = analysis;
+    }
     notifyListeners();
   }
 
