@@ -15,9 +15,9 @@ workflows:
         bundle_identifier: com.briefai.briefaiGermany
       vars:
         APP_STORE_APPLE_ID: "6794959959"
-        # Keep the marketing version aligned with the App Store Connect
-        # version that carries the refreshed English screenshots.
-        BUILD_NAME: "1.0.1"
+        # 1.0.1 is already approved and its App Store Connect train is closed.
+        # Every newly uploaded iOS binary must use a higher marketing version.
+        BUILD_NAME: "1.0.2"
     scripts:
       - name: Set up iOS signing
         script: xcode-project use-profiles
