@@ -81,6 +81,7 @@ class AppServices {
     required this.purchases,
     required this.exports,
     required this.backups,
+    required this.cloudBackups,
     required this.household,
   });
 
@@ -96,6 +97,7 @@ class AppServices {
   final PurchaseService purchases;
   final ReplyExportService exports;
   final EncryptedBackupService backups;
+  final CloudArchiveService cloudBackups;
   final HouseholdProfileService household;
 
   /// The active local profile gets a dedicated vault.  This keeps a parent's
@@ -116,6 +118,7 @@ class AppServices {
     purchases: PurchaseService(cloudEnabled: false),
     exports: ReplyExportService(),
     backups: EncryptedBackupService(),
+    cloudBackups: CloudArchiveService(cloudEnabled: false),
     household: HouseholdProfileService(),
   );
 
@@ -200,6 +203,7 @@ class AppServices {
       purchases: PurchaseService(cloudEnabled: cloudEnabled),
       exports: ReplyExportService(),
       backups: EncryptedBackupService(),
+      cloudBackups: CloudArchiveService(cloudEnabled: cloudEnabled),
       household: HouseholdProfileService(),
     );
   }
@@ -1659,6 +1663,62 @@ class EncryptedBackupService {
     final files = picked?.files;
     final bytes = files == null || files.isEmpty ? null : files.first.bytes;
     return bytes == null ? null : utf8.decode(bytes);
+  }
+}
+
+/// Stores an already password-encrypted archive in the owner's private
+/// Firebase Storage path. The passphrase and clear archive never leave the
+/// device; Storage receives only the AES-GCM envelope produced by
+/// [EncryptedBackupService]. This deliberately remains explicit instead of
+/// silently uploading a user's documents when they sign in.
+class CloudArchiveService {
+  CloudArchiveService({required this.cloudEnabled});
+
+  static const _fileName = 'briefai-encrypted-archive-v1.briefai';
+  // The app accepts up to 50 MiB of source pages. Base64 plus the encrypted
+  // envelope can be larger, so permit a conservative 100 MiB client download
+  // while still rejecting an accidental unbounded payload.
+  static const _maximumBackupBytes = 100 * 1024 * 1024;
+
+  final bool cloudEnabled;
+
+  Reference _reference(String uid) =>
+      FirebaseStorage.instance.ref().child('users/$uid/backups/$_fileName');
+
+  Future<void> upload({required String uid, required String encrypted}) async {
+    if (!cloudEnabled || uid.isEmpty) {
+      throw StateError('Cloud backup requires a signed-in account.');
+    }
+    final bytes = Uint8List.fromList(utf8.encode(encrypted));
+    if (bytes.length > _maximumBackupBytes) {
+      throw StateError('The encrypted backup is too large to upload.');
+    }
+    await _reference(uid).putData(
+      bytes,
+      SettableMetadata(
+        contentType: 'application/vnd.briefai.encrypted-backup+json',
+        cacheControl: 'no-store',
+        customMetadata: const {'format': 'briefai-encrypted-backup'},
+      ),
+    );
+  }
+
+  Future<String> download({required String uid}) async {
+    if (!cloudEnabled || uid.isEmpty) {
+      throw StateError('Cloud backup requires a signed-in account.');
+    }
+    try {
+      final bytes = await _reference(uid).getData(_maximumBackupBytes);
+      if (bytes == null || bytes.isEmpty) {
+        throw FormatException('The cloud backup is empty.');
+      }
+      return utf8.decode(bytes);
+    } on FirebaseException catch (error) {
+      if (error.code == 'object-not-found') {
+        throw StateError('No cloud backup exists for this account.');
+      }
+      rethrow;
+    }
   }
 }
 

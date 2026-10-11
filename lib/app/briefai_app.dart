@@ -3415,6 +3415,21 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
     super.dispose();
   }
 
+  Future<String> _buildEncryptedArchive() async {
+    final payload = <String, dynamic>{
+      'schemaVersion': 1,
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
+      'profile': widget.services.household.active.name,
+      'letters': await widget.services.letters.exportRecords(
+        widget.services.currentVaultKey,
+      ),
+    };
+    return widget.services.backups.encrypt(
+      payload: payload,
+      passphrase: _password.text,
+    );
+  }
+
   Future<void> _export() async {
     final strings = context.strings;
     if (_password.text.trim().length < 10) {
@@ -3425,18 +3440,7 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
     }
     setState(() => _busy = true);
     try {
-      final payload = <String, dynamic>{
-        'schemaVersion': 1,
-        'createdAt': DateTime.now().toUtc().toIso8601String(),
-        'profile': widget.services.household.active.name,
-        'letters': await widget.services.letters.exportRecords(
-          widget.services.currentVaultKey,
-        ),
-      };
-      final encrypted = await widget.services.backups.encrypt(
-        payload: payload,
-        passphrase: _password.text,
-      );
+      final encrypted = await _buildEncryptedArchive();
       await widget.services.exports.shareEncryptedBackup(encrypted);
       if (mounted) {
         ScaffoldMessenger.of(
@@ -3504,6 +3508,82 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
     }
   }
 
+  Future<void> _uploadCloud() async {
+    final strings = context.strings;
+    final uid = widget.services.auth.uid;
+    if (uid == null || _password.text.trim().length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.text('passwordMin10Error'))),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await widget.services.cloudBackups.upload(
+        uid: uid,
+        encrypted: await _buildEncryptedArchive(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.text('backupReady'))));
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.text('backupFailed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restoreCloud() async {
+    final strings = context.strings;
+    final uid = widget.services.auth.uid;
+    if (uid == null || _password.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.text('backupPasswordRequired'))),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final payload = await widget.services.backups.decrypt(
+        encodedBackup: await widget.services.cloudBackups.download(uid: uid),
+        passphrase: _password.text,
+      );
+      final rawLetters = payload['letters'];
+      if (rawLetters is! List) {
+        throw const FormatException('Invalid backup archive.');
+      }
+      final records = rawLetters
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList(growable: false);
+      final count = await widget.services.letters.importRecords(
+        widget.services.currentVaultKey,
+        records,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(strings.format('restoreCount', {'count': count})),
+          ),
+        );
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.text('restoreFailed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
@@ -3538,6 +3618,28 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
             icon: const Icon(Icons.restore_page_outlined),
             label: Text(strings.text('restoreBackup')),
           ),
+          if (widget.services.cloudEnabled &&
+              widget.services.auth.isSignedIn) ...[
+            const SizedBox(height: 28),
+            Text(
+              strings.text('cloudBackup'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(strings.text('cloudBackupPrivacy')),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _busy ? null : _uploadCloud,
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: Text(strings.text('uploadCloudBackup')),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _restoreCloud,
+              icon: const Icon(Icons.cloud_download_outlined),
+              label: Text(strings.text('restoreCloudBackup')),
+            ),
+          ],
         ],
       ),
     );

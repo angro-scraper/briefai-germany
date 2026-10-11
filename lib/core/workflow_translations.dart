@@ -27,6 +27,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Personal',
     'encryptedArchiveBackup': 'Encrypted archive backup',
     'backupSubtitle': 'Export and restore only with your password',
+    'cloudBackup': 'Private cloud backup',
+    'cloudBackupPrivacy':
+        'Only an archive encrypted with your backup password is stored in your private account storage. We do not store the password.',
+    'uploadCloudBackup': 'Save encrypted backup online',
+    'restoreCloudBackup': 'Restore encrypted cloud backup',
     'accountDeletePartial':
         'Local data was deleted, but account deletion could not be completed.',
     'newHouseholdProfile': 'New family profile',
@@ -125,6 +130,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Persönlich',
     'encryptedArchiveBackup': 'Verschlüsseltes Archiv-Backup',
     'backupSubtitle': 'Export und Wiederherstellung nur mit Ihrem Passwort',
+    'cloudBackup': 'Privates Cloud-Backup',
+    'cloudBackupPrivacy':
+        'In Ihrem privaten Kontospeicher wird nur ein mit Ihrem Backup-Passwort verschlüsseltes Archiv gespeichert. Wir speichern das Passwort nicht.',
+    'uploadCloudBackup': 'Verschlüsseltes Backup online speichern',
+    'restoreCloudBackup': 'Verschlüsseltes Cloud-Backup wiederherstellen',
     'accountDeletePartial':
         'Lokale Daten wurden gelöscht, das Konto konnte jedoch nicht vollständig gelöscht werden.',
     'newHouseholdProfile': 'Neues Familienprofil',
@@ -224,6 +234,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Lični',
     'encryptedArchiveBackup': 'Šifrovani backup arhive',
     'backupSubtitle': 'Izvoz i vraćanje samo uz vašu lozinku',
+    'cloudBackup': 'Privatni cloud backup',
+    'cloudBackupPrivacy':
+        'U privatnom prostoru vašeg naloga čuva se samo arhiva šifrovana vašom lozinkom za backup. Lozinku ne čuvamo.',
+    'uploadCloudBackup': 'Sačuvaj šifrovani backup online',
+    'restoreCloudBackup': 'Vrati šifrovani cloud backup',
     'accountDeletePartial':
         'Lokalni podaci su obrisani, ali brisanje naloga nije završeno.',
     'newHouseholdProfile': 'Novi porodični profil',
@@ -321,6 +336,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Osobni',
     'encryptedArchiveBackup': 'Šifrirana sigurnosna kopija arhive',
     'backupSubtitle': 'Izvoz i vraćanje samo uz vašu lozinku',
+    'cloudBackup': 'Privatna sigurnosna kopija u oblaku',
+    'cloudBackupPrivacy':
+        'U privatnoj pohrani vašeg računa sprema se samo arhiva šifrirana vašom lozinkom za sigurnosnu kopiju. Lozinku ne spremamo.',
+    'uploadCloudBackup': 'Spremi šifriranu kopiju online',
+    'restoreCloudBackup': 'Vrati šifriranu kopiju iz oblaka',
     'accountDeletePartial':
         'Lokalni podaci su izbrisani, ali brisanje računa nije dovršeno.',
     'newHouseholdProfile': 'Novi obiteljski profil',
@@ -418,6 +438,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Lični',
     'encryptedArchiveBackup': 'Šifrovana sigurnosna kopija arhive',
     'backupSubtitle': 'Izvoz i vraćanje samo uz vašu lozinku',
+    'cloudBackup': 'Privatna sigurnosna kopija u oblaku',
+    'cloudBackupPrivacy':
+        'U privatnom prostoru vašeg računa čuva se samo arhiva šifrovana vašom lozinkom za sigurnosnu kopiju. Lozinku ne čuvamo.',
+    'uploadCloudBackup': 'Sačuvaj šifrovanu kopiju online',
+    'restoreCloudBackup': 'Vrati šifrovanu kopiju iz oblaka',
     'accountDeletePartial':
         'Lokalni podaci su izbrisani, ali brisanje računa nije završeno.',
     'newHouseholdProfile': 'Novi porodični profil',
@@ -515,6 +540,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Личен',
     'encryptedArchiveBackup': 'Шифрирана резервна копија на архивата',
     'backupSubtitle': 'Извоз и враќање само со вашата лозинка',
+    'cloudBackup': 'Приватна резервна копија во облак',
+    'cloudBackupPrivacy':
+        'Во приватното складиште на вашата сметка се чува само архива шифрирана со вашата лозинка за резервна копија. Не ја чуваме лозинката.',
+    'uploadCloudBackup': 'Зачувај шифрирана копија онлајн',
+    'restoreCloudBackup': 'Врати шифрирана копија од облакот',
     'accountDeletePartial':
         'Локалните податоци се избришани, но бришењето на сметката не е завршено.',
     'newHouseholdProfile': 'Нов семеен профил',
@@ -614,6 +644,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Личен',
     'encryptedArchiveBackup': 'Шифровано резервно копие на архива',
     'backupSubtitle': 'Експорт и възстановяване само с вашата парола',
+    'cloudBackup': 'Лично облачно архивиране',
+    'cloudBackupPrivacy':
+        'В личното хранилище на акаунта се пази само архив, шифрован с паролата ви за архивиране. Не съхраняваме паролата.',
+    'uploadCloudBackup': 'Запази шифровано архивиране онлайн',
+    'restoreCloudBackup': 'Възстанови шифровано архивиране от облака',
     'accountDeletePartial':
         'Локалните данни са изтрити, но акаунтът не можа да бъде изтрит напълно.',
     'newHouseholdProfile': 'Нов семеен профил',
@@ -712,6 +747,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Kişisel',
     'encryptedArchiveBackup': 'Şifreli arşiv yedeği',
     'backupSubtitle': 'Yalnızca parolanızla dışa aktarın ve geri yükleyin',
+    'cloudBackup': 'Özel bulut yedeği',
+    'cloudBackupPrivacy':
+        'Özel hesap alanınıza yalnızca yedek parolanızla şifrelenmiş arşiv kaydedilir. Parolayı saklamıyoruz.',
+    'uploadCloudBackup': 'Şifreli yedeği çevrimiçi kaydet',
+    'restoreCloudBackup': 'Şifreli bulut yedeğini geri yükle',
     'accountDeletePartial':
         'Yerel veriler silindi ancak hesap silme işlemi tamamlanamadı.',
     'newHouseholdProfile': 'Yeni aile profili',
@@ -811,6 +851,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Личный',
     'encryptedArchiveBackup': 'Зашифрованная резервная копия архива',
     'backupSubtitle': 'Экспорт и восстановление только с вашим паролем',
+    'cloudBackup': 'Личная резервная копия в облаке',
+    'cloudBackupPrivacy':
+        'В личном хранилище вашей учётной записи сохраняется только архив, зашифрованный вашим паролем резервной копии. Мы не храним пароль.',
+    'uploadCloudBackup': 'Сохранить зашифрованную копию онлайн',
+    'restoreCloudBackup': 'Восстановить зашифрованную копию из облака',
     'accountDeletePartial':
         'Локальные данные удалены, но удалить учётную запись полностью не удалось.',
     'newHouseholdProfile': 'Новый семейный профиль',
@@ -910,6 +955,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Особистий',
     'encryptedArchiveBackup': 'Зашифрована резервна копія архіву',
     'backupSubtitle': 'Експорт і відновлення лише з вашим паролем',
+    'cloudBackup': 'Приватна резервна копія в хмарі',
+    'cloudBackupPrivacy':
+        'У приватному сховищі вашого облікового запису зберігається лише архів, зашифрований вашим паролем резервної копії. Ми не зберігаємо пароль.',
+    'uploadCloudBackup': 'Зберегти зашифровану копію онлайн',
+    'restoreCloudBackup': 'Відновити зашифровану копію з хмари',
     'accountDeletePartial':
         'Локальні дані видалено, але обліковий запис не вдалося видалити повністю.',
     'newHouseholdProfile': 'Новий сімейний профіль',
@@ -1008,6 +1058,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'شخصي',
     'encryptedArchiveBackup': 'نسخة احتياطية مشفرة للأرشيف',
     'backupSubtitle': 'التصدير والاستعادة باستخدام كلمة مرورك فقط',
+    'cloudBackup': 'نسخة احتياطية خاصة في السحابة',
+    'cloudBackupPrivacy':
+        'يُحفظ في مساحة حسابك الخاصة أرشيف مشفّر فقط باستخدام كلمة مرور النسخة الاحتياطية. لا نخزّن كلمة المرور.',
+    'uploadCloudBackup': 'احفظ النسخة المشفرة عبر الإنترنت',
+    'restoreCloudBackup': 'استعد النسخة المشفرة من السحابة',
     'accountDeletePartial':
         'حُذفت البيانات المحلية، لكن تعذر إكمال حذف الحساب.',
     'newHouseholdProfile': 'ملف عائلي جديد',
@@ -1107,6 +1162,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Personal',
     'encryptedArchiveBackup': 'Copie de rezervă criptată a arhivei',
     'backupSubtitle': 'Export și restaurare numai cu parola dvs.',
+    'cloudBackup': 'Copie de rezervă privată în cloud',
+    'cloudBackupPrivacy':
+        'În spațiul privat al contului dvs. se stochează doar arhiva criptată cu parola de backup. Nu stocăm parola.',
+    'uploadCloudBackup': 'Salvează copia criptată online',
+    'restoreCloudBackup': 'Restaurează copia criptată din cloud',
     'accountDeletePartial':
         'Datele locale au fost șterse, dar ștergerea contului nu a putut fi finalizată.',
     'newHouseholdProfile': 'Profil de familie nou',
@@ -1206,6 +1266,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Osobisty',
     'encryptedArchiveBackup': 'Szyfrowana kopia archiwum',
     'backupSubtitle': 'Eksport i przywracanie tylko z Twoim hasłem',
+    'cloudBackup': 'Prywatna kopia zapasowa w chmurze',
+    'cloudBackupPrivacy':
+        'W prywatnej przestrzeni konta zapisywane jest tylko archiwum zaszyfrowane hasłem kopii zapasowej. Nie przechowujemy hasła.',
+    'uploadCloudBackup': 'Zapisz zaszyfrowaną kopię online',
+    'restoreCloudBackup': 'Przywróć zaszyfrowaną kopię z chmury',
     'accountDeletePartial':
         'Dane lokalne zostały usunięte, ale nie udało się dokończyć usuwania konta.',
     'newHouseholdProfile': 'Nowy profil rodzinny',
@@ -1305,6 +1370,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Personale',
     'encryptedArchiveBackup': 'Backup crittografato dell’archivio',
     'backupSubtitle': 'Esporta e ripristina solo con la tua password',
+    'cloudBackup': 'Backup privato nel cloud',
+    'cloudBackupPrivacy':
+        'Nello spazio privato del tuo account viene salvato solo l’archivio crittografato con la password di backup. Non conserviamo la password.',
+    'uploadCloudBackup': 'Salva il backup crittografato online',
+    'restoreCloudBackup': 'Ripristina il backup crittografato dal cloud',
     'accountDeletePartial':
         'I dati locali sono stati eliminati, ma non è stato possibile completare l’eliminazione dell’account.',
     'newHouseholdProfile': 'Nuovo profilo familiare',
@@ -1404,6 +1474,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Προσωπικό',
     'encryptedArchiveBackup': 'Κρυπτογραφημένο αντίγραφο αρχείου',
     'backupSubtitle': 'Εξαγωγή και επαναφορά μόνο με τον κωδικό σας',
+    'cloudBackup': 'Ιδιωτικό αντίγραφο ασφαλείας στο cloud',
+    'cloudBackupPrivacy':
+        'Στον ιδιωτικό χώρο του λογαριασμού σας αποθηκεύεται μόνο το αρχείο που είναι κρυπτογραφημένο με τον κωδικό αντιγράφου ασφαλείας. Δεν αποθηκεύουμε τον κωδικό.',
+    'uploadCloudBackup': 'Αποθήκευση κρυπτογραφημένου αντιγράφου online',
+    'restoreCloudBackup': 'Επαναφορά κρυπτογραφημένου αντιγράφου από το cloud',
     'accountDeletePartial':
         'Τα τοπικά δεδομένα διαγράφηκαν, αλλά η διαγραφή του λογαριασμού δεν ολοκληρώθηκε.',
     'newHouseholdProfile': 'Νέο οικογενειακό προφίλ',
@@ -1502,6 +1577,11 @@ const workflowInterfaceTranslations = <String, Map<String, String>>{
     'personalProfile': 'Personal',
     'encryptedArchiveBackup': 'Kopje e koduar e arkivit',
     'backupSubtitle': 'Eksport dhe rikthim vetëm me fjalëkalimin tuaj',
+    'cloudBackup': 'Kopje rezervë private në cloud',
+    'cloudBackupPrivacy':
+        'Në hapësirën private të llogarisë ruhet vetëm arkivi i enkriptuar me fjalëkalimin e kopjes rezervë. Ne nuk e ruajmë fjalëkalimin.',
+    'uploadCloudBackup': 'Ruaj kopjen e enkriptuar online',
+    'restoreCloudBackup': 'Rikthe kopjen e enkriptuar nga cloud',
     'accountDeletePartial':
         'Të dhënat lokale u fshinë, por fshirja e llogarisë nuk u përfundua.',
     'newHouseholdProfile': 'Profil i ri familjar',

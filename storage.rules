@@ -6,6 +6,13 @@ service firebase.storage {
     match /users/{uid}/letters/{path=**} {
       allow read, write: if false;
     }
+    // An opt-in archive backup is encrypted on the device with the user's
+    // backup password before upload. Only the signed-in owner can read or
+    // replace this opaque envelope; original unencrypted documents remain
+    // forbidden above.
+    match /users/{uid}/backups/briefai-encrypted-archive-v1.briefai {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
     // Exports are generated only by the trusted Cloud Function. The owner can
     // read and remove the short-lived JSON file, but cannot forge an export in
     // another user's namespace.
