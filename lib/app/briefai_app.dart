@@ -18,6 +18,29 @@ import '../core/app_services.dart';
 import '../core/app_localizations.dart';
 import '../core/legal.dart';
 
+/// The single visual language for BriefAI.  Business flows intentionally do
+/// not own colours or geometry, so screens cannot drift back to an older
+/// visual style while features evolve.
+abstract final class BriefAiDesign {
+  static const navy = Color(0xFF0C173A);
+  static const ink = Color(0xFF17203A);
+  static const blue = Color(0xFF3563FF);
+  static const blueDark = Color(0xFF204BDB);
+  static const blueSoft = Color(0xFFEAF0FF);
+  static const canvas = Color(0xFFF7F8FC);
+  static const surface = Colors.white;
+  static const surfaceMuted = Color(0xFFF0F3F9);
+  static const border = Color(0xFFDCE3F0);
+  static const muted = Color(0xFF62708D);
+  static const green = Color(0xFF197A57);
+  static const greenSoft = Color(0xFFE4F5EC);
+  static const amber = Color(0xFFAA6500);
+  static const amberSoft = Color(0xFFFFF1D9);
+  static const red = Color(0xFFB32727);
+  static const redSoft = Color(0xFFFFE7E7);
+  static const radius = 18.0;
+}
+
 class BriefAiApp extends StatefulWidget {
   const BriefAiApp({super.key, required this.services});
   final AppServices services;
@@ -151,29 +174,25 @@ class _BriefAiAppState extends State<BriefAiApp> {
   );
 
   ThemeData _theme() {
-    const navy = Color(0xFF101B3D);
-    const cobalt = Color(0xFF5B35E8);
-    const ink = Color(0xFF17203A);
-    const outline = Color(0xFFE3E5F0);
     final scheme =
         ColorScheme.fromSeed(
-          seedColor: cobalt,
+          seedColor: BriefAiDesign.blue,
           brightness: Brightness.light,
         ).copyWith(
-          primary: cobalt,
-          secondary: const Color(0xFF2F62EE),
+          primary: BriefAiDesign.blue,
+          secondary: BriefAiDesign.blue,
           surface: Colors.white,
-          onSurface: ink,
-          outline: outline,
+          onSurface: BriefAiDesign.ink,
+          outline: BriefAiDesign.border,
         );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFFF8F8FC),
+      scaffoldBackgroundColor: BriefAiDesign.canvas,
       textTheme: ThemeData.light().textTheme
           .apply(
-            bodyColor: ink,
-            displayColor: ink,
+            bodyColor: BriefAiDesign.ink,
+            displayColor: BriefAiDesign.ink,
             fontFamilyFallback: const ['NotoSansArabic'],
           )
           .copyWith(
@@ -198,75 +217,85 @@ class _BriefAiAppState extends State<BriefAiApp> {
             bodyMedium: const TextStyle(fontSize: 14, height: 1.42),
           ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: navy,
-        foregroundColor: Colors.white,
-        centerTitle: true,
+        backgroundColor: BriefAiDesign.canvas,
+        foregroundColor: BriefAiDesign.navy,
+        centerTitle: false,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: BriefAiDesign.navy,
           fontSize: 19,
           fontWeight: FontWeight.w700,
           fontFamilyFallback: ['NotoSansArabic'],
         ),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
+        color: BriefAiDesign.surface,
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: outline),
+          borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+          side: const BorderSide(color: BriefAiDesign.border),
         ),
         elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFFCFCFF),
+        fillColor: BriefAiDesign.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 15,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: outline),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: BriefAiDesign.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: outline),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: BriefAiDesign.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: cobalt, width: 1.8),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: BriefAiDesign.blue, width: 1.8),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(54),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
-          shape: const StadiumBorder(),
+          backgroundColor: BriefAiDesign.blue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(50),
-          side: const BorderSide(color: outline),
-          shape: const StadiumBorder(),
+          side: const BorderSide(color: BriefAiDesign.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: const BorderSide(color: outline),
-        selectedColor: const Color(0xFFECE8FF),
-        backgroundColor: Colors.white,
+        side: const BorderSide(color: BriefAiDesign.border),
+        selectedColor: BriefAiDesign.blueSoft,
+        backgroundColor: BriefAiDesign.surface,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       ),
-      navigationBarTheme: const NavigationBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
         height: 76,
-        backgroundColor: Colors.white,
-        indicatorColor: Color(0xFFEAE5FF),
-        elevation: 4,
+        backgroundColor: BriefAiDesign.surface,
+        indicatorColor: BriefAiDesign.blueSoft,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        elevation: 0,
         labelTextStyle: WidgetStatePropertyAll(
           TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
         ),
@@ -396,23 +425,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 height: 132,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(40),
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      const Color(0xFF9A4DFF),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x2B5B35E8),
-                      blurRadius: 28,
-                      offset: Offset(0, 14),
-                    ),
-                  ],
+                  color: BriefAiDesign.blueSoft,
+                  border: Border.all(color: const Color(0xFFBDD0FF)),
                 ),
-                child: Icon(item.$3, color: Colors.white, size: 58),
+                child: Icon(item.$3, color: BriefAiDesign.blue, size: 58),
               ),
               const SizedBox(height: 34),
               Text(
@@ -612,7 +628,7 @@ class HomeScreen extends StatelessWidget {
     final strings = context.strings;
     final cloudUnavailable = !services.cloudEnabled && !kDebugMode;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
       children: [
         Row(
           children: [
@@ -622,9 +638,9 @@ class HomeScreen extends StatelessWidget {
                 Text(
                   'BRIEFAI',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: BriefAiDesign.blue,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
+                    letterSpacing: 1.5,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -645,7 +661,7 @@ class HomeScreen extends StatelessWidget {
           strings.text('homeSubtitle'),
           style: Theme.of(
             context,
-          ).textTheme.bodyLarge?.copyWith(color: const Color(0xFF656B7C)),
+          ).textTheme.bodyLarge?.copyWith(color: BriefAiDesign.muted),
         ),
         AnalyticsConsentCard(analytics: services.analytics),
         if (services.cloudEnabled && !services.auth.isSignedIn) ...[
@@ -664,23 +680,12 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 24),
+        const SizedBox(height: 22),
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF101B3D), Color(0xFF31266E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26101B3D),
-                blurRadius: 26,
-                offset: Offset(0, 13),
-              ),
-            ],
+            color: BriefAiDesign.navy,
+            borderRadius: BorderRadius.circular(BriefAiDesign.radius),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -690,13 +695,13 @@ class HomeScreen extends StatelessWidget {
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: .13),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Padding(
                       padding: EdgeInsets.all(12),
                       child: Icon(
                         Icons.document_scanner_outlined,
-                        color: Color(0xFFE9E4FF),
+                        color: Color(0xFFD7E2FF),
                         size: 25,
                       ),
                     ),
@@ -722,7 +727,7 @@ class HomeScreen extends StatelessWidget {
                     : strings.remaining(
                         kFreeAnalysisLimit - state.freeAnalysesUsed,
                       ),
-                style: const TextStyle(color: Color(0xFFD7D4EC), height: 1.35),
+                style: const TextStyle(color: Color(0xFFD5DDF6), height: 1.35),
               ),
               if (cloudUnavailable) ...[
                 const SizedBox(height: 10),
@@ -755,16 +760,16 @@ class HomeScreen extends StatelessWidget {
                       : strings.text('choosePlanButton'),
                 ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF4125B8),
+                  backgroundColor: BriefAiDesign.blue,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
         _DeadlineOverviewCard(state: state, services: services),
-        const SizedBox(height: 28),
+        const SizedBox(height: 30),
         Text(
           strings.text('recentLetters'),
           style: Theme.of(
@@ -808,33 +813,68 @@ class _DeadlineOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overview = _deadlineOverview(state.letters);
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: overview.overdue > 0
-              ? Colors.red.withValues(alpha: .12)
-              : Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(
-            Icons.calendar_month_outlined,
-            color: overview.overdue > 0 ? Colors.red.shade700 : null,
-          ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              DeadlineCenterScreen(state: state, services: services),
         ),
-        title: Text(context.strings.text('deadlineCalendar')),
-        subtitle: Text(
-          overview.total == 0
-              ? context.strings.text('deadlineNone')
-              : context.strings.format('deadlineSummary', {
-                  'today': overview.today,
-                  'week': overview.thisWeek,
-                  'overdue': overview.overdue,
-                }),
+      ),
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: BriefAiDesign.surface,
+          borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+          border: Border.all(color: BriefAiDesign.border),
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) =>
-                DeadlineCenterScreen(state: state, services: services),
-          ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: overview.overdue > 0
+                    ? BriefAiDesign.redSoft
+                    : BriefAiDesign.blueSoft,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(
+                Icons.calendar_month_outlined,
+                color: overview.overdue > 0
+                    ? BriefAiDesign.red
+                    : BriefAiDesign.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.strings.text('deadlineCalendar'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    overview.total == 0
+                        ? context.strings.text('deadlineNone')
+                        : context.strings.format('deadlineSummary', {
+                            'today': overview.today,
+                            'week': overview.thisWeek,
+                            'overdue': overview.overdue,
+                          }),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: BriefAiDesign.muted),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: BriefAiDesign.muted),
+          ],
         ),
       ),
     );
@@ -932,16 +972,9 @@ class _LanguageMenu extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE1E3EE)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0D101B3D),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          color: BriefAiDesign.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: BriefAiDesign.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1079,9 +1112,6 @@ class _SignInScreenState extends State<SignInScreen> {
         title: Text(
           _create ? strings.text('createAccount') : strings.text('signIn'),
         ),
-        backgroundColor: const Color(0xFF0B1533),
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SafeArea(
         top: false,
@@ -1096,7 +1126,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       ? strings.text('createAccount')
                       : strings.text('signIn'),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: const Color(0xFF0B1533),
+                    color: BriefAiDesign.navy,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1410,6 +1440,52 @@ class _GoogleMark extends StatelessWidget {
   );
 }
 
+class _DocumentInputButton extends StatelessWidget {
+  const _DocumentInputButton({
+    required this.icon,
+    required this.title,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+    onPressed: onPressed,
+    style: OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(72),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: BriefAiDesign.blueSoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: BriefAiDesign.blue),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: BriefAiDesign.ink,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const Icon(Icons.chevron_right_rounded, color: BriefAiDesign.muted),
+      ],
+    ),
+  );
+}
+
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({
     super.key,
@@ -1459,32 +1535,33 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             const SizedBox(height: 8),
             Text(strings.text('localProcessing')),
             const SizedBox(height: 18),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                OutlinedButton.icon(
+                _DocumentInputButton(
+                  icon: Icons.camera_alt_outlined,
+                  title: strings.text('camera'),
                   onPressed: _loading
                       ? null
                       : () => _selectOne(widget.services.documents.capture),
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(strings.text('camera')),
                 ),
-                OutlinedButton.icon(
+                const SizedBox(height: 10),
+                _DocumentInputButton(
+                  icon: Icons.photo_library_outlined,
+                  title: strings.text('gallery'),
                   onPressed: _loading
                       ? null
                       : () => _selectMany(
                           widget.services.documents.galleryMultiple,
                         ),
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: Text(strings.text('gallery')),
                 ),
-                OutlinedButton.icon(
+                const SizedBox(height: 10),
+                _DocumentInputButton(
+                  icon: Icons.upload_file_outlined,
+                  title: strings.text('pdfImage'),
                   onPressed: _loading
                       ? null
                       : () => _selectMany(widget.services.documents.files),
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(strings.text('pdfImage')),
                 ),
               ],
             ),
@@ -2382,26 +2459,41 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               .where((letter) => letter.folder == _folder)
               .toList(growable: false);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
       children: [
+        Row(
+          children: [
+            Text(
+              'BRIEFAI',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: BriefAiDesign.blue,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const Spacer(),
+            _LanguageMenu(state: widget.state, services: widget.services),
+          ],
+        ),
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF121C40),
-            borderRadius: BorderRadius.circular(26),
+            color: BriefAiDesign.navy,
+            borderRadius: BorderRadius.circular(BriefAiDesign.radius),
           ),
           child: Row(
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Padding(
                   padding: EdgeInsets.all(12),
                   child: Icon(
                     Icons.folder_copy_outlined,
-                    color: Color(0xFFE9E4FF),
+                    color: Color(0xFFD7E2FF),
                     size: 25,
                   ),
                 ),
@@ -2423,7 +2515,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                     Text(
                       strings.text('archiveSubtitle'),
                       style: const TextStyle(
-                        color: Color(0xFFD6D5E8),
+                        color: Color(0xFFD5DDF6),
                         height: 1.3,
                       ),
                     ),
@@ -2589,7 +2681,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
           ]
         : _messages;
     return Scaffold(
-      appBar: AppBar(title: Text(strings.text('assistantTitle'))),
+      appBar: AppBar(
+        title: Text(strings.text('assistantTitle')),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _LanguageMenu(
+              state: widget.state,
+              services: widget.services,
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           if (letters.isNotEmpty)
@@ -2632,30 +2735,23 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: message.fromUser
-                              ? const Color(0xFFDDE5FF)
-                              : Colors.white,
+                              ? BriefAiDesign.blueSoft
+                              : BriefAiDesign.surface,
                           borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(18),
-                            topRight: const Radius.circular(18),
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
                             bottomLeft: Radius.circular(
-                              message.fromUser ? 18 : 4,
+                              message.fromUser ? 16 : 5,
                             ),
                             bottomRight: Radius.circular(
-                              message.fromUser ? 4 : 18,
+                              message.fromUser ? 5 : 16,
                             ),
                           ),
                           border: Border.all(
                             color: message.fromUser
-                                ? const Color(0xFFC9D6FF)
-                                : const Color(0xFFE5E8F2),
+                                ? const Color(0xFFBED0FF)
+                                : BriefAiDesign.border,
                           ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0A0B1535),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
                         ),
                         child: Text(
                           message.text,
@@ -2781,23 +2877,39 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = context.strings;
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
       children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: const Icon(Icons.person, size: 34),
-        ),
-        const SizedBox(height: 12),
-        Center(
-          child: Text(
-            strings.text('myProfile'),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: BriefAiDesign.navy,
+            borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.person_outline, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  strings.text('myProfile'),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         if (services.cloudEnabled && services.auth.isSignedIn)
           StreamBuilder<Map<String, dynamic>?>(
             stream: services.auth.profileChanges(),
@@ -3780,19 +3892,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2D1B7D), Color(0xFF6A32E9)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x255B35E8),
-                          blurRadius: 28,
-                          offset: Offset(0, 13),
-                        ),
-                      ],
+                      color: BriefAiDesign.navy,
+                      borderRadius: BorderRadius.circular(BriefAiDesign.radius),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3828,7 +3929,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         Text(
                           strings.text('planTagline'),
                           style: const TextStyle(
-                            color: Color(0xFFE7E2FF),
+                            color: Color(0xFFD5DDF6),
                             fontSize: 16,
                             height: 1.4,
                           ),
@@ -4013,19 +4114,11 @@ class _AssistantLetterPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE1E6F4)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D0B1535),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-        ],
+        color: BriefAiDesign.surface,
+        borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+        border: Border.all(color: BriefAiDesign.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -4036,14 +4129,14 @@ class _AssistantLetterPanel extends StatelessWidget {
               children: [
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: .10),
+                    color: BriefAiDesign.blueSoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(9),
                     child: Icon(
                       Icons.description_outlined,
-                      color: colors.primary,
+                      color: BriefAiDesign.blue,
                       size: 20,
                     ),
                   ),
@@ -4065,14 +4158,14 @@ class _AssistantLetterPanel extends StatelessWidget {
               isExpanded: true,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFFF8F9FD),
+                fillColor: BriefAiDesign.surfaceMuted,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFD4DBEA)),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: BriefAiDesign.border),
                 ),
               ),
               items: letters
@@ -4128,149 +4221,192 @@ class LetterCard extends StatelessWidget {
     final due = letter.paymentDueDate ?? letter.deadline;
     final hasActions =
         onStatus != null || onDelete != null || onOrganize != null;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundColor: letter.urgency == Urgency.high
-                    ? Colors.red.withValues(alpha: .12)
-                    : Theme.of(context).colorScheme.primaryContainer,
-                child: Icon(
-                  letter.urgency == Urgency.high
-                      ? Icons.priority_high_rounded
-                      : Icons.description_outlined,
-                  color: letter.urgency == Urgency.high
-                      ? Colors.red.shade700
-                      : Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _letterHeading(context, letter),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _LetterThumbnail(highPriority: letter.urgency == Urgency.high),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _letterHeading(context, letter),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                            ),
                       ),
-                    ),
-                    const SizedBox(height: 9),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _LetterMetaPill(
-                          icon: Icons.folder_outlined,
-                          label: strings.category(letter.category.name),
-                        ),
-                        if (letter.isPaymentObligation)
+                      const SizedBox(height: 9),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
                           _LetterMetaPill(
-                            icon: letter.paymentPaid
-                                ? Icons.check_circle_outline
-                                : Icons.payments_outlined,
-                            label: letter.paymentPaid
-                                ? strings.text('paymentPaid')
-                                : strings.text('paymentOpen'),
+                            icon: Icons.folder_outlined,
+                            label: strings.category(letter.category.name),
                           ),
-                        if (due != null)
-                          _LetterMetaPill(
-                            icon: Icons.event_outlined,
-                            label:
-                                '${due.day.toString().padLeft(2, '0')}.${due.month.toString().padLeft(2, '0')}.${due.year}',
-                            warning: due.isBefore(DateTime.now()),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (hasActions)
-                PopupMenuButton<_LetterCardAction>(
-                  tooltip: strings.text('progressStatus'),
-                  onSelected: (action) {
-                    switch (action) {
-                      case _LetterCardAction.newLetter:
-                        onStatus?.call(LetterStatus.newLetter);
-                      case _LetterCardAction.inProgress:
-                        onStatus?.call(LetterStatus.inProgress);
-                      case _LetterCardAction.replyPrepared:
-                        onStatus?.call(LetterStatus.replyPrepared);
-                      case _LetterCardAction.sent:
-                        onStatus?.call(LetterStatus.sent);
-                      case _LetterCardAction.awaitingReply:
-                        onStatus?.call(LetterStatus.awaitingReply);
-                      case _LetterCardAction.done:
-                        onStatus?.call(LetterStatus.done);
-                      case _LetterCardAction.organise:
-                        onOrganize?.call();
-                      case _LetterCardAction.delete:
-                        onDelete?.call();
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    if (onStatus != null) ...[
-                      PopupMenuItem(
-                        value: _LetterCardAction.newLetter,
-                        child: Text(strings.text('newStatus')),
-                      ),
-                      PopupMenuItem(
-                        value: _LetterCardAction.inProgress,
-                        child: Text(strings.text('progressStatus')),
-                      ),
-                      PopupMenuItem(
-                        value: _LetterCardAction.replyPrepared,
-                        child: Text(
-                          _statusLabel(context, LetterStatus.replyPrepared),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: _LetterCardAction.sent,
-                        child: Text(_statusLabel(context, LetterStatus.sent)),
-                      ),
-                      PopupMenuItem(
-                        value: _LetterCardAction.awaitingReply,
-                        child: Text(
-                          _statusLabel(context, LetterStatus.awaitingReply),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: _LetterCardAction.done,
-                        child: Text(strings.text('doneStatus')),
+                          if (letter.isPaymentObligation)
+                            _LetterMetaPill(
+                              icon: letter.paymentPaid
+                                  ? Icons.check_circle_outline
+                                  : Icons.payments_outlined,
+                              label: letter.paymentPaid
+                                  ? strings.text('paymentPaid')
+                                  : strings.text('paymentOpen'),
+                            ),
+                          if (due != null)
+                            _LetterMetaPill(
+                              icon: Icons.event_outlined,
+                              label:
+                                  '${due.day.toString().padLeft(2, '0')}.${due.month.toString().padLeft(2, '0')}.${due.year}',
+                              warning: due.isBefore(DateTime.now()),
+                            ),
+                        ],
                       ),
                     ],
-                    if (onStatus != null &&
-                        (onOrganize != null || onDelete != null))
-                      const PopupMenuDivider(),
-                    if (onOrganize != null)
-                      PopupMenuItem(
-                        value: _LetterCardAction.organise,
-                        child: Text(strings.text('organize')),
-                      ),
-                    if (onDelete != null)
-                      PopupMenuItem(
-                        value: _LetterCardAction.delete,
-                        child: Text(strings.text('deleteDocument')),
-                      ),
-                  ],
-                  icon: const Icon(Icons.more_horiz_rounded),
+                  ),
                 ),
-            ],
+                if (hasActions)
+                  PopupMenuButton<_LetterCardAction>(
+                    tooltip: strings.text('progressStatus'),
+                    onSelected: (action) {
+                      switch (action) {
+                        case _LetterCardAction.newLetter:
+                          onStatus?.call(LetterStatus.newLetter);
+                        case _LetterCardAction.inProgress:
+                          onStatus?.call(LetterStatus.inProgress);
+                        case _LetterCardAction.replyPrepared:
+                          onStatus?.call(LetterStatus.replyPrepared);
+                        case _LetterCardAction.sent:
+                          onStatus?.call(LetterStatus.sent);
+                        case _LetterCardAction.awaitingReply:
+                          onStatus?.call(LetterStatus.awaitingReply);
+                        case _LetterCardAction.done:
+                          onStatus?.call(LetterStatus.done);
+                        case _LetterCardAction.organise:
+                          onOrganize?.call();
+                        case _LetterCardAction.delete:
+                          onDelete?.call();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      if (onStatus != null) ...[
+                        PopupMenuItem(
+                          value: _LetterCardAction.newLetter,
+                          child: Text(strings.text('newStatus')),
+                        ),
+                        PopupMenuItem(
+                          value: _LetterCardAction.inProgress,
+                          child: Text(strings.text('progressStatus')),
+                        ),
+                        PopupMenuItem(
+                          value: _LetterCardAction.replyPrepared,
+                          child: Text(
+                            _statusLabel(context, LetterStatus.replyPrepared),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: _LetterCardAction.sent,
+                          child: Text(_statusLabel(context, LetterStatus.sent)),
+                        ),
+                        PopupMenuItem(
+                          value: _LetterCardAction.awaitingReply,
+                          child: Text(
+                            _statusLabel(context, LetterStatus.awaitingReply),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: _LetterCardAction.done,
+                          child: Text(strings.text('doneStatus')),
+                        ),
+                      ],
+                      if (onStatus != null &&
+                          (onOrganize != null || onDelete != null))
+                        const PopupMenuDivider(),
+                      if (onOrganize != null)
+                        PopupMenuItem(
+                          value: _LetterCardAction.organise,
+                          child: Text(strings.text('organize')),
+                        ),
+                      if (onDelete != null)
+                        PopupMenuItem(
+                          value: _LetterCardAction.delete,
+                          child: Text(strings.text('deleteDocument')),
+                        ),
+                    ],
+                    icon: const Icon(Icons.more_horiz_rounded),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _LetterThumbnail extends StatelessWidget {
+  const _LetterThumbnail({required this.highPriority});
+  final bool highPriority;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 56,
+    height: 72,
+    padding: const EdgeInsets.fromLTRB(10, 12, 10, 9),
+    decoration: BoxDecoration(
+      color: BriefAiDesign.surfaceMuted,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: highPriority ? const Color(0xFFFFCCCC) : BriefAiDesign.border,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          highPriority
+              ? Icons.priority_high_rounded
+              : Icons.description_outlined,
+          size: 16,
+          color: highPriority ? BriefAiDesign.red : BriefAiDesign.blue,
+        ),
+        const SizedBox(height: 7),
+        const _DocumentLine(width: 30),
+        const SizedBox(height: 4),
+        const _DocumentLine(width: 22),
+        const SizedBox(height: 4),
+        const _DocumentLine(width: 27),
+      ],
+    ),
+  );
+}
+
+class _DocumentLine extends StatelessWidget {
+  const _DocumentLine({required this.width});
+  final double width;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: width,
+    height: 3,
+    decoration: BoxDecoration(
+      color: const Color(0xFFB7C1D4),
+      borderRadius: BorderRadius.circular(3),
+    ),
+  );
 }
 
 class _LetterMetaPill extends StatelessWidget {
@@ -4286,9 +4422,7 @@ class _LetterMetaPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: warning
-          ? Colors.red.withValues(alpha: .09)
-          : Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: warning ? BriefAiDesign.redSoft : BriefAiDesign.surfaceMuted,
       borderRadius: BorderRadius.circular(8),
     ),
     child: Padding(
@@ -4296,7 +4430,7 @@ class _LetterMetaPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: warning ? Colors.red.shade700 : null),
+          Icon(icon, size: 14, color: warning ? BriefAiDesign.red : null),
           const SizedBox(width: 4),
           Text(label, style: Theme.of(context).textTheme.labelSmall),
         ],
@@ -4715,13 +4849,33 @@ class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String text;
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(40),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.symmetric(vertical: 10),
+    padding: const EdgeInsets.all(28),
+    decoration: BoxDecoration(
+      color: BriefAiDesign.surface,
+      borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+      border: Border.all(color: BriefAiDesign.border),
+    ),
     child: Column(
       children: [
-        Icon(icon, size: 48, color: Colors.blueGrey),
-        const SizedBox(height: 12),
-        Text(text),
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: BriefAiDesign.surfaceMuted,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, size: 28, color: BriefAiDesign.muted),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: BriefAiDesign.muted),
+        ),
       ],
     ),
   );
@@ -4734,10 +4888,19 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Align(
     alignment: Alignment.centerLeft,
-    child: Chip(
-      label: Text(label),
-      backgroundColor: color.withValues(alpha: .12),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.bold),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     ),
   );
 }
@@ -4747,21 +4910,26 @@ class _ResultSection extends StatelessWidget {
   final String title;
   final String content;
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(content),
-        ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: BriefAiDesign.blue,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(content, style: Theme.of(context).textTheme.bodyLarge),
+          ],
+        ),
       ),
     ),
   );
@@ -4786,19 +4954,12 @@ class _PlanCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFFF1EEFF) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: selected ? BriefAiDesign.blueSoft : BriefAiDesign.surface,
+        borderRadius: BorderRadius.circular(BriefAiDesign.radius),
         border: Border.all(
-          color: selected ? primary : const Color(0xFFE2E4EF),
+          color: selected ? BriefAiDesign.blue : BriefAiDesign.border,
           width: selected ? 2 : 1,
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08101B3D),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -4832,7 +4993,7 @@ class _PlanCard extends StatelessWidget {
             Text(
               price,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: const Color(0xFF17203A),
+                color: BriefAiDesign.ink,
                 fontWeight: FontWeight.w800,
               ),
             ),
