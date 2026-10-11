@@ -330,17 +330,35 @@ class AuthService {
     }
   }
 
-  Future<void> signInWithEmail(
+  /// Signs a user in with e-mail and password.
+  ///
+  /// Returns whether a new Firebase identity was created.  The registration
+  /// screen is also the entry point for returning users, so an
+  /// `email-already-in-use` response is recovered by signing into the
+  /// existing account with the password the person just supplied.  This does
+  /// not merge accounts or touch the local letter vault; it only avoids
+  /// turning a valid returning-user login into an opaque error.
+  Future<bool> signInWithEmail(
     String email,
     String password, {
     bool create = false,
   }) async {
-    if (!cloudEnabled) return;
+    if (!cloudEnabled) return false;
+    var created = false;
     if (create) {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        created = true;
+      } on FirebaseAuthException catch (error) {
+        if (error.code != 'email-already-in-use') rethrow;
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      }
     } else {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -348,6 +366,7 @@ class AuthService {
       );
     }
     await _ensureProfile();
+    return created;
   }
 
   Future<void> signInWithGoogle() async {

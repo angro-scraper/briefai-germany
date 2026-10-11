@@ -106,6 +106,13 @@ void main() {
     }
   });
 
+  test('Serbian interface locale uses the Latin script consistently', () {
+    final locale = AppStrings.interfaceLocale('sr');
+    expect(locale.languageCode, 'sr');
+    expect(locale.scriptCode, 'Latn');
+    expect(AppStrings.interfaceLocale('de'), const Locale('de'));
+  });
+
   test(
     'every advertised interface language ships every static string',
     () async {

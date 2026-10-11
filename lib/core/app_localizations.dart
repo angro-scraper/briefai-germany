@@ -96,8 +96,17 @@ class AppStrings {
 
   /// Flutter must never select a partial interface translation through the
   /// device locale. Wider language support belongs only to AI output, below.
+  /// Locale used by Flutter's own Material/Cupertino controls. Serbian needs
+  /// an explicit Latin script here: the product copy is Serbian Latin, while
+  /// Flutter otherwise selects its Serbian Cyrillic Material strings (for
+  /// example the back button). Keeping this in one place prevents a screen
+  /// from mixing scripts when the device itself is configured differently.
+  static Locale interfaceLocale(String languageCode) => languageCode == 'sr'
+      ? Locale.fromSubtags(languageCode: 'sr', scriptCode: 'Latn')
+      : Locale(languageCode);
+
   static final supportedLocales = fullyLocalizedLanguageCodes
-      .map(Locale.new)
+      .map(interfaceLocale)
       .toList(growable: false);
 
   /// Complete, static translations available for the application interface.

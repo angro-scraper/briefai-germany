@@ -152,7 +152,7 @@ class _BriefAiAppState extends State<BriefAiApp> {
     builder: (context, _) => MaterialApp(
       title: 'BriefAI Germany',
       debugShowCheckedModeBanner: false,
-      locale: Locale(_state.localeCode),
+      locale: AppStrings.interfaceLocale(_state.localeCode),
       supportedLocales: AppStrings.supportedLocales,
       localizationsDelegates: const [
         AppStrings.delegate,
@@ -1228,12 +1228,17 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
     await _run(() async {
-      await widget.services.auth.signInWithEmail(
+      final created = await widget.services.auth.signInWithEmail(
         email,
         _password.text,
         create: _create,
       );
-      if (_create) unawaited(widget.services.analytics.trackRegistration());
+      // People frequently choose the visible "create account" option even
+      // though they already registered with this e-mail.  AuthService then
+      // signs them into that existing account rather than reporting a false
+      // failure.  Count a registration only when Firebase actually created a
+      // new identity.
+      if (created) unawaited(widget.services.analytics.trackRegistration());
     });
   }
 
