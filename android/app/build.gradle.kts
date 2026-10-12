@@ -43,7 +43,10 @@ val briefAiUploadCredentials = if (briefAiUploadCredentialsFile.exists()) {
 
 val hasBriefAiUploadCredentials =
     briefAiUploadCredentials.values.all { !it.isNullOrBlank() } &&
-        file(briefAiUploadCredentials["storeFile"]!!).exists()
+        // `all` is true for an empty map.  CI intentionally has no local
+        // Play-upload credentials when it only builds the debug APK, so do
+        // not force-unwrap a missing storeFile during Gradle configuration.
+        briefAiUploadCredentials["storeFile"]?.let { file(it).exists() } == true
 val hasReleaseSigning = hasBriefAiUploadCredentials || signingPropertiesFile.exists()
 
 fun releaseSigningValue(key: String): String? =
