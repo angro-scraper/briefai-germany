@@ -161,6 +161,12 @@ class _BriefAiAppState extends State<BriefAiApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: _theme(),
+      // Android 15+ can draw Flutter content edge-to-edge by default. Keep
+      // every page above the system navigation area so that the final action
+      // or line of text is never hidden behind the phone's Back/Home buttons.
+      // The system buttons remain available; only the app content is inset.
+      builder: (context, child) =>
+          SafeArea(top: false, child: child ?? const SizedBox.shrink()),
       home: !_restored
           ? const SplashScreen()
           : _state.onboardingComplete
