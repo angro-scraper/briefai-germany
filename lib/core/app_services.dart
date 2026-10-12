@@ -1047,6 +1047,14 @@ class LetterRepository {
   static const deviceVaultKey = 'device-local-v2';
   static const anonymousVaultKey = 'anonymous-v3';
 
+  /// Some versions created the personal household profile before Firebase had
+  /// restored the previous session.  That temporary profile is still an
+  /// unclaimed, on-device archive and must be recoverable by the first account
+  /// that signs in afterwards.  Do not include any non-personal household
+  /// profiles here: they may belong to another person sharing the device.
+  static const anonymousPersonalVaultKey =
+      '$anonymousVaultKey::profile::personal';
+
   static String userVaultKey(String uid) => 'user:$uid';
 
   LetterRepository({
@@ -1082,7 +1090,8 @@ class LetterRepository {
         final ownerKey = record.value['ownerKey'];
         if (ownerKey != null &&
             ownerKey != deviceVaultKey &&
-            ownerKey != anonymousVaultKey) {
+            ownerKey != anonymousVaultKey &&
+            ownerKey != anonymousPersonalVaultKey) {
           continue;
         }
         await _store.record(record.key).update(transaction, {

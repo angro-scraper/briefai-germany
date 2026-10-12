@@ -562,11 +562,20 @@ class _AppShellState extends State<AppShell> {
     final baseVault = widget.services.auth.localVaultKey;
     await widget.services.household.bindOwner(baseVault);
     final personalVault = widget.services.household.personalVault(baseVault);
-    await widget.services.letters.claimLegacyDeviceVault(personalVault);
-    await widget.services.letters.moveBaseVaultToPersonal(
-      baseVault,
-      personalVault,
-    );
+
+    // Firebase restores a persisted session asynchronously.  Migrating while
+    // it is still reporting the anonymous vault would move a signed-in user's
+    // archive into an anonymous household profile and make it look as though
+    // every letter had vanished after an update.  Anonymous letters remain
+    // readable locally until a real account is available, then that account
+    // claims them exactly once.
+    if (widget.services.auth.uid != null) {
+      await widget.services.letters.claimLegacyDeviceVault(personalVault);
+      await widget.services.letters.moveBaseVaultToPersonal(
+        baseVault,
+        personalVault,
+      );
+    }
     final ownerKey = widget.services.currentVaultKey;
     if (!mounted || binding != _vaultBinding) return;
     _lettersSubscription = widget.services.letters

@@ -64,6 +64,57 @@ void main() {
   );
 
   test(
+    'a session-restore anonymous personal archive is recovered on sign-in',
+    () async {
+      final repository = LetterRepository(
+        cloudEnabled: false,
+        databaseFactory: databaseFactoryMemory,
+        databasePath: 'session-restore-vault-test.db',
+      );
+      final recoveredVault =
+          '${LetterRepository.userVaultKey('restored-user')}'
+          '::profile::personal';
+      const anonymousChildVault =
+          '${LetterRepository.anonymousVaultKey}::profile::family-member';
+
+      Future<void> save(String ownerKey, String id) => repository.save(
+        ownerKey,
+        LetterAnalysis(
+          id: id,
+          title: id,
+          plainExplanation: 'Lokalno sačuvano',
+          category: LetterCategory.other,
+          urgency: Urgency.low,
+          suggestedAction: 'Proverite.',
+          createdAt: DateTime.utc(2026, 10, 12),
+        ),
+      );
+
+      // This is the exact vault shape produced by an older build which bound
+      // the anonymous household profile before Firebase restored the session.
+      await save(LetterRepository.anonymousPersonalVaultKey, 'recover-me');
+      // A separate household member must never be silently attached to the
+      // signed-in user's personal archive.
+      await save(anonymousChildVault, 'keep-private');
+
+      await repository.claimLegacyDeviceVault(recoveredVault);
+
+      expect(
+        (await repository.exportRecords(
+          recoveredVault,
+        )).map((record) => record['id']),
+        ['recover-me'],
+      );
+      expect(
+        (await repository.exportRecords(
+          anonymousChildVault,
+        )).map((record) => record['id']),
+        ['keep-private'],
+      );
+    },
+  );
+
+  test(
     'signed-in and anonymous archives stay isolated on one device',
     () async {
       final repository = LetterRepository(
