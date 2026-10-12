@@ -115,6 +115,48 @@ void main() {
   );
 
   test(
+    'signed-in archive remains intact across repeated update migrations',
+    () async {
+      final repository = LetterRepository(
+        cloudEnabled: false,
+        databaseFactory: databaseFactoryMemory,
+        databasePath: 'update-survival-vault-test.db',
+      );
+      final baseVault = LetterRepository.userVaultKey('same-account');
+      const personalSuffix = '::profile::personal';
+      final personalVault = '$baseVault$personalSuffix';
+
+      LetterAnalysis letter(String id) => LetterAnalysis(
+        id: id,
+        title: id,
+        plainExplanation: 'Sačuvano lokalno',
+        category: LetterCategory.other,
+        urgency: Urgency.low,
+        suggestedAction: 'Proverite.',
+        createdAt: DateTime.utc(2026, 10, 12),
+      );
+
+      // A record already written by the current profile must remain untouched.
+      await repository.save(personalVault, letter('already-personal'));
+      // A record from the pre-profile version migrates once to that profile.
+      await repository.save(baseVault, letter('pre-profile'));
+
+      // This is the exact binding sequence run after an application update.
+      for (var binding = 0; binding < 2; binding++) {
+        await repository.claimLegacyDeviceVault(personalVault);
+        await repository.moveBaseVaultToPersonal(baseVault, personalVault);
+      }
+
+      expect(
+        (await repository.exportRecords(personalVault))
+            .map((record) => record['id']),
+        unorderedEquals(['already-personal', 'pre-profile']),
+      );
+      expect(await repository.exportRecords(baseVault), isEmpty);
+    },
+  );
+
+  test(
     'signed-in and anonymous archives stay isolated on one device',
     () async {
       final repository = LetterRepository(
