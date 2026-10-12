@@ -36,4 +36,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: BriefAI-Germany-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          # The BriefAI flavor prefixes the output filename.  Keeping this
+          # explicit prevents the job from failing after a successful build.
+          path: build/app/outputs/flutter-apk/app-briefai-debug.apk
