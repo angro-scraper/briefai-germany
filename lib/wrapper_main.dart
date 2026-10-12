@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -179,6 +180,12 @@ Future<String> _resizeWrapperImage(Map<String, String> job) async {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isAndroid) {
+    // BriefAI is a focused document workspace.  Keep Android's system
+    // navigation out of the content area; a swipe from the bottom still
+    // exposes the system controls whenever the user needs them.
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky));
+  }
   // The hosted app can render before native Firebase is ready. Waiting here
   // kept Android on the launch screen when Play Services or the network was
   // slow, which looked like the app could not open. Native authentication
