@@ -71,8 +71,26 @@ jobs:
           cat > "$METADATA_DIR/en-US/release_notes.txt" <<'EOF'
           New: editable questionnaires with document export. Improved sign-in, archive preservation, and document editing and exports.
           EOF
+          cat > "$METADATA_DIR/en-US/description.txt" <<'EOF'
+          BriefAI helps you understand German official letters in clear, everyday language. Scan or import a letter to receive a structured explanation, an action checklist and detected deadlines. Keep letters organized in a private archive, draft replies, edit them before sending, and export a PDF or Word document. BriefAI is not a legal service; always verify the original document.
+          EOF
+          cat > "$METADATA_DIR/en-US/keywords.txt" <<'EOF'
+          German letters,official mail,Jobcenter,Ausländerbehörde,deadlines,letter scanner
+          EOF
+          cat > "$METADATA_DIR/en-US/support_url.txt" <<'EOF'
+          https://briefai.salvesca.com/support
+          EOF
           cat > "$METADATA_DIR/de-DE/release_notes.txt" <<'EOF'
           Neu: bearbeitbare Fragebögen mit Dokumentexport. Verbesserte Anmeldung, Archivschutz sowie Dokumentbearbeitung und Exporte.
+          EOF
+          cat > "$METADATA_DIR/de-DE/description.txt" <<'EOF'
+          BriefAI hilft dir, deutsche Behördenbriefe in klarer Alltagssprache zu verstehen. Scanne oder importiere einen Brief und erhalte eine strukturierte Erklärung, eine Aufgabenliste und erkannte Fristen. Bewahre Briefe privat im Archiv auf, erstelle Antworten, bearbeite sie vor dem Versand und exportiere sie als PDF oder Word-Dokument. BriefAI ist keine Rechtsberatung; prüfe immer das Originaldokument.
+          EOF
+          cat > "$METADATA_DIR/de-DE/keywords.txt" <<'EOF'
+          Behördenbriefe,Jobcenter,Ausländerbehörde,Fristen,Briefscanner
+          EOF
+          cat > "$METADATA_DIR/de-DE/support_url.txt" <<'EOF'
+          https://briefai.salvesca.com/support
           EOF
           fastlane deliver submit_build \
             --api_key_path "$RUNNER_TEMP/briefai-api-key.json" \
