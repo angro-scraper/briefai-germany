@@ -126,15 +126,22 @@ class _BriefAiAppState extends State<BriefAiApp> {
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
         try {
-          if (await widget.services.purchases.verifyPurchase(purchase)) {
+          final result = await widget.services.purchases.verifyPurchase(
+            purchase,
+          );
+          if (result.isPremium) {
             _state.setPremium(true);
+          }
+          if (result.creditsAdded > 0) {
+            _state.setAnalysisCredits(result.analysisCredits);
           }
         } catch (_) {
           // The server is authoritative. A failed verification never unlocks
           // Premium, and the next store restore can retry it.
         }
       }
-      if (purchase.pendingCompletePurchase) {
+      if (purchase.pendingCompletePurchase ||
+          PurchaseService.isConsumableProduct(purchase.productID)) {
         await widget.services.purchases.complete(purchase);
       }
     }
@@ -507,6 +514,7 @@ class _AppShellState extends State<AppShell> {
   StreamSubscription<dynamic>? _authSubscription;
   StreamSubscription<dynamic>? _entitlementSubscription;
   StreamSubscription<dynamic>? _usageSubscription;
+  StreamSubscription<dynamic>? _creditsSubscription;
   int _vaultBinding = 0;
   String? _roleRefreshUid;
 
@@ -521,6 +529,7 @@ class _AppShellState extends State<AppShell> {
         unawaited(_bindLocalVault());
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
+        _creditsSubscription?.cancel();
         if (mounted) setState(() {});
         if (user != null) {
           if (_roleRefreshUid != user.uid) {
@@ -535,18 +544,23 @@ class _AppShellState extends State<AppShell> {
           _usageSubscription = widget.services.entitlements
               .watchFreeUsage(user.uid)
               .listen(widget.state.setFreeAnalysesUsed);
+          _creditsSubscription = widget.services.entitlements
+              .watchAnalysisCredits(user.uid)
+              .listen(widget.state.setAnalysisCredits);
         } else {
           _roleRefreshUid = null;
           widget.state.setPremium(false);
           _usageSubscription = widget.services.entitlements
               .watchFreeUsage('local-device')
               .listen(widget.state.setFreeAnalysesUsed);
+          widget.state.setAnalysisCredits(0);
         }
       });
     } else {
       _usageSubscription = widget.services.entitlements
           .watchFreeUsage('local-device')
           .listen(widget.state.setFreeAnalysesUsed);
+      widget.state.setAnalysisCredits(0);
     }
   }
 
@@ -588,6 +602,7 @@ class _AppShellState extends State<AppShell> {
     _lettersSubscription?.cancel();
     _entitlementSubscription?.cancel();
     _usageSubscription?.cancel();
+    _creditsSubscription?.cancel();
     _authSubscription?.cancel();
     widget.services.household.removeListener(_onHouseholdProfileChanged);
     super.dispose();
@@ -739,6 +754,11 @@ class HomeScreen extends StatelessWidget {
               Text(
                 state.isPremium
                     ? strings.text('monthlyPlanActive')
+                    : state.analysisCredits > 0
+                    ? strings.creditPackText(
+                        'balance',
+                        count: state.analysisCredits,
+                      )
                     : strings.remaining(
                         kFreeAnalysisLimit - state.freeAnalysesUsed,
                       ),
@@ -2173,10 +2193,13 @@ class ResponseScreen extends StatefulWidget {
 
 class _ResponseScreenState extends State<ResponseScreen> {
   final _facts = TextEditingController();
+  final _letterDraft = TextEditingController();
+  final _emailDraft = TextEditingController();
   late final String _vaultKey;
   Future<GeneratedReply>? _response;
   bool _emailVersion = false;
   bool _restoringReply = true;
+  bool _savingDraft = false;
 
   @override
   void initState() {
@@ -2191,6 +2214,8 @@ class _ResponseScreenState extends State<ResponseScreen> {
   @override
   void dispose() {
     _facts.dispose();
+    _letterDraft.dispose();
+    _emailDraft.dispose();
     super.dispose();
   }
 
@@ -2288,10 +2313,17 @@ class _ResponseScreenState extends State<ResponseScreen> {
                         '${strings.text('responseUnavailable')}: ${snapshot.error}',
                       )
                     : snapshot.hasData
-                    ? SelectableText(
-                        _emailVersion
-                            ? snapshot.data!.email
-                            : snapshot.data!.letter,
+                    ? TextField(
+                        controller: _emailVersion ? _emailDraft : _letterDraft,
+                        minLines: 12,
+                        maxLines: null,
+                        maxLength: 30000,
+                        keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          counterText: '',
+                        ),
                       )
                     : const Center(child: CircularProgressIndicator()),
               ),
@@ -2307,36 +2339,58 @@ class _ResponseScreenState extends State<ResponseScreen> {
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: () async {
-                  await widget.services.exports.copy(
-                    _emailVersion
-                        ? snapshot.data!.email
-                        : snapshot.data!.letter,
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(strings.text('replyCopied'))),
-                    );
-                  }
-                },
+                onPressed: _savingDraft
+                    ? null
+                    : () => _saveEditedReply(strings),
+                icon: const Icon(Icons.save_outlined),
+                label: Text(strings.text('saveLocally')),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: _savingDraft
+                    ? null
+                    : () async {
+                        if (!await _saveEditedReply(strings, silent: true)) {
+                          return;
+                        }
+                        await widget.services.exports.copy(_selectedDraft);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(strings.text('replyCopied')),
+                            ),
+                          );
+                        }
+                      },
                 icon: const Icon(Icons.copy),
                 label: Text(strings.text('copyReply')),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => _composeEmail(snapshot.data!, strings),
+                onPressed: _savingDraft ? null : () => _composeEmail(strings),
                 icon: const Icon(Icons.email_outlined),
                 label: Text(strings.text('sendEmail')),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => _savePdf(snapshot.data!, strings),
+                onPressed: _savingDraft ? null : () => _savePdf(strings),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: Text(strings.text('savePdf')),
               ),
               const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _savingDraft ? null : () => _saveWord(strings),
+                icon: const Icon(Icons.description_outlined),
+                label: const Text('Word (.docx)'),
+              ),
+              const SizedBox(height: 8),
               TextButton.icon(
-                onPressed: () => setState(() => _response = null),
+                onPressed: _savingDraft
+                    ? null
+                    : () async {
+                        await _saveEditedReply(strings, silent: true);
+                        if (mounted) setState(() => _response = null);
+                      },
                 icon: const Icon(Icons.edit_outlined),
                 label: Text(strings.text('editReplyContext')),
               ),
@@ -2360,6 +2414,7 @@ class _ResponseScreenState extends State<ResponseScreen> {
       if (!mounted) return;
       if (saved != null) {
         _facts.text = saved.userContext;
+        _setDrafts(saved.reply);
         _response = Future<GeneratedReply>.value(saved.reply);
       }
     } finally {
@@ -2381,6 +2436,7 @@ class _ResponseScreenState extends State<ResponseScreen> {
     });
     try {
       final generated = await response;
+      _setDrafts(generated);
       await widget.services.letters.claimLegacyDeviceVault(_vaultKey);
       final saved = await widget.services.letters.saveGeneratedReply(
         _vaultKey,
@@ -2416,11 +2472,73 @@ class _ResponseScreenState extends State<ResponseScreen> {
     }
   }
 
-  Future<void> _savePdf(GeneratedReply reply, AppStrings strings) async {
+  String get _selectedDraft => _emailVersion
+      ? _emailDraft.text.trimRight()
+      : _letterDraft.text.trimRight();
+
+  GeneratedReply get _editedReply => GeneratedReply(
+    letter: _letterDraft.text.trimRight(),
+    email: _emailDraft.text.trimRight(),
+  );
+
+  void _setDrafts(GeneratedReply reply) {
+    _letterDraft.text = reply.letter;
+    _emailDraft.text = reply.email;
+  }
+
+  Future<bool> _saveEditedReply(
+    AppStrings strings, {
+    bool silent = false,
+  }) async {
+    final edited = _editedReply;
+    if (edited.letter.trim().isEmpty || edited.email.trim().isEmpty) {
+      if (mounted && !silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.text('responseUnavailable'))),
+        );
+      }
+      return false;
+    }
+    setState(() => _savingDraft = true);
+    try {
+      await widget.services.letters.claimLegacyDeviceVault(_vaultKey);
+      final saved = await widget.services.letters.saveGeneratedReply(
+        _vaultKey,
+        widget.letter.id,
+        edited,
+        userContext: _facts.text.trim(),
+      );
+      if (!saved) throw StateError('Local archive is unavailable.');
+      await widget.services.letters.updateOrganisation(
+        _vaultKey,
+        widget.letter.id,
+        status: LetterStatus.replyPrepared,
+      );
+      widget.state.updateStatus(widget.letter.id, LetterStatus.replyPrepared);
+      if (mounted && !silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.text('replySavedLocally'))),
+        );
+      }
+      return true;
+    } on Object {
+      if (mounted && !silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.text('responseUnavailable'))),
+        );
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _savingDraft = false);
+    }
+  }
+
+  Future<void> _savePdf(AppStrings strings) async {
+    if (!await _saveEditedReply(strings, silent: true)) return;
     try {
       await widget.services.exports.savePdf(
         title: 'BriefAI Germany — ${widget.letter.title}',
-        body: _emailVersion ? reply.email : reply.letter,
+        body: _selectedDraft,
       );
       if (mounted) {
         ScaffoldMessenger.of(
@@ -2436,11 +2554,28 @@ class _ResponseScreenState extends State<ResponseScreen> {
     }
   }
 
-  Future<void> _composeEmail(GeneratedReply reply, AppStrings strings) async {
+  Future<void> _saveWord(AppStrings strings) async {
+    if (!await _saveEditedReply(strings, silent: true)) return;
+    try {
+      await widget.services.exports.saveWord(
+        title: 'BriefAI Germany — ${widget.letter.title}',
+        body: _selectedDraft,
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${strings.text('pdfSaveFailed')}: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _composeEmail(AppStrings strings) async {
+    if (!await _saveEditedReply(strings, silent: true)) return;
     try {
       await widget.services.exports.composeEmail(
         subject: 'Antwort: ${widget.letter.title}',
-        body: reply.email,
+        body: _emailDraft.text.trimRight(),
       );
       await widget.services.letters.updateOrganisation(
         _vaultKey,
@@ -4066,6 +4201,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     features: [strings.text('freeFeature')],
                     selected: !widget.state.isPremium,
                   ),
+                  const SizedBox(height: 22),
+                  Text(
+                    strings.creditPackText('heading'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    strings.creditPackText('detail'),
+                    style: const TextStyle(color: BriefAiDesign.muted),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final pack in kAnalysisCreditPacks) ...[
+                    _PlanCard(
+                      title:
+                          productById[pack.productId]?.title ??
+                          strings.creditPackText('item', count: pack.credits),
+                      price:
+                          productById[pack.productId]?.price ??
+                          wrapperPrices[pack.productId] ??
+                          pack.fallbackPrice,
+                      features: [
+                        strings.creditPackText('item', count: pack.credits),
+                        strings.creditPackText('detail'),
+                      ],
+                      action: kIsWeb
+                          ? snapshot.data?.nativeWrapper == true
+                                ? () => _buyNativePack(pack.productId)
+                                : null
+                          : () => _buy(productById[pack.productId]),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   for (final plan in kSubscriptionPlans) ...[
                     _PlanCard(
                       title:
@@ -4138,6 +4307,34 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
     try {
       await widget.services.purchases.buy(product);
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.purchaseMessage('failed'))),
+        );
+      }
+    }
+  }
+
+  Future<void> _buyNativePack(String productId) async {
+    try {
+      final result = await widget.services.purchases.buyNativeStoreProduct(
+        productId,
+      );
+      if (!mounted) return;
+      if (result.creditsAdded > 0) {
+        widget.state.setAnalysisCredits(result.analysisCredits);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.strings.creditPackText(
+                'added',
+                count: result.creditsAdded,
+              ),
+            ),
+          ),
+        );
+      }
     } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

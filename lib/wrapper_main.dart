@@ -15,6 +15,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
@@ -184,7 +186,9 @@ void main() {
     // BriefAI is a focused document workspace.  Keep Android's system
     // navigation out of the content area; a swipe from the bottom still
     // exposes the system controls whenever the user needs them.
-    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky));
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+    );
   }
   // The hosted app can render before native Firebase is ready. Waiting here
   // kept Android on the launch screen when Play Services or the network was
@@ -419,9 +423,10 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           }
           await _resolveNative(requestId, {'ok': true});
         case 'products':
-          final response = await InAppPurchase.instance.queryProductDetails(
-            kSubscriptionPlans.map((plan) => plan.productId).toSet(),
-          );
+          final response = await InAppPurchase.instance.queryProductDetails({
+            ...kSubscriptionPlans.map((plan) => plan.productId),
+            ...kAnalysisCreditPacks.map((pack) => pack.productId),
+          });
           await _resolveNative(requestId, {
             'ok': true,
             'products': [
@@ -443,12 +448,24 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           if (response.productDetails.isEmpty) {
             throw StateError('Store proizvod nije pronađen.');
           }
-          final started = await InAppPurchase.instance.buyNonConsumable(
-            purchaseParam: PurchaseParam(
-              productDetails: response.productDetails.single,
-              applicationUserName: payload['applicationUserName'] as String?,
-            ),
+          final product = response.productDetails.single;
+          final purchaseParam = PurchaseParam(
+            productDetails: product,
+            applicationUserName: payload['applicationUserName'] as String?,
           );
+          final isConsumable = kAnalysisCreditPacks.any(
+            (pack) => pack.productId == productId,
+          );
+          final started = isConsumable
+              ? await InAppPurchase.instance.buyConsumable(
+                  purchaseParam: purchaseParam,
+                  // The backend must atomically issue the account credit
+                  // before the transaction is acknowledged to the store.
+                  autoConsume: false,
+                )
+              : await InAppPurchase.instance.buyNonConsumable(
+                  purchaseParam: purchaseParam,
+                );
           await _resolveNative(requestId, {'ok': started});
         case 'waitPurchase':
           if (_purchaseQueue.isNotEmpty) {
@@ -477,6 +494,19 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           final purchase = _pendingCompletion.remove(transactionKey);
           if (purchase == null) {
             throw StateError('Store transakcija nije pronađena.');
+          }
+          final isConsumable = kAnalysisCreditPacks.any(
+            (pack) => pack.productId == purchase.productID,
+          );
+          if (isConsumable &&
+              Platform.isAndroid &&
+              purchase is GooglePlayPurchaseDetails) {
+            final billing = InAppPurchase.instance
+                .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+            final result = await billing.consumePurchase(purchase);
+            if (result.responseCode != BillingResponse.ok) {
+              throw StateError('Google Play nije potvrdio potrošnju paketa.');
+            }
           }
           if (purchase.pendingCompletePurchase) {
             await InAppPurchase.instance.completePurchase(purchase);

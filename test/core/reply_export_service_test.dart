@@ -1,17 +1,38 @@
+import 'dart:convert';
+
+import 'package:archive/archive.dart';
 import 'package:briefai_germany/core/app_services.dart';
 import 'package:briefai_germany/core/email_composer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('generated reply produces a valid non-empty PDF', () async {
     final bytes = await ReplyExportService().createPdfBytes(
       title: 'BriefAI Germany',
-      body:
-          'Sehr geehrte Damen und Herren,\n\nhiermit widerspreche ich der Forderung.',
+      body: 'Poštovani,\n\nОвим оспоравам потраживање. Grüße aus München.',
     );
 
     expect(bytes.length, greaterThan(500));
     expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+  });
+
+  test('Word export is a valid editable OOXML document with Unicode text', () {
+    final bytes = ReplyExportService().createWordBytes(
+      title: 'Odgovor — München',
+      body: 'Poštovani,\n\nТекст остаје читљив у Word-у. & <provera>',
+    );
+    final files = ZipDecoder().decodeBytes(bytes);
+    final document = files.findFile('word/document.xml');
+
+    expect(String.fromCharCodes(bytes.take(2)), 'PK');
+    expect(document, isNotNull);
+    final xml = utf8.decode(document!.content as List<int>);
+    expect(xml, contains('Poštovani'));
+    expect(xml, contains('Текст остаје читљив у Word-у.'));
+    expect(xml, contains('&amp;'));
+    expect(xml, contains('&lt;provera&gt;'));
   });
 
   test('generated email keeps paragraphs and extracts German subject', () {

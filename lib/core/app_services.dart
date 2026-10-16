@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:archive/archive.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Filter;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cryptography/cryptography.dart' as cryptography;
@@ -18,6 +19,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:sembast/sembast.dart' hide FieldValue;
@@ -1744,6 +1747,11 @@ class EntitlementService {
     return _watchUsage(uid);
   }
 
+  Stream<int> watchAnalysisCredits(String uid) {
+    if (!cloudEnabled || uid == 'local-device') return Stream<int>.value(0);
+    return _watchCredits(uid);
+  }
+
   Future<void> recordAnalysis(String uid) async {
     final preferences = await SharedPreferences.getInstance();
     final key = _localUsageKey(uid);
@@ -1795,6 +1803,25 @@ class EntitlementService {
       }
     } on FirebaseException {
       // The local free tier remains available while metrics are unavailable.
+    }
+  }
+
+  Stream<int> _watchCredits(String uid) async* {
+    try {
+      await for (final document
+          in FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection('usage')
+              .doc('current')
+              .snapshots()) {
+        final credits = document.data()?['analysisCredits'];
+        yield credits is int && credits > 0 ? credits : 0;
+      }
+    } on FirebaseException {
+      // The authoritative credit balance remains server-side.  A transient
+      // stream failure must not crash the app or fabricate local credits.
+      yield 0;
     }
   }
 
@@ -2024,12 +2051,29 @@ String _reminderBody(String language, int days, bool isPayment) {
   };
 }
 
+class StorePurchaseResult {
+  const StorePurchaseResult({
+    required this.isPremium,
+    required this.creditsAdded,
+    required this.analysisCredits,
+  });
+
+  final bool isPremium;
+  final int creditsAdded;
+  final int analysisCredits;
+}
+
 class PurchaseService {
   PurchaseService({required this.cloudEnabled});
   final bool cloudEnabled;
   static const premiumId = 'briefai_premium_monthly';
-  static Set<String> get productIds =>
-      kSubscriptionPlans.map((plan) => plan.productId).toSet();
+  static Set<String> get productIds => {
+    ...kSubscriptionPlans.map((plan) => plan.productId),
+    ...kAnalysisCreditPacks.map((pack) => pack.productId),
+  };
+
+  static bool isConsumableProduct(String productId) =>
+      kAnalysisCreditPacks.any((pack) => pack.productId == productId);
 
   Future<ProductDetailsResponse> products() async {
     if (!await InAppPurchase.instance.isAvailable()) {
@@ -2045,19 +2089,38 @@ class PurchaseService {
     if (!cloudEnabled || userId == null) {
       throw StateError('Prijavite se pre kupovine pretplate.');
     }
+    final purchaseParam = PurchaseParam(
+      productDetails: product,
+      applicationUserName: userId,
+    );
+    if (isConsumableProduct(product.id)) {
+      return InAppPurchase.instance.buyConsumable(
+        purchaseParam: purchaseParam,
+        autoConsume: false,
+      );
+    }
     return InAppPurchase.instance.buyNonConsumable(
-      purchaseParam: PurchaseParam(
-        productDetails: product,
-        applicationUserName: userId,
-      ),
+      purchaseParam: purchaseParam,
     );
   }
 
-  Future<bool> verifyPurchase(PurchaseDetails purchase) async {
+  Future<StorePurchaseResult> verifyPurchase(PurchaseDetails purchase) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (!cloudEnabled || userId == null) return false;
+    if (!cloudEnabled || userId == null) {
+      return const StorePurchaseResult(
+        isPremium: false,
+        creditsAdded: 0,
+        analysisCredits: 0,
+      );
+    }
     final provider = purchase.verificationData.source;
-    if (provider != 'google_play' && provider != 'app_store') return false;
+    if (provider != 'google_play' && provider != 'app_store') {
+      return const StorePurchaseResult(
+        isPremium: false,
+        creditsAdded: 0,
+        analysisCredits: 0,
+      );
+    }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('verifyStorePurchase')
         .call<Map<Object?, Object?>>({
@@ -2066,7 +2129,11 @@ class PurchaseService {
           'purchaseId': purchase.purchaseID,
           'verificationData': purchase.verificationData.serverVerificationData,
         });
-    return result.data['isActive'] == true;
+    return StorePurchaseResult(
+      isPremium: result.data['isActive'] == true,
+      creditsAdded: (result.data['creditsAdded'] as num? ?? 0).toInt(),
+      analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
+    );
   }
 
   Future<void> restore() async {
@@ -2079,8 +2146,25 @@ class PurchaseService {
     await InAppPurchase.instance.restorePurchases();
   }
 
-  Future<void> complete(PurchaseDetails purchase) =>
-      InAppPurchase.instance.completePurchase(purchase);
+  /// Finalizes a verified purchase only after the backend has written the
+  /// entitlement or credit to the user's account. Android consumables must be
+  /// explicitly consumed, otherwise Google Play will block the next purchase
+  /// of the same pack.
+  Future<void> complete(PurchaseDetails purchase) async {
+    if (isConsumableProduct(purchase.productID) &&
+        defaultTargetPlatform == TargetPlatform.android &&
+        purchase is GooglePlayPurchaseDetails) {
+      final billing = InAppPurchase.instance
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+      final result = await billing.consumePurchase(purchase);
+      if (result.responseCode != BillingResponse.ok) {
+        throw StateError('Google Play nije potvrdio potrošnju paketa.');
+      }
+    }
+    if (purchase.pendingCompletePurchase) {
+      await InAppPurchase.instance.completePurchase(purchase);
+    }
+  }
 
   Future<void> startStripeCheckout({
     required String plan,
@@ -2091,18 +2175,11 @@ class PurchaseService {
       throw StateError('Web naplata zahteva povezani Firebase projekat.');
     }
     if (kIsWeb && await nativeStoreAvailable()) {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) {
-        throw StateError('Prijavite se pre kupovine pretplate.');
-      }
-      await nativeStoreRequest('buy', {
-        'productId': kSubscriptionPlans
+      await buyNativeStoreProduct(
+        kSubscriptionPlans
             .firstWhere((candidate) => candidate.key == plan)
             .productId,
-        'applicationUserName': userId,
-      });
-      final purchase = await nativeStoreRequest('waitPurchase');
-      await _verifyNativeBridgePurchase(purchase);
+      );
       return;
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
@@ -2151,6 +2228,26 @@ class PurchaseService {
     }
   }
 
+  /// Executes a native-store purchase from the hosted Flutter application.
+  /// It always verifies with the backend before acknowledging the transaction.
+  Future<StorePurchaseResult> buyNativeStoreProduct(String productId) async {
+    if (!kIsWeb || !await nativeStoreAvailable()) {
+      throw StateError(
+        'Kupovina paketa dostupna je samo u mobilnoj aplikaciji.',
+      );
+    }
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      throw StateError('Prijavite se pre kupovine paketa.');
+    }
+    await nativeStoreRequest('buy', {
+      'productId': productId,
+      'applicationUserName': userId,
+    });
+    final purchase = await nativeStoreRequest('waitPurchase');
+    return _verifyNativeBridgePurchase(purchase);
+  }
+
   Future<Map<String, String>> wrapperProductPrices() async {
     if (!kIsWeb || !await nativeStoreAvailable()) return const {};
     final result = await nativeStoreRequest('products');
@@ -2167,7 +2264,7 @@ class PurchaseService {
 
   Future<bool> isNativeStoreWrapper() => nativeStoreAvailable();
 
-  Future<void> _verifyNativeBridgePurchase(
+  Future<StorePurchaseResult> _verifyNativeBridgePurchase(
     Map<String, dynamic> purchase,
   ) async {
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
@@ -2178,12 +2275,18 @@ class PurchaseService {
           'purchaseId': purchase['purchaseId'],
           'verificationData': purchase['verificationData'],
         });
-    if (result.data['isActive'] != true) {
-      throw StateError('Prodavnica nije potvrdila aktivnu pretplatu.');
+    final purchaseResult = StorePurchaseResult(
+      isPremium: result.data['isActive'] == true,
+      creditsAdded: (result.data['creditsAdded'] as num? ?? 0).toInt(),
+      analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
+    );
+    if (!purchaseResult.isPremium && purchaseResult.creditsAdded <= 0) {
+      throw StateError('Prodavnica nije potvrdila kupovinu.');
     }
     await nativeStoreRequest('complete', {
       'transactionKey': purchase['transactionKey'],
     });
+    return purchaseResult;
   }
 }
 
@@ -2240,19 +2343,116 @@ class ReplyExportService {
     await Printing.sharePdf(bytes: bytes, filename: filename);
   }
 
+  /// Creates a real .docx (Office Open XML) file rather than renaming a text
+  /// file. This keeps Cyrillic, German umlauts and other Unicode characters
+  /// editable in Word, Pages and LibreOffice after export.
+  Future<void> saveWord({required String title, required String body}) async {
+    final bytes = createWordBytes(title: title, body: body);
+    const filename = 'briefai-odgovor.docx';
+    await SharePlus.instance.share(
+      ShareParams(
+        subject: title,
+        text: 'BriefAI Germany — Word document',
+        files: [
+          XFile.fromData(
+            bytes,
+            mimeType:
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            name: filename,
+          ),
+        ],
+        fileNameOverrides: const [filename],
+      ),
+    );
+  }
+
+  Uint8List createWordBytes({required String title, required String body}) {
+    final archive = Archive();
+    void addText(String path, String value) {
+      archive.addFile(ArchiveFile.string(path, value));
+    }
+
+    final cleanTitle = _wordParagraph(title, bold: true);
+    final paragraphs = preparePlainTextForExport(body)
+        .split(RegExp(r'\n{2,}'))
+        .map((paragraph) => paragraph.trim())
+        .where((paragraph) => paragraph.isNotEmpty)
+        .map(_wordParagraph)
+        .join();
+    addText(
+      '[Content_Types].xml',
+      '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>''',
+    );
+    addText(
+      '_rels/.rels',
+      '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>''',
+    );
+    addText(
+      'word/document.xml',
+      '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    $cleanTitle
+    $paragraphs
+    <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>
+  </w:body>
+</w:document>''',
+    );
+    final bytes = ZipEncoder().encodeBytes(archive);
+    return Uint8List.fromList(bytes);
+  }
+
+  String _wordParagraph(String value, {bool bold = false}) {
+    final runs = value
+        .split('\n')
+        .map(
+          (line) =>
+              '<w:r>${bold ? '<w:rPr><w:b/></w:rPr>' : ''}'
+              '<w:t xml:space="preserve">${_escapeXml(line)}</w:t></w:r>',
+        )
+        .join('<w:r><w:br/></w:r>');
+    return '<w:p><w:pPr><w:spacing w:after="180"/></w:pPr>$runs</w:p>';
+  }
+
+  String _escapeXml(String value) => value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&apos;');
+
   Future<Uint8List> createPdfBytes({
     required String title,
     required String body,
   }) async {
-    // The built-in PDF fonts only cover a small Latin subset. Use Noto Sans
-    // so generated Serbian, Cyrillic, Greek, Arabic and Turkish text remains
-    // readable after a user shares the PDF or opens it on another device.
-    final regular = await PdfGoogleFonts.notoSansRegular();
-    final bold = await PdfGoogleFonts.notoSansBold();
+    // Never fetch export fonts at runtime. An offline device must still create
+    // a readable document, including Serbian Latin/Cyrillic and German text.
+    // The Arabic fallback is already packaged for the application's UI.
+    final regular = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+    );
+    final bold = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
+    );
+    final arabic = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSansArabic-Variable.ttf'),
+    );
     final document = pw.Document();
     document.addPage(
       pw.MultiPage(
-        theme: pw.ThemeData.withFont(base: regular, bold: bold),
+        theme: pw.ThemeData.withFont(
+          base: regular,
+          bold: bold,
+          fontFallback: [arabic],
+        ),
         build: (_) => [
           // pw.Header decorates the title with a framework-provided line. It
           // rendered as unexplained marks in some Android/iOS share previews,
@@ -2262,7 +2462,16 @@ class ReplyExportService {
             style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 16),
-          pw.Paragraph(text: body),
+          ...preparePlainTextForExport(body)
+              .split(RegExp(r'\n{2,}'))
+              .map((paragraph) => paragraph.trim())
+              .where((paragraph) => paragraph.isNotEmpty)
+              .map(
+                (paragraph) => pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 10),
+                  child: pw.Text(paragraph),
+                ),
+              ),
         ],
       ),
     );

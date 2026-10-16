@@ -188,6 +188,18 @@ class AppStrings {
   static Set<String> get purchaseMessageKeys =>
       _purchaseMessages['en']!.keys.toSet();
 
+  /// Copy for consumable analysis packages is isolated from subscription copy:
+  /// the purchase is one-time and must never imply an auto-renewing plan.
+  String creditPackText(String key, {int? count}) {
+    var value =
+        (_creditPackTexts[locale.languageCode] ??
+            _creditPackTexts['en']!)[key] ??
+        _creditPackTexts['en']![key] ??
+        key;
+    if (count != null) value = value.replaceAll('{count}', count.toString());
+    return value;
+  }
+
   static const _purchaseMessages = <String, Map<String, String>>{
     'sr': {
       'notConfigured': 'Paket još nije dostupan u prodavnici.',
@@ -336,6 +348,121 @@ class AppStrings {
           'Abonimi në ueb përpunohet në mënyrë të sigurt përmes Stripe Checkout.',
       'storeInfo':
           'Pagesa përpunohet në mënyrë të sigurt përmes dyqanit të aplikacioneve në pajisje.',
+    },
+  };
+
+  static const _creditPackTexts = <String, Map<String, String>>{
+    'sr': {
+      'heading': 'Jednokratni paketi analiza',
+      'item': '{count} analiza',
+      'detail': 'Jednokratna kupovina · bez automatskog obnavljanja',
+      'balance': 'Preostalo plaćenih analiza: {count}',
+      'added': 'Na nalog je dodato {count} analiza.',
+    },
+    'hr': {
+      'heading': 'Jednokratni paketi analiza',
+      'item': '{count} analiza',
+      'detail': 'Jednokratna kupnja · bez automatske obnove',
+      'balance': 'Preostalo plaćenih analiza: {count}',
+      'added': 'Na račun je dodano {count} analiza.',
+    },
+    'bs': {
+      'heading': 'Jednokratni paketi analiza',
+      'item': '{count} analiza',
+      'detail': 'Jednokratna kupovina · bez automatske obnove',
+      'balance': 'Preostalo plaćenih analiza: {count}',
+      'added': 'Na račun je dodano {count} analiza.',
+    },
+    'mk': {
+      'heading': 'Еднократни пакети анализи',
+      'item': '{count} анализи',
+      'detail': 'Еднократно купување · без автоматско обновување',
+      'balance': 'Преостанати платени анализи: {count}',
+      'added': 'На сметката се додадени {count} анализи.',
+    },
+    'bg': {
+      'heading': 'Еднократни пакети анализи',
+      'item': '{count} анализа',
+      'detail': 'Еднократна покупка · без автоматично подновяване',
+      'balance': 'Остават платени анализа: {count}',
+      'added': 'Към профила са добавени {count} анализа.',
+    },
+    'de': {
+      'heading': 'Einmalige Analysepakete',
+      'item': '{count} Analysen',
+      'detail': 'Einmaliger Kauf · keine automatische Verlängerung',
+      'balance': 'Verbleibende bezahlte Analysen: {count}',
+      'added': '{count} Analysen wurden Ihrem Konto hinzugefügt.',
+    },
+    'en': {
+      'heading': 'One-time analysis packs',
+      'item': '{count} analyses',
+      'detail': 'One-time purchase · no automatic renewal',
+      'balance': 'Paid analyses remaining: {count}',
+      'added': '{count} analyses were added to your account.',
+    },
+    'tr': {
+      'heading': 'Tek seferlik analiz paketleri',
+      'item': '{count} analiz',
+      'detail': 'Tek seferlik satın alma · otomatik yenileme yok',
+      'balance': 'Kalan ücretli analiz: {count}',
+      'added': 'Hesabınıza {count} analiz eklendi.',
+    },
+    'ru': {
+      'heading': 'Разовые пакеты анализов',
+      'item': '{count} анализов',
+      'detail': 'Разовая покупка · без автопродления',
+      'balance': 'Осталось платных анализов: {count}',
+      'added': 'К вашему аккаунту добавлено анализов: {count}.',
+    },
+    'uk': {
+      'heading': 'Разові пакети аналізів',
+      'item': '{count} аналізів',
+      'detail': 'Одноразова покупка · без автоматичного поновлення',
+      'balance': 'Залишилося платних аналізів: {count}',
+      'added': 'До вашого облікового запису додано {count} аналізів.',
+    },
+    'ar': {
+      'heading': 'حزم تحليل لمرة واحدة',
+      'item': '{count} تحليلات',
+      'detail': 'شراء لمرة واحدة · دون تجديد تلقائي',
+      'balance': 'التحليلات المدفوعة المتبقية: {count}',
+      'added': 'تمت إضافة {count} تحليلات إلى حسابك.',
+    },
+    'ro': {
+      'heading': 'Pachete de analize unice',
+      'item': '{count} analize',
+      'detail': 'Achiziție unică · fără reînnoire automată',
+      'balance': 'Analize plătite rămase: {count}',
+      'added': 'Au fost adăugate {count} analize în contul tău.',
+    },
+    'pl': {
+      'heading': 'Jednorazowe pakiety analiz',
+      'item': '{count} analiz',
+      'detail': 'Jednorazowy zakup · bez automatycznego odnowienia',
+      'balance': 'Pozostało płatnych analiz: {count}',
+      'added': 'Do konta dodano {count} analiz.',
+    },
+    'it': {
+      'heading': 'Pacchetti di analisi una tantum',
+      'item': '{count} analisi',
+      'detail': 'Acquisto una tantum · nessun rinnovo automatico',
+      'balance': 'Analisi a pagamento rimanenti: {count}',
+      'added': 'Sono state aggiunte {count} analisi al tuo account.',
+    },
+    'el': {
+      'heading': 'Πακέτα αναλύσεων μίας αγοράς',
+      'item': '{count} αναλύσεις',
+      'detail': 'Εφάπαξ αγορά · χωρίς αυτόματη ανανέωση',
+      'balance': 'Απομένουν πληρωμένες αναλύσεις: {count}',
+      'added': 'Προστέθηκαν {count} αναλύσεις στον λογαριασμό σας.',
+    },
+    'sq': {
+      'heading': 'Paketa analizash njëherëshe',
+      'item': '{count} analiza',
+      'detail': 'Blerje njëherëshe · pa rinovim automatik',
+      'balance': 'Analiza të paguara të mbetura: {count}',
+      'added': 'Në llogarinë tuaj u shtuan {count} analiza.',
     },
   };
 

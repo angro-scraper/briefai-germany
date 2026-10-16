@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # One release identity for every platform.  Store workflows may provide their
 # own build number, but the source of truth for the next user-facing release
 # must never move backwards from the already shipped Android 1.0.35 train.
-version: 1.0.4+41
+version: 1.0.5+43
 
 environment:
   sdk: ^3.12.2
@@ -36,6 +36,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  # Used to create real Office Open XML (.docx) documents locally.  The
+  # response never has to leave the device just to be opened in Word.
+  archive: ^4.0.9
   cupertino_icons: ^1.0.8
   cloud_firestore: ^6.7.1
   cloud_functions: ^6.3.5
@@ -57,6 +60,7 @@ dependencies:
   image: ^4.9.1
   image_picker: ^1.2.3
   in_app_purchase: ^3.3.0
+  in_app_purchase_android: ^0.5.2
   intl: ^0.20.2
   path_provider: ^2.1.6
   pdf: ^3.11.3
@@ -100,6 +104,8 @@ flutter:
   assets:
     - assets/branding/briefai_logo_v2.png
     - assets/branding/google_g_logo.svg
+    - assets/fonts/NotoSans-Regular.ttf
+    - assets/fonts/NotoSans-Bold.ttf
   fonts:
     # Android system images do not always include Arabic glyphs. Bundle an
     # OFL-licensed fallback so every supported language is legible offline.

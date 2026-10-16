@@ -148,8 +148,9 @@ void main() {
       }
 
       expect(
-        (await repository.exportRecords(personalVault))
-            .map((record) => record['id']),
+        (await repository.exportRecords(
+          personalVault,
+        )).map((record) => record['id']),
         unorderedEquals(['already-personal', 'pre-profile']),
       );
       expect(await repository.exportRecords(baseVault), isEmpty);
@@ -306,6 +307,28 @@ void main() {
     expect(restored!.reply.letter, contains('Sehr geehrte'));
     expect(restored.reply.email, contains('Widerspruch'));
     expect(restored.userContext, contains('trening'));
+    // The editor writes back to the same owned record. An update must replace
+    // the draft, not create a second response that can disappear after a
+    // restart or archive migration.
+    expect(
+      await repository.saveGeneratedReply(
+        ownerVault,
+        'reply-letter',
+        const GeneratedReply(
+          letter: 'Sehr geehrte Damen und Herren, korrigierte Fassung.',
+          email: 'Betreff: Korrigierte Fassung',
+        ),
+        userContext: 'Korrigovan kontekst.',
+      ),
+      isTrue,
+    );
+    final edited = await repository.loadGeneratedReply(
+      ownerVault,
+      'reply-letter',
+    );
+    expect(edited!.reply.letter, contains('korrigierte Fassung'));
+    expect(edited.reply.email, contains('Korrigierte Fassung'));
+    expect(edited.userContext, 'Korrigovan kontekst.');
     expect(
       await repository.loadGeneratedReply(otherVault, 'reply-letter'),
       isNull,
@@ -321,41 +344,44 @@ void main() {
     );
   });
 
-  test('organisation and payment status are persisted in the local vault', () async {
-    final repository = LetterRepository(
-      cloudEnabled: false,
-      databaseFactory: databaseFactoryMemory,
-      databasePath: 'organisation-vault-test.db',
-    );
-    const vault = 'user:organiser';
-    await repository.save(
-      vault,
-      LetterAnalysis(
-        id: 'invoice',
-        title: 'Rechnung',
-        plainExplanation: 'Plaćanje.',
-        category: LetterCategory.energy,
-        urgency: Urgency.medium,
-        suggestedAction: 'Platite.',
-        createdAt: DateTime.utc(2026, 8, 29),
-        isPaymentObligation: true,
-      ),
-    );
-    await repository.updateOrganisation(
-      vault,
-      'invoice',
-      folder: LetterFolder.finance,
-      status: LetterStatus.sent,
-      tags: const ['struja', 'avgust', 'struja'],
-      paymentPaid: true,
-    );
-    final record = (await repository.watch(vault).first).single;
-    expect(record.folder, LetterFolder.finance);
-    expect(record.status, LetterStatus.sent);
-    expect(record.tags, ['struja', 'avgust']);
-    expect(record.paymentPaid, isTrue);
-    expect(record.paymentPaidAt, isNotNull);
-  });
+  test(
+    'organisation and payment status are persisted in the local vault',
+    () async {
+      final repository = LetterRepository(
+        cloudEnabled: false,
+        databaseFactory: databaseFactoryMemory,
+        databasePath: 'organisation-vault-test.db',
+      );
+      const vault = 'user:organiser';
+      await repository.save(
+        vault,
+        LetterAnalysis(
+          id: 'invoice',
+          title: 'Rechnung',
+          plainExplanation: 'Plaćanje.',
+          category: LetterCategory.energy,
+          urgency: Urgency.medium,
+          suggestedAction: 'Platite.',
+          createdAt: DateTime.utc(2026, 8, 29),
+          isPaymentObligation: true,
+        ),
+      );
+      await repository.updateOrganisation(
+        vault,
+        'invoice',
+        folder: LetterFolder.finance,
+        status: LetterStatus.sent,
+        tags: const ['struja', 'avgust', 'struja'],
+        paymentPaid: true,
+      );
+      final record = (await repository.watch(vault).first).single;
+      expect(record.folder, LetterFolder.finance);
+      expect(record.status, LetterStatus.sent);
+      expect(record.tags, ['struja', 'avgust']);
+      expect(record.paymentPaid, isTrue);
+      expect(record.paymentPaidAt, isNotNull);
+    },
+  );
 
   test('encrypted backup requires the matching user password', () async {
     final backup = EncryptedBackupService();

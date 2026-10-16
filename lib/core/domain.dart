@@ -318,6 +318,7 @@ String? _nonEmptyString(dynamic value) {
 class AppState extends ChangeNotifier {
   bool onboardingComplete = false;
   int freeAnalysesUsed = 0;
+  int analysisCredits = 0;
   bool isPremium = false;
 
   /// Language used by the static application interface. It is deliberately
@@ -329,7 +330,8 @@ class AppState extends ChangeNotifier {
   String aiLanguageCode = 'sr';
   final List<LetterAnalysis> letters = [];
 
-  bool get canAnalyse => isPremium || freeAnalysesUsed < kFreeAnalysisLimit;
+  bool get canAnalyse =>
+      isPremium || analysisCredits > 0 || freeAnalysesUsed < kFreeAnalysisLimit;
 
   void setLocale(String value) {
     if (!const <String>{
@@ -447,6 +449,11 @@ class AppState extends ChangeNotifier {
 
   void setFreeAnalysesUsed(int value) {
     freeAnalysesUsed = value.clamp(0, kFreeAnalysisLimit).toInt();
+    notifyListeners();
+  }
+
+  void setAnalysisCredits(int value) {
+    analysisCredits = value < 0 ? 0 : value;
     notifyListeners();
   }
 
