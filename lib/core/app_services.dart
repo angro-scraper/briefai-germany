@@ -79,6 +79,7 @@ class AppServices {
     required this.documents,
     required this.ai,
     required this.letters,
+    required this.questionnaires,
     required this.entitlements,
     required this.reminders,
     required this.purchases,
@@ -95,6 +96,7 @@ class AppServices {
   final DocumentService documents;
   final AiService ai;
   final LetterRepository letters;
+  final QuestionnaireRepository questionnaires;
   final EntitlementService entitlements;
   final ReminderService reminders;
   final PurchaseService purchases;
@@ -116,6 +118,7 @@ class AppServices {
     documents: DocumentService(cloudEnabled: false),
     ai: AiService(cloudEnabled: false),
     letters: LetterRepository(cloudEnabled: false),
+    questionnaires: QuestionnaireRepository(),
     entitlements: EntitlementService(cloudEnabled: false),
     reminders: ReminderService(cloudEnabled: false),
     purchases: PurchaseService(cloudEnabled: false),
@@ -201,6 +204,7 @@ class AppServices {
       documents: DocumentService(cloudEnabled: cloudEnabled),
       ai: AiService(cloudEnabled: cloudEnabled),
       letters: letters,
+      questionnaires: QuestionnaireRepository(),
       entitlements: EntitlementService(cloudEnabled: cloudEnabled),
       reminders: reminders,
       purchases: PurchaseService(cloudEnabled: cloudEnabled),
@@ -1074,7 +1078,7 @@ class LetterRepository {
 
   Future<Database> _db() async => _database ??=
       await (databaseFactory?.openDatabase(databasePath) ??
-          openBriefAiLocalDatabase());
+          openBriefAiLocalDatabase(databasePath));
 
   /// Assigns a locally unclaimed archive to the first authenticated account
   /// that opens it. This includes both the original device-wide archive and
@@ -1440,6 +1444,156 @@ class LetterRepository {
   }
 }
 
+/// Private local storage for questionnaire drafts.  This intentionally uses a
+/// separate store from letters so an app update can evolve either workflow
+/// without reserializing or risking the user's existing letter archive.
+class QuestionnaireRepository {
+  QuestionnaireRepository({
+    this.databaseFactory,
+    this.databasePath = 'briefai-questionnaire-vault.db',
+  });
+
+  final DatabaseFactory? databaseFactory;
+  final String databasePath;
+  final StoreRef<String, Map<String, Object?>> _store = stringMapStoreFactory
+      .store('questionnaires');
+  Database? _database;
+
+  Future<Database> _db() async => _database ??=
+      await (databaseFactory?.openDatabase(databasePath) ??
+          openBriefAiLocalDatabase(databasePath));
+
+  Stream<List<QuestionnaireDraft>> watch(String ownerKey) {
+    return Stream.fromFuture(_db()).asyncExpand(
+      (database) => _store
+          .query(
+            finder: Finder(
+              filter: Filter.equals('ownerKey', ownerKey),
+              sortOrders: [SortOrder('updatedAt', false)],
+            ),
+          )
+          .onSnapshots(database)
+          .map(
+            (records) => records
+                .map(
+                  (record) => QuestionnaireDraft.fromMap(
+                    id: record.key,
+                    map: Map<String, dynamic>.from(record.value),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+    );
+  }
+
+  /// Keeps the original imported pages alongside the editable OCR draft.
+  ///
+  /// Pages are deliberately optional for later edits: a user can correct a
+  /// saved questionnaire without re-importing it, and the existing source
+  /// files remain in the private vault (and therefore in encrypted backups).
+  Future<void> save(
+    String ownerKey,
+    QuestionnaireDraft draft, {
+    List<PickedDocument>? documents,
+  }) async {
+    final database = await _db();
+    final values = <String, Object?>{...draft.toMap(), 'ownerKey': ownerKey};
+    if (documents != null && documents.isNotEmpty) {
+      values['documentPages'] = documents
+          .map(
+            (document) => <String, Object?>{
+              'name': document.name,
+              'mimeType': document.mimeType,
+              'base64': base64Encode(document.bytes),
+            },
+          )
+          .toList(growable: false);
+    }
+    await _store.record(draft.id).put(database, values, merge: true);
+  }
+
+  /// Returns the locally encrypted-at-rest source document pages for a saved
+  /// questionnaire.  They are never copied to a backend service.
+  Future<List<PickedDocument>> loadDocuments(String ownerKey, String id) async {
+    final database = await _db();
+    final values = await _store.record(id).get(database);
+    if (values?['ownerKey'] != ownerKey) return const <PickedDocument>[];
+    final rawPages = values?['documentPages'];
+    if (rawPages is! List) return const <PickedDocument>[];
+    final documents = <PickedDocument>[];
+    for (final raw in rawPages) {
+      if (raw is! Map) continue;
+      final name = raw['name'];
+      final mimeType = raw['mimeType'];
+      final encoded = raw['base64'];
+      if (name is! String || mimeType is! String || encoded is! String) {
+        continue;
+      }
+      try {
+        documents.add(
+          PickedDocument(
+            name: name,
+            mimeType: mimeType,
+            bytes: base64Decode(encoded),
+            ocrPath: null,
+          ),
+        );
+      } on FormatException {
+        // A malformed page must never make the questionnaire draft unusable.
+      }
+    }
+    return documents;
+  }
+
+  Future<void> delete(String ownerKey, String id) async {
+    final database = await _db();
+    final existing = await _store.record(id).get(database);
+    if (existing?['ownerKey'] != ownerKey) return;
+    await _store.record(id).delete(database);
+  }
+
+  Future<List<Map<String, dynamic>>> exportRecords(String ownerKey) async {
+    final database = await _db();
+    final records = await _store.find(
+      database,
+      finder: Finder(
+        filter: Filter.equals('ownerKey', ownerKey),
+        sortOrders: [SortOrder('updatedAt', false)],
+      ),
+    );
+    return records
+        .map((record) => <String, dynamic>{'id': record.key, ...record.value})
+        .toList(growable: false);
+  }
+
+  /// Imports only into the currently active local vault.  The backup can
+  /// never recreate a draft in another household profile on this device.
+  Future<int> importRecords(
+    String ownerKey,
+    List<Map<String, dynamic>> records,
+  ) async {
+    final database = await _db();
+    var imported = 0;
+    await database.transaction((transaction) async {
+      for (final raw in records) {
+        final id = raw['id'];
+        if (id is! String || id.trim().isEmpty) continue;
+        final values = <String, Object?>{};
+        for (final entry in raw.entries) {
+          if (entry.key == 'id' || entry.key == 'ownerKey') continue;
+          values[entry.key] = entry.value;
+        }
+        await _store.record(id).put(transaction, {
+          ...values,
+          'ownerKey': ownerKey,
+        }, merge: true);
+        imported += 1;
+      }
+    });
+    return imported;
+  }
+}
+
 /// Password-encrypted portable archive.  The passphrase is deliberately never
 /// persisted or sent to Firebase/Render/OpenAI: losing it means the backup
 /// cannot be opened, which is the intended privacy property.
@@ -1752,11 +1906,49 @@ class EntitlementService {
     return _watchCredits(uid);
   }
 
+  Stream<int> watchFreeQuestionnaireUsage(String uid) {
+    return _watchQuestionnaireUsage(uid);
+  }
+
+  Stream<int> watchQuestionnaireCredits(String uid) {
+    if (!cloudEnabled || uid == 'local-device') return Stream<int>.value(0);
+    return _watchQuestionnaireCredits(uid);
+  }
+
   Future<void> recordAnalysis(String uid) async {
     final preferences = await SharedPreferences.getInstance();
     final key = _localUsageKey(uid);
     final current = preferences.getInt(key) ?? 0;
     await preferences.setInt(key, (current + 1).clamp(0, kFreeAnalysisLimit));
+  }
+
+  /// Reserves one completed questionnaire only after OCR succeeded and the
+  /// user has chosen to save the editable draft.  This keeps unreadable scans
+  /// and abandoned camera selections from consuming any allowance.
+  Future<QuestionnaireAllowance> consumeQuestionnaire(String uid) async {
+    if (!cloudEnabled || uid == 'local-device') {
+      final preferences = await SharedPreferences.getInstance();
+      final key = _localQuestionnaireUsageKey(uid);
+      final current = preferences.getInt(key) ?? 0;
+      if (current >= kFreeQuestionnaireLimit) {
+        throw StateError('Questionnaire allowance has been used.');
+      }
+      final next = current + 1;
+      await preferences.setInt(key, next);
+      return QuestionnaireAllowance(
+        freeUsed: next,
+        credits: 0,
+        usedCredit: false,
+      );
+    }
+    final result = await FirebaseFunctions.instanceFor(
+      region: 'europe-west3',
+    ).httpsCallable('consumeQuestionnaire').call<Map<Object?, Object?>>({});
+    return QuestionnaireAllowance(
+      freeUsed: (result.data['freeQuestionnairesUsed'] as num? ?? 0).toInt(),
+      credits: (result.data['questionnaireCredits'] as num? ?? 0).toInt(),
+      usedCredit: result.data['usedCredit'] == true,
+    );
   }
 
   Stream<bool> _watch(String uid) async* {
@@ -1825,7 +2017,61 @@ class EntitlementService {
     }
   }
 
+  Stream<int> _watchQuestionnaireUsage(String uid) async* {
+    final preferences = await SharedPreferences.getInstance();
+    yield preferences.getInt(_localQuestionnaireUsageKey(uid)) ?? 0;
+    if (!cloudEnabled || uid == 'local-device') return;
+    try {
+      await for (final document
+          in FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection('usage')
+              .doc('current')
+              .snapshots()) {
+        final usage = document.data()?['questionnairesLifetime'];
+        yield usage is int
+            ? usage.clamp(0, kFreeQuestionnaireLimit).toInt()
+            : 0;
+      }
+    } on FirebaseException {
+      // The local introductory allowance is retained only for guests. Signed
+      // in accounts use the server count so paid credits cannot be fabricated.
+    }
+  }
+
+  Stream<int> _watchQuestionnaireCredits(String uid) async* {
+    try {
+      await for (final document
+          in FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection('usage')
+              .doc('current')
+              .snapshots()) {
+        final credits = document.data()?['questionnaireCredits'];
+        yield credits is int && credits > 0 ? credits : 0;
+      }
+    } on FirebaseException {
+      yield 0;
+    }
+  }
+
   String _localUsageKey(String uid) => 'briefai.usage.$uid.lifetime';
+  String _localQuestionnaireUsageKey(String uid) =>
+      'briefai.questionnaires.$uid.lifetime';
+}
+
+class QuestionnaireAllowance {
+  const QuestionnaireAllowance({
+    required this.freeUsed,
+    required this.credits,
+    required this.usedCredit,
+  });
+
+  final int freeUsed;
+  final int credits;
+  final bool usedCredit;
 }
 
 class ReminderService {
@@ -2056,11 +2302,15 @@ class StorePurchaseResult {
     required this.isPremium,
     required this.creditsAdded,
     required this.analysisCredits,
+    required this.questionnaireCreditsAdded,
+    required this.questionnaireCredits,
   });
 
   final bool isPremium;
   final int creditsAdded;
   final int analysisCredits;
+  final int questionnaireCreditsAdded;
+  final int questionnaireCredits;
 }
 
 class PurchaseService {
@@ -2070,10 +2320,12 @@ class PurchaseService {
   static Set<String> get productIds => {
     ...kSubscriptionPlans.map((plan) => plan.productId),
     ...kAnalysisCreditPacks.map((pack) => pack.productId),
+    ...kQuestionnaireCreditPacks.map((pack) => pack.productId),
   };
 
   static bool isConsumableProduct(String productId) =>
-      kAnalysisCreditPacks.any((pack) => pack.productId == productId);
+      kAnalysisCreditPacks.any((pack) => pack.productId == productId) ||
+      kQuestionnaireCreditPacks.any((pack) => pack.productId == productId);
 
   Future<ProductDetailsResponse> products() async {
     if (!await InAppPurchase.instance.isAvailable()) {
@@ -2111,6 +2363,8 @@ class PurchaseService {
         isPremium: false,
         creditsAdded: 0,
         analysisCredits: 0,
+        questionnaireCreditsAdded: 0,
+        questionnaireCredits: 0,
       );
     }
     final provider = purchase.verificationData.source;
@@ -2119,6 +2373,8 @@ class PurchaseService {
         isPremium: false,
         creditsAdded: 0,
         analysisCredits: 0,
+        questionnaireCreditsAdded: 0,
+        questionnaireCredits: 0,
       );
     }
     final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
@@ -2133,6 +2389,10 @@ class PurchaseService {
       isPremium: result.data['isActive'] == true,
       creditsAdded: (result.data['creditsAdded'] as num? ?? 0).toInt(),
       analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
+      questionnaireCreditsAdded:
+          (result.data['questionnaireCreditsAdded'] as num? ?? 0).toInt(),
+      questionnaireCredits: (result.data['questionnaireCredits'] as num? ?? 0)
+          .toInt(),
     );
   }
 
@@ -2279,8 +2539,14 @@ class PurchaseService {
       isPremium: result.data['isActive'] == true,
       creditsAdded: (result.data['creditsAdded'] as num? ?? 0).toInt(),
       analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
+      questionnaireCreditsAdded:
+          (result.data['questionnaireCreditsAdded'] as num? ?? 0).toInt(),
+      questionnaireCredits: (result.data['questionnaireCredits'] as num? ?? 0)
+          .toInt(),
     );
-    if (!purchaseResult.isPremium && purchaseResult.creditsAdded <= 0) {
+    if (!purchaseResult.isPremium &&
+        purchaseResult.creditsAdded <= 0 &&
+        purchaseResult.questionnaireCreditsAdded <= 0) {
       throw StateError('Prodavnica nije potvrdila kupovinu.');
     }
     await nativeStoreRequest('complete', {

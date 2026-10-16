@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'eu_major_language_translations.dart';
 import 'major_language_translations.dart';
 import 'workflow_translations.dart';
+import 'questionnaire_translations.dart';
 
 class AppStrings {
   const AppStrings(this.locale);
@@ -2029,7 +2030,11 @@ class AppStrings {
 
   static final _values = <String, Map<String, String>>{
     for (final entry in _baseValues.entries)
-      entry.key: {...entry.value, ...?workflowInterfaceTranslations[entry.key]},
+      entry.key: {
+        ...entry.value,
+        ...?workflowInterfaceTranslations[entry.key],
+        ...?questionnaireInterfaceTranslations[entry.key],
+      },
   };
 }
 

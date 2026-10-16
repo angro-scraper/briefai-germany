@@ -64,6 +64,34 @@ const List<AnalysisCreditPack> kAnalysisCreditPacks = [
   ),
 ];
 
+/// One-time questionnaire completion packs.  They are separate from letter
+/// analysis credits because filling an official form has its own quota and
+/// must never silently consume a user's letter analyses.
+class QuestionnaireCreditPack {
+  const QuestionnaireCreditPack({
+    required this.productId,
+    required this.credits,
+    required this.fallbackPrice,
+  });
+
+  final String productId;
+  final int credits;
+  final String fallbackPrice;
+}
+
+const List<QuestionnaireCreditPack> kQuestionnaireCreditPacks = [
+  QuestionnaireCreditPack(
+    productId: 'briefai.questionnaires.3',
+    credits: 3,
+    fallbackPrice: '2,99 €',
+  ),
+  QuestionnaireCreditPack(
+    productId: 'briefai.questionnaires.5',
+    credits: 5,
+    fallbackPrice: '3,99 €',
+  ),
+];
+
 /// The first product ID is intentionally kept for compatibility with the
 /// subscription that already exists in both supported mobile stores.
 const List<SubscriptionPlan> kSubscriptionPlans = [

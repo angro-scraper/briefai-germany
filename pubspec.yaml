@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # One release identity for every platform.  Store workflows may provide their
 # own build number, but the source of truth for the next user-facing release
 # must never move backwards from the already shipped Android 1.0.35 train.
-version: 1.0.5+43
+version: 1.0.38+44
 
 environment:
   sdk: ^3.12.2

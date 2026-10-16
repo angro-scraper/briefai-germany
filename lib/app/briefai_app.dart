@@ -135,6 +135,9 @@ class _BriefAiAppState extends State<BriefAiApp> {
           if (result.creditsAdded > 0) {
             _state.setAnalysisCredits(result.analysisCredits);
           }
+          if (result.questionnaireCreditsAdded > 0) {
+            _state.setQuestionnaireCredits(result.questionnaireCredits);
+          }
         } catch (_) {
           // The server is authoritative. A failed verification never unlocks
           // Premium, and the next store restore can retry it.
@@ -511,10 +514,13 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _tab = 0;
   StreamSubscription<dynamic>? _lettersSubscription;
+  StreamSubscription<dynamic>? _questionnairesSubscription;
   StreamSubscription<dynamic>? _authSubscription;
   StreamSubscription<dynamic>? _entitlementSubscription;
   StreamSubscription<dynamic>? _usageSubscription;
   StreamSubscription<dynamic>? _creditsSubscription;
+  StreamSubscription<dynamic>? _questionnaireUsageSubscription;
+  StreamSubscription<dynamic>? _questionnaireCreditsSubscription;
   int _vaultBinding = 0;
   String? _roleRefreshUid;
 
@@ -530,6 +536,8 @@ class _AppShellState extends State<AppShell> {
         _entitlementSubscription?.cancel();
         _usageSubscription?.cancel();
         _creditsSubscription?.cancel();
+        _questionnaireUsageSubscription?.cancel();
+        _questionnaireCreditsSubscription?.cancel();
         if (mounted) setState(() {});
         if (user != null) {
           if (_roleRefreshUid != user.uid) {
@@ -547,6 +555,12 @@ class _AppShellState extends State<AppShell> {
           _creditsSubscription = widget.services.entitlements
               .watchAnalysisCredits(user.uid)
               .listen(widget.state.setAnalysisCredits);
+          _questionnaireUsageSubscription = widget.services.entitlements
+              .watchFreeQuestionnaireUsage(user.uid)
+              .listen(widget.state.setFreeQuestionnairesUsed);
+          _questionnaireCreditsSubscription = widget.services.entitlements
+              .watchQuestionnaireCredits(user.uid)
+              .listen(widget.state.setQuestionnaireCredits);
         } else {
           _roleRefreshUid = null;
           widget.state.setPremium(false);
@@ -554,6 +568,10 @@ class _AppShellState extends State<AppShell> {
               .watchFreeUsage('local-device')
               .listen(widget.state.setFreeAnalysesUsed);
           widget.state.setAnalysisCredits(0);
+          _questionnaireUsageSubscription = widget.services.entitlements
+              .watchFreeQuestionnaireUsage('local-device')
+              .listen(widget.state.setFreeQuestionnairesUsed);
+          widget.state.setQuestionnaireCredits(0);
         }
       });
     } else {
@@ -561,6 +579,10 @@ class _AppShellState extends State<AppShell> {
           .watchFreeUsage('local-device')
           .listen(widget.state.setFreeAnalysesUsed);
       widget.state.setAnalysisCredits(0);
+      _questionnaireUsageSubscription = widget.services.entitlements
+          .watchFreeQuestionnaireUsage('local-device')
+          .listen(widget.state.setFreeQuestionnairesUsed);
+      widget.state.setQuestionnaireCredits(0);
     }
   }
 
@@ -570,6 +592,8 @@ class _AppShellState extends State<AppShell> {
     final binding = ++_vaultBinding;
     await _lettersSubscription?.cancel();
     _lettersSubscription = null;
+    await _questionnairesSubscription?.cancel();
+    _questionnairesSubscription = null;
     if (!mounted || binding != _vaultBinding) return;
     widget.state.replaceLetters(const []);
 
@@ -595,14 +619,20 @@ class _AppShellState extends State<AppShell> {
     _lettersSubscription = widget.services.letters
         .watch(ownerKey)
         .listen(widget.state.replaceLetters);
+    _questionnairesSubscription = widget.services.questionnaires
+        .watch(ownerKey)
+        .listen(widget.state.replaceQuestionnaires);
   }
 
   @override
   void dispose() {
     _lettersSubscription?.cancel();
+    _questionnairesSubscription?.cancel();
     _entitlementSubscription?.cancel();
     _usageSubscription?.cancel();
     _creditsSubscription?.cancel();
+    _questionnaireUsageSubscription?.cancel();
+    _questionnaireCreditsSubscription?.cancel();
     _authSubscription?.cancel();
     widget.services.household.removeListener(_onHouseholdProfileChanged);
     super.dispose();
@@ -803,6 +833,8 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
+        _QuestionnaireOverviewCard(state: state, services: services),
+        const SizedBox(height: 14),
         _DeadlineOverviewCard(state: state, services: services),
         const SizedBox(height: 30),
         Text(
@@ -835,6 +867,86 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
       ],
+    );
+  }
+}
+
+class _QuestionnaireOverviewCard extends StatelessWidget {
+  const _QuestionnaireOverviewCard({
+    required this.state,
+    required this.services,
+  });
+
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final allowance = state.questionnaireCredits > 0
+        ? strings.format('questionnaireCredits', {
+            'count': state.questionnaireCredits,
+          })
+        : strings.format('questionnaireRemaining', {
+            'count': math.max(
+              0,
+              kFreeQuestionnaireLimit - state.freeQuestionnairesUsed,
+            ),
+          });
+    return InkWell(
+      borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              QuestionnaireHubScreen(state: state, services: services),
+        ),
+      ),
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: BriefAiDesign.surface,
+          borderRadius: BorderRadius.circular(BriefAiDesign.radius),
+          border: Border.all(color: BriefAiDesign.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: BriefAiDesign.blueSoft,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Icon(
+                Icons.assignment_outlined,
+                color: BriefAiDesign.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    strings.text('questionnaires'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    allowance,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: BriefAiDesign.muted),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: BriefAiDesign.muted),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1947,6 +2059,613 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       '',
     );
   }
+}
+
+class QuestionnaireHubScreen extends StatelessWidget {
+  const QuestionnaireHubScreen({
+    super.key,
+    required this.state,
+    required this.services,
+  });
+
+  final AppState state;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.text('questionnaires'))),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                QuestionnaireEditorScreen(state: state, services: services),
+          ),
+        ),
+        icon: const Icon(Icons.add),
+        label: Text(strings.text('newQuestionnaire')),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+        children: [
+          Text(
+            strings.text('questionnaireDescription'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: BriefAiDesign.muted),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            strings.text('questionnaireDrafts'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          if (state.questionnaires.isEmpty)
+            _EmptyState(
+              icon: Icons.assignment_outlined,
+              text: strings.text('emptyQuestionnaires'),
+            )
+          else
+            ...state.questionnaires.map(
+              (draft) => Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.assignment_outlined,
+                    color: BriefAiDesign.blue,
+                  ),
+                  title: Text(draft.title),
+                  subtitle: Text(
+                    '${draft.fields.length} · '
+                    '${draft.updatedAt.day.toString().padLeft(2, '0')}.'
+                    '${draft.updatedAt.month.toString().padLeft(2, '0')}.'
+                    '${draft.updatedAt.year}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => QuestionnaireEditorScreen(
+                        state: state,
+                        services: services,
+                        draft: draft,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class QuestionnaireEditorScreen extends StatefulWidget {
+  const QuestionnaireEditorScreen({
+    super.key,
+    required this.state,
+    required this.services,
+    this.draft,
+  });
+
+  final AppState state;
+  final AppServices services;
+  final QuestionnaireDraft? draft;
+
+  @override
+  State<QuestionnaireEditorScreen> createState() =>
+      _QuestionnaireEditorScreenState();
+}
+
+class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
+  static const _maxPages = 20;
+  final _title = TextEditingController();
+  final _sourceText = TextEditingController();
+  final List<(TextEditingController, TextEditingController)> _fields = [];
+  final List<PickedDocument> _documents = [];
+  bool _busy = false;
+  int _ocrPage = 0;
+
+  bool get _isExisting => widget.draft != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = widget.draft;
+    _title.text = draft?.title ?? '';
+    _sourceText.text = draft?.sourceText ?? '';
+    for (final field in draft?.fields ?? const <QuestionnaireField>[]) {
+      _fields.add((
+        TextEditingController(text: field.label),
+        TextEditingController(text: field.value),
+      ));
+    }
+    if (_fields.isEmpty) _addField();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _sourceText.dispose();
+    for (final controllers in _fields) {
+      controllers.$1.dispose();
+      controllers.$2.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addField({String label = '', String value = ''}) {
+    setState(() {
+      _fields.add((
+        TextEditingController(text: label),
+        TextEditingController(text: value),
+      ));
+    });
+  }
+
+  void _removeField(int index) {
+    if (_fields.length == 1) return;
+    final removed = _fields.removeAt(index);
+    removed.$1.dispose();
+    removed.$2.dispose();
+    setState(() {});
+  }
+
+  Future<void> _select(Future<List<PickedDocument>> Function() source) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final picked = await source();
+      if (!mounted || picked.isEmpty) return;
+      setState(() {
+        _documents
+          ..clear()
+          ..addAll(picked.take(_maxPages));
+        _sourceText.clear();
+      });
+    } on Object {
+      _show(context.strings.text('ocrFailed'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _capture() => _select(() async {
+    final document = await widget.services.documents.capture();
+    return document == null ? const <PickedDocument>[] : [document];
+  });
+
+  Future<void> _recognizeAndSave() async {
+    if (_busy) return;
+    if (!_isExisting && !widget.state.canCreateQuestionnaire) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => QuestionnairePackagesScreen(
+            state: widget.state,
+            services: widget.services,
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      if (_sourceText.text.trim().isEmpty && _documents.isNotEmpty) {
+        final text = await widget.services.documents.ocrAll(
+          _documents,
+          onProgress: (current, _) {
+            if (mounted) setState(() => _ocrPage = current);
+          },
+        );
+        if (!mounted) return;
+        _sourceText.text = text;
+        _suggestFields(text);
+      }
+      if (_sourceText.text.trim().isEmpty && !_isExisting) {
+        throw StateError(context.strings.text('enterTextFirst'));
+      }
+      if (!_isExisting) {
+        final uid = widget.services.auth.uid ?? 'local-device';
+        final allowance = await widget.services.entitlements
+            .consumeQuestionnaire(uid);
+        widget.state
+          ..setFreeQuestionnairesUsed(allowance.freeUsed)
+          ..setQuestionnaireCredits(allowance.credits);
+        if (!mounted) return;
+      }
+      final now = DateTime.now();
+      final title = _title.text.trim().isEmpty
+          ? _suggestTitle(
+              _sourceText.text,
+              context.strings.text('questionnaires'),
+            )
+          : _title.text.trim();
+      final draft = QuestionnaireDraft(
+        id: widget.draft?.id ?? newLetterId(),
+        title: title,
+        fields: _fields
+            .map(
+              (controllers) => QuestionnaireField(
+                label: controllers.$1.text.trim(),
+                value: controllers.$2.text.trim(),
+              ),
+            )
+            .where((field) => field.label.isNotEmpty || field.value.isNotEmpty)
+            .toList(growable: false),
+        sourceText: _sourceText.text.trim(),
+        createdAt: widget.draft?.createdAt ?? now,
+        updatedAt: now,
+      );
+      await widget.services.questionnaires.save(
+        widget.services.currentVaultKey,
+        draft,
+        documents: _documents.isEmpty ? null : List.unmodifiable(_documents),
+      );
+      widget.state.replaceQuestionnaires([
+        draft,
+        ...widget.state.questionnaires.where((value) => value.id != draft.id),
+      ]);
+      if (!mounted) return;
+      _show(context.strings.text('questionnaireSaved'));
+      Navigator.of(context).pop();
+    } on Object catch (error) {
+      if (mounted) _show('${context.strings.text('analysisFailed')}: $error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _suggestFields(String text) {
+    final parsed = _questionnaireFieldsFromOcr(text);
+    if (parsed.isEmpty) return;
+    for (final controllers in _fields) {
+      controllers.$1.dispose();
+      controllers.$2.dispose();
+    }
+    setState(() {
+      _fields
+        ..clear()
+        ..addAll(
+          parsed.map(
+            (field) => (
+              TextEditingController(text: field.label),
+              TextEditingController(text: field.value),
+            ),
+          ),
+        );
+    });
+  }
+
+  Future<void> _export(bool word) async {
+    final title = _title.text.trim().isEmpty
+        ? _suggestTitle(
+            _sourceText.text,
+            context.strings.text('questionnaires'),
+          )
+        : _title.text.trim();
+    final body = _fields
+        .where((controllers) => controllers.$1.text.trim().isNotEmpty)
+        .map(
+          (controllers) =>
+              '${controllers.$1.text.trim()}\n${controllers.$2.text.trim()}',
+        )
+        .join('\n\n');
+    try {
+      if (word) {
+        await widget.services.exports.saveWord(title: title, body: body);
+      } else {
+        await widget.services.exports.savePdf(title: title, body: body);
+      }
+      if (mounted) _show(context.strings.text('pdfReady'));
+    } on Object {
+      if (mounted) _show(context.strings.text('pdfSaveFailed'));
+    }
+  }
+
+  void _show(String value) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(value)));
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _isExisting
+              ? strings.text('editQuestionnaire')
+              : strings.text('newQuestionnaire'),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        children: [
+          if (!_isExisting) ...[
+            Text(
+              strings.text('scanQuestionnaire'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              strings.text('questionnaireDescription'),
+              style: const TextStyle(color: BriefAiDesign.muted),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _capture,
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: Text(strings.text('camera')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () =>
+                            _select(widget.services.documents.galleryMultiple),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(strings.text('gallery')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () => _select(widget.services.documents.files),
+                  icon: const Icon(Icons.upload_file_outlined),
+                  label: Text(strings.text('pdfImage')),
+                ),
+              ],
+            ),
+            if (_documents.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(strings.pagesSelected(_documents.length)),
+              ),
+            const SizedBox(height: 24),
+          ],
+          TextField(
+            controller: _title,
+            decoration: InputDecoration(
+              labelText: strings.text('questionnaireTitle'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            strings.text('editQuestionnaire'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          for (var index = 0; index < _fields.length; index++) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _fields[index].$1,
+                      decoration: InputDecoration(
+                        labelText: strings.text('fieldLabel'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _fields[index].$2,
+                      minLines: 2,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        labelText: strings.text('fieldValue'),
+                      ),
+                    ),
+                    if (_fields.length > 1)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          onPressed: () => _removeField(index),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _addField,
+            icon: const Icon(Icons.add),
+            label: Text(strings.text('addField')),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: _busy ? null : _recognizeAndSave,
+            icon: _busy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(
+              _busy && _ocrPage > 0
+                  ? strings.ocrProgress(_ocrPage, _documents.length)
+                  : strings.text('saveQuestionnaire'),
+            ),
+          ),
+          if (_isExisting) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _export(true),
+                    icon: const Icon(Icons.description_outlined),
+                    label: Text(strings.text('exportWord')),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _export(false),
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: Text(strings.text('savePdf')),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class QuestionnairePackagesScreen extends StatefulWidget {
+  const QuestionnairePackagesScreen({
+    super.key,
+    required this.state,
+    required this.services,
+  });
+  final AppState state;
+  final AppServices services;
+  @override
+  State<QuestionnairePackagesScreen> createState() =>
+      _QuestionnairePackagesScreenState();
+}
+
+class _QuestionnairePackagesScreenState
+    extends State<QuestionnairePackagesScreen> {
+  late final Future<(ProductDetailsResponse, Map<String, String>, bool)>
+  _offers;
+  @override
+  void initState() {
+    super.initState();
+    _offers = () async {
+      if (kIsWeb) {
+        return (
+          ProductDetailsResponse(
+            productDetails: const [],
+            notFoundIDs: const [],
+          ),
+          await widget.services.purchases.wrapperProductPrices(),
+          await widget.services.purchases.isNativeStoreWrapper(),
+        );
+      }
+      return (
+        await widget.services.purchases.products(),
+        const <String, String>{},
+        false,
+      );
+    }();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(context.strings.text('buyQuestionnaires'))),
+    body: FutureBuilder<(ProductDetailsResponse, Map<String, String>, bool)>(
+      future: _offers,
+      builder: (context, snapshot) {
+        final details = {
+          for (final product
+              in snapshot.data?.$1.productDetails ?? const <ProductDetails>[])
+            product.id: product,
+        };
+        final prices = snapshot.data?.$2 ?? const <String, String>{};
+        final native = snapshot.data?.$3 == true;
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              context.strings.text('questionnaireLimit'),
+              style: const TextStyle(color: BriefAiDesign.muted),
+            ),
+            const SizedBox(height: 18),
+            for (final pack in kQuestionnaireCreditPacks) ...[
+              _PlanCard(
+                title: details[pack.productId]?.title ?? '${pack.credits}',
+                price:
+                    details[pack.productId]?.price ??
+                    prices[pack.productId] ??
+                    pack.fallbackPrice,
+                features: [
+                  context.strings.format('questionnaireCredits', {
+                    'count': pack.credits,
+                  }),
+                ],
+                action: kIsWeb
+                    ? native
+                          ? () => _buyNative(pack.productId)
+                          : null
+                    : () => _buy(details[pack.productId]),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
+    ),
+  );
+
+  Future<void> _buy(ProductDetails? product) async {
+    if (product == null) {
+      _show(context.strings.purchaseMessage('notConfigured'));
+      return;
+    }
+    try {
+      await widget.services.purchases.buy(product);
+    } on Object {
+      if (mounted) _show(context.strings.purchaseMessage('failed'));
+    }
+  }
+
+  Future<void> _buyNative(String productId) async {
+    try {
+      final result = await widget.services.purchases.buyNativeStoreProduct(
+        productId,
+      );
+      widget.state.setQuestionnaireCredits(result.questionnaireCredits);
+      if (mounted) Navigator.of(context).pop();
+    } on Object {
+      if (mounted) _show(context.strings.purchaseMessage('failed'));
+    }
+  }
+
+  void _show(String message) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
+}
+
+List<QuestionnaireField> _questionnaireFieldsFromOcr(String source) {
+  final fields = <QuestionnaireField>[];
+  final linePattern = RegExp(r'^\s*([^\n:]{2,96}?)(?:\s*[:?])\s*(.*)$');
+  for (final line in source.split(RegExp(r'\r?\n'))) {
+    final match = linePattern.firstMatch(line);
+    if (match == null) continue;
+    final label = match.group(1)?.trim() ?? '';
+    final value = match.group(2)?.trim() ?? '';
+    if (label.isNotEmpty && !label.startsWith('[[')) {
+      fields.add(QuestionnaireField(label: label, value: value));
+    }
+    if (fields.length == 24) break;
+  }
+  return fields;
+}
+
+String _suggestTitle(String source, String fallback) {
+  for (final line in source.split(RegExp(r'\r?\n'))) {
+    final candidate = line.trim();
+    if (candidate.length >= 4 &&
+        candidate.length <= 90 &&
+        !candidate.startsWith('[[')) {
+      return candidate;
+    }
+  }
+  return fallback;
 }
 
 class ResultScreen extends StatelessWidget {
@@ -3573,6 +4292,9 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
       'letters': await widget.services.letters.exportRecords(
         widget.services.currentVaultKey,
       ),
+      'questionnaires': await widget.services.questionnaires.exportRecords(
+        widget.services.currentVaultKey,
+      ),
     };
     return widget.services.backups.encrypt(
       payload: payload,
@@ -3638,10 +4360,13 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
         widget.services.currentVaultKey,
         records,
       );
+      final questionnaires = await _restoreQuestionnaires(payload);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(strings.format('restoreCount', {'count': count})),
+            content: Text(
+              strings.format('restoreCount', {'count': count + questionnaires}),
+            ),
           ),
         );
       }
@@ -3716,10 +4441,13 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
         widget.services.currentVaultKey,
         records,
       );
+      final questionnaires = await _restoreQuestionnaires(payload);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(strings.format('restoreCount', {'count': count})),
+            content: Text(
+              strings.format('restoreCount', {'count': count + questionnaires}),
+            ),
           ),
         );
       }
@@ -3732,6 +4460,18 @@ class _EncryptedBackupScreenState extends State<EncryptedBackupScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<int> _restoreQuestionnaires(Map<String, dynamic> payload) async {
+    final raw = payload['questionnaires'];
+    if (raw is! List) return 0;
+    return widget.services.questionnaires.importRecords(
+      widget.services.currentVaultKey,
+      raw
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList(growable: false),
+    );
   }
 
   @override
@@ -3955,6 +4695,9 @@ Future<void> _exportAccountData(
       'account': await services.auth.localAccountData(),
       'premiumActive': state.isPremium,
       'letters': await services.letters.exportRecords(services.currentVaultKey),
+      'questionnaires': await services.questionnaires.exportRecords(
+        services.currentVaultKey,
+      ),
     };
     await services.exports.shareJsonExport(jsonEncode(payload));
   } catch (_) {

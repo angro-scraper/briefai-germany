@@ -97,6 +97,92 @@ class SavedGeneratedReply {
   final DateTime updatedAt;
 }
 
+/// A user-reviewed value extracted from an official questionnaire.  OCR is
+/// deliberately treated only as a suggestion: the editable value is what is
+/// saved and exported.
+class QuestionnaireField {
+  const QuestionnaireField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  Map<String, String> toMap() => {'label': label, 'value': value};
+
+  factory QuestionnaireField.fromMap(Map<String, dynamic> map) =>
+      QuestionnaireField(
+        label: (map['label'] as String? ?? '').trim(),
+        value: (map['value'] as String? ?? '').trim(),
+      );
+}
+
+/// A locally stored questionnaire draft.  Source pages and answers stay in
+/// the selected device vault; no questionnaire is sent to a public cloud
+/// archive just because a user signs in.
+class QuestionnaireDraft {
+  const QuestionnaireDraft({
+    required this.id,
+    required this.title,
+    required this.fields,
+    required this.sourceText,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String title;
+  final List<QuestionnaireField> fields;
+  final String sourceText;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  QuestionnaireDraft copyWith({
+    String? title,
+    List<QuestionnaireField>? fields,
+    String? sourceText,
+    DateTime? updatedAt,
+  }) => QuestionnaireDraft(
+    id: id,
+    title: title ?? this.title,
+    fields: fields ?? this.fields,
+    sourceText: sourceText ?? this.sourceText,
+    createdAt: createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+
+  Map<String, Object?> toMap() => {
+    'title': title,
+    'fields': fields.map((field) => field.toMap()).toList(growable: false),
+    'sourceText': sourceText,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
+
+  factory QuestionnaireDraft.fromMap({
+    required String id,
+    required Map<String, dynamic> map,
+  }) {
+    final rawFields = map['fields'];
+    return QuestionnaireDraft(
+      id: id,
+      title: (map['title'] as String? ?? 'Questionnaire').trim(),
+      fields: rawFields is List
+          ? rawFields
+                .whereType<Map>()
+                .map(
+                  (field) => QuestionnaireField.fromMap(
+                    Map<String, dynamic>.from(field),
+                  ),
+                )
+                .where((field) => field.label.isNotEmpty)
+                .toList(growable: false)
+          : const <QuestionnaireField>[],
+      sourceText: map['sourceText'] as String? ?? '',
+      createdAt: _readCreatedAt(map['createdAt']),
+      updatedAt: _readCreatedAt(map['updatedAt']),
+    );
+  }
+}
+
 class LetterAnalysis {
   const LetterAnalysis({
     required this.id,
@@ -319,6 +405,8 @@ class AppState extends ChangeNotifier {
   bool onboardingComplete = false;
   int freeAnalysesUsed = 0;
   int analysisCredits = 0;
+  int freeQuestionnairesUsed = 0;
+  int questionnaireCredits = 0;
   bool isPremium = false;
 
   /// Language used by the static application interface. It is deliberately
@@ -329,9 +417,17 @@ class AppState extends ChangeNotifier {
   /// the wider AI language catalogue without changing interface copy.
   String aiLanguageCode = 'sr';
   final List<LetterAnalysis> letters = [];
+  final List<QuestionnaireDraft> questionnaires = [];
 
   bool get canAnalyse =>
       isPremium || analysisCredits > 0 || freeAnalysesUsed < kFreeAnalysisLimit;
+
+  /// Questionnaire completion is intentionally not included in Premium.
+  /// It is a separate, one-time workflow with its own free allowance and
+  /// consumable credits, as clearly presented before purchase.
+  bool get canCreateQuestionnaire =>
+      questionnaireCredits > 0 ||
+      freeQuestionnairesUsed < kFreeQuestionnaireLimit;
 
   void setLocale(String value) {
     if (!const <String>{
@@ -457,6 +553,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFreeQuestionnairesUsed(int value) {
+    freeQuestionnairesUsed = value.clamp(0, kFreeQuestionnaireLimit).toInt();
+    notifyListeners();
+  }
+
+  void setQuestionnaireCredits(int value) {
+    questionnaireCredits = value < 0 ? 0 : value;
+    notifyListeners();
+  }
+
   void updateStatus(String id, LetterStatus status) {
     final index = letters.indexWhere((letter) => letter.id == id);
     if (index == -1) return;
@@ -466,6 +572,13 @@ class AppState extends ChangeNotifier {
 
   void replaceLetters(List<LetterAnalysis> values) {
     letters
+      ..clear()
+      ..addAll(values);
+    notifyListeners();
+  }
+
+  void replaceQuestionnaires(List<QuestionnaireDraft> values) {
+    questionnaires
       ..clear()
       ..addAll(values);
     notifyListeners();
