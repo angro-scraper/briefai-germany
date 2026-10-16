@@ -422,12 +422,12 @@ class AppState extends ChangeNotifier {
   bool get canAnalyse =>
       isPremium || analysisCredits > 0 || freeAnalysesUsed < kFreeAnalysisLimit;
 
-  /// Questionnaire completion is intentionally not included in Premium.
-  /// It is a separate, one-time workflow with its own free allowance and
-  /// consumable credits, as clearly presented before purchase.
+  /// Both workflows use the same paid BriefAI credit balance. Legacy
+  /// questionnaire credits remain spendable so no earlier purchase is lost.
+  int get sharedCredits => analysisCredits + questionnaireCredits;
+
   bool get canCreateQuestionnaire =>
-      questionnaireCredits > 0 ||
-      freeQuestionnairesUsed < kFreeQuestionnaireLimit;
+      sharedCredits > 0 || freeQuestionnairesUsed < kFreeQuestionnaireLimit;
 
   void setLocale(String value) {
     if (!const <String>{

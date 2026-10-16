@@ -1937,7 +1937,8 @@ class EntitlementService {
       await preferences.setInt(key, next);
       return QuestionnaireAllowance(
         freeUsed: next,
-        credits: 0,
+        analysisCredits: 0,
+        legacyQuestionnaireCredits: 0,
         usedCredit: false,
       );
     }
@@ -1946,7 +1947,9 @@ class EntitlementService {
     ).httpsCallable('consumeQuestionnaire').call<Map<Object?, Object?>>({});
     return QuestionnaireAllowance(
       freeUsed: (result.data['freeQuestionnairesUsed'] as num? ?? 0).toInt(),
-      credits: (result.data['questionnaireCredits'] as num? ?? 0).toInt(),
+      analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
+      legacyQuestionnaireCredits:
+          (result.data['questionnaireCredits'] as num? ?? 0).toInt(),
       usedCredit: result.data['usedCredit'] == true,
     );
   }
@@ -2065,12 +2068,14 @@ class EntitlementService {
 class QuestionnaireAllowance {
   const QuestionnaireAllowance({
     required this.freeUsed,
-    required this.credits,
+    required this.analysisCredits,
+    required this.legacyQuestionnaireCredits,
     required this.usedCredit,
   });
 
   final int freeUsed;
-  final int credits;
+  final int analysisCredits;
+  final int legacyQuestionnaireCredits;
   final bool usedCredit;
 }
 
@@ -2320,12 +2325,10 @@ class PurchaseService {
   static Set<String> get productIds => {
     ...kSubscriptionPlans.map((plan) => plan.productId),
     ...kAnalysisCreditPacks.map((pack) => pack.productId),
-    ...kQuestionnaireCreditPacks.map((pack) => pack.productId),
   };
 
   static bool isConsumableProduct(String productId) =>
-      kAnalysisCreditPacks.any((pack) => pack.productId == productId) ||
-      kQuestionnaireCreditPacks.any((pack) => pack.productId == productId);
+      kAnalysisCreditPacks.any((pack) => pack.productId == productId);
 
   Future<ProductDetailsResponse> products() async {
     if (!await InAppPurchase.instance.isAvailable()) {

@@ -883,10 +883,8 @@ class _QuestionnaireOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final allowance = state.questionnaireCredits > 0
-        ? strings.format('questionnaireCredits', {
-            'count': state.questionnaireCredits,
-          })
+    final allowance = state.sharedCredits > 0
+        ? strings.creditPackText('balance', count: state.sharedCredits)
         : strings.format('questionnaireRemaining', {
             'count': math.max(
               0,
@@ -2272,7 +2270,8 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
             .consumeQuestionnaire(uid);
         widget.state
           ..setFreeQuestionnairesUsed(allowance.freeUsed)
-          ..setQuestionnaireCredits(allowance.credits);
+          ..setAnalysisCredits(allowance.analysisCredits)
+          ..setQuestionnaireCredits(allowance.legacyQuestionnaireCredits);
         if (!mounted) return;
       }
       final now = DateTime.now();
@@ -2585,7 +2584,7 @@ class _QuestionnairePackagesScreenState
               style: const TextStyle(color: BriefAiDesign.muted),
             ),
             const SizedBox(height: 18),
-            for (final pack in kQuestionnaireCreditPacks) ...[
+            for (final pack in kAnalysisCreditPacks) ...[
               _PlanCard(
                 title: details[pack.productId]?.title ?? '${pack.credits}',
                 price:
@@ -2593,9 +2592,8 @@ class _QuestionnairePackagesScreenState
                     prices[pack.productId] ??
                     pack.fallbackPrice,
                 features: [
-                  context.strings.format('questionnaireCredits', {
-                    'count': pack.credits,
-                  }),
+                  context.strings.creditPackText('item', count: pack.credits),
+                  context.strings.creditPackText('detail'),
                 ],
                 action: kIsWeb
                     ? native
@@ -2628,6 +2626,7 @@ class _QuestionnairePackagesScreenState
       final result = await widget.services.purchases.buyNativeStoreProduct(
         productId,
       );
+      widget.state.setAnalysisCredits(result.analysisCredits);
       widget.state.setQuestionnaireCredits(result.questionnaireCredits);
       if (mounted) Navigator.of(context).pop();
     } on Object {

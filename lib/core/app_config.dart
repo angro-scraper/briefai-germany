@@ -36,9 +36,10 @@ class SubscriptionPlan {
   final String fallbackPrice;
 }
 
-/// A single-use pack of analysis credits.  These are consumable store
-/// products, so the balance is kept against the signed-in BriefAI account by
-/// the backend rather than inferred from StoreKit/Google Play restores.
+/// A single-use pack of BriefAI credits. These are consumable store products,
+/// so the balance is kept against the signed-in BriefAI account by the backend
+/// rather than inferred from StoreKit/Google Play restores. One credit can be
+/// spent on either a letter analysis or a completed questionnaire.
 class AnalysisCreditPack {
   const AnalysisCreditPack({
     required this.productId,
@@ -59,34 +60,6 @@ const List<AnalysisCreditPack> kAnalysisCreditPacks = [
   ),
   AnalysisCreditPack(
     productId: 'briefai.credits.5',
-    credits: 5,
-    fallbackPrice: '3,99 €',
-  ),
-];
-
-/// One-time questionnaire completion packs.  They are separate from letter
-/// analysis credits because filling an official form has its own quota and
-/// must never silently consume a user's letter analyses.
-class QuestionnaireCreditPack {
-  const QuestionnaireCreditPack({
-    required this.productId,
-    required this.credits,
-    required this.fallbackPrice,
-  });
-
-  final String productId;
-  final int credits;
-  final String fallbackPrice;
-}
-
-const List<QuestionnaireCreditPack> kQuestionnaireCreditPacks = [
-  QuestionnaireCreditPack(
-    productId: 'briefai.questionnaires.3',
-    credits: 3,
-    fallbackPrice: '2,99 €',
-  ),
-  QuestionnaireCreditPack(
-    productId: 'briefai.questionnaires.5',
     credits: 5,
     fallbackPrice: '3,99 €',
   ),
