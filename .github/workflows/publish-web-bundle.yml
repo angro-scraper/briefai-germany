@@ -1,0 +1,45 @@
+name: Publish BriefAI web bundle
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'install-site/app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: briefai-web-bundle
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+      - run: flutter build web --release --base-href /app/
+
+      - name: Replace the hosted web bundle
+        run: |
+          rm -rf install-site/app
+          mkdir -p install-site/app
+          cp -R build/web/. install-site/app/
+
+      - name: Commit the generated bundle when it changed
+        run: |
+          if git diff --quiet -- install-site/app; then
+            exit 0
+          fi
+          git config user.name 'briefai-release-bot'
+          git config user.email 'briefai-release-bot@users.noreply.github.com'
+          git add install-site/app
+          git commit -m 'chore: publish current BriefAI web bundle'
+          git push
