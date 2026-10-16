@@ -62,6 +62,18 @@ jobs:
       - name: Submit processed build to App Review
         run: |
           set -euo pipefail
+          # Apple requires a localized “What's New” value for every update.
+          # Keep the mandatory release note beside the submission so an
+          # otherwise complete build cannot be rejected by the API solely for
+          # missing metadata.
+          METADATA_DIR="$RUNNER_TEMP/briefai-metadata"
+          mkdir -p "$METADATA_DIR/en-US" "$METADATA_DIR/de-DE"
+          cat > "$METADATA_DIR/en-US/release_notes.txt" <<'EOF'
+          New: editable questionnaires with document export. Improved sign-in, archive preservation, and document editing and exports.
+          EOF
+          cat > "$METADATA_DIR/de-DE/release_notes.txt" <<'EOF'
+          Neu: bearbeitbare Fragebögen mit Dokumentexport. Verbesserte Anmeldung, Archivschutz sowie Dokumentbearbeitung und Exporte.
+          EOF
           fastlane deliver submit_build \
             --api_key_path "$RUNNER_TEMP/briefai-api-key.json" \
             --app_identifier "$BUNDLE_ID" \
@@ -73,7 +85,8 @@ jobs:
             --reject_if_possible true \
             --force true \
             --skip_binary_upload true \
-            --skip_metadata true \
+            --metadata_path "$METADATA_DIR" \
+            --skip_metadata false \
             --skip_screenshots true \
             --precheck_include_in_app_purchases false \
             --submission_information '{"export_compliance_uses_encryption":false}'
