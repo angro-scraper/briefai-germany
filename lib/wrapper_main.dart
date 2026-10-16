@@ -200,8 +200,17 @@ void main() {
   // Android's secure account picker must be initialized before login. Google
   // Sign-In 7 does not infer the Firebase server client ID from
   // google-services.json, so supply the matching public web OAuth client ID.
-  _nativeGoogleSignInReady = Platform.isAndroid
-      ? GoogleSignIn.instance.initialize(serverClientId: _googleServerClientId)
+  _nativeGoogleSignInReady = Platform.isAndroid || Platform.isIOS
+      ? GoogleSignIn.instance.initialize(
+          // Android needs the server client ID to receive a Firebase ID
+          // token. iOS also receives its platform client ID explicitly so
+          // authentication is performed by Google's native iOS SDK instead
+          // of an embedded WebView redirect.
+          clientId: Platform.isIOS
+              ? DefaultFirebaseOptions.ios.iosClientId
+              : null,
+          serverClientId: _googleServerClientId,
+        )
       : Future<void>.value();
   unawaited(_nativeFirebaseReady.then<void>((_) {}, onError: (Object _) {}));
   unawaited(
@@ -353,7 +362,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         case 'authGoogle':
           await _nativeFirebaseReady;
           final User? user;
-          if (Platform.isAndroid) {
+          if (Platform.isAndroid || Platform.isIOS) {
             await _nativeGoogleSignInReady;
             if (!GoogleSignIn.instance.supportsAuthenticate()) {
               throw StateError('Google prijava nije dostupna na ovom uređaju.');
@@ -417,7 +426,7 @@ class _WrapperScreenState extends State<_WrapperScreen> {
         case 'authSignOut':
           await _nativeFirebaseReady;
           await FirebaseAuth.instance.signOut();
-          if (Platform.isAndroid) {
+          if (Platform.isAndroid || Platform.isIOS) {
             await _nativeGoogleSignInReady;
             await GoogleSignIn.instance.signOut();
           }
