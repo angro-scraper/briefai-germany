@@ -1049,6 +1049,31 @@ function appleApiToken(): string {
   return `${header}.${payload}.${signature.toString("base64url")}`;
 }
 
+const appleProductionApiHost = "https://api.storekit.apple.com";
+const appleSandboxApiHost = "https://api.storekit-sandbox.apple.com";
+
+/**
+ * TestFlight transactions are issued in Apple's sandbox while App Store
+ * transactions are issued in production. A single deployed backend serves
+ * both clients, so retry only a "not found" result against the other Apple
+ * environment. This keeps a successful production rollout from breaking
+ * TestFlight verification (or the reverse) when the configured default is
+ * changed for an environment.
+ */
+async function fetchAppleStoreApi(path: string): Promise<Response> {
+  const sandboxFirst = appleEnvironment.value().toLowerCase() === "sandbox";
+  const primaryHost = sandboxFirst ? appleSandboxApiHost : appleProductionApiHost;
+  const fallbackHost = sandboxFirst ? appleProductionApiHost : appleSandboxApiHost;
+  const token = appleApiToken();
+  const primary = await fetch(`${primaryHost}${path}`, {
+    headers: {Authorization: `Bearer ${token}`},
+  });
+  if (primary.ok || primary.status !== 404) return primary;
+  return fetch(`${fallbackHost}${path}`, {
+    headers: {Authorization: `Bearer ${token}`},
+  });
+}
+
 function storeTransactionRef(provider: string, value: string) {
   const digest = createHash("sha256").update(`${provider}:${value}`).digest("hex");
   return db.collection("storeTransactions").doc(digest);
@@ -1291,11 +1316,9 @@ async function verifyGooglePlayConsumable(purchaseToken: string, productId: stri
 }
 
 async function verifyAppleSubscription(transactionId: string, productId: string) {
-  const sandbox = appleEnvironment.value().toLowerCase() === "sandbox";
-  const host = sandbox ? "https://api.storekit-sandbox.apple.com" : "https://api.storekit.apple.com";
-  const response = await fetch(`${host}/inApps/v1/subscriptions/${encodeURIComponent(transactionId)}`, {
-    headers: {Authorization: `Bearer ${appleApiToken()}`},
-  });
+  const response = await fetchAppleStoreApi(
+    `/inApps/v1/subscriptions/${encodeURIComponent(transactionId)}`,
+  );
   if (!response.ok) throw new HttpsError("failed-precondition", "App Store nije potvrdio pretplatu.");
   const data = await response.json() as {data?: Array<{lastTransactions?: Array<{status?: number; signedTransactionInfo?: string}>}>};
   const transactions = data.data?.flatMap((group) => group.lastTransactions ?? []) ?? [];
@@ -1319,11 +1342,9 @@ async function verifyAppleSubscription(transactionId: string, productId: string)
  * app or SKU from becoming BriefAI credits.
  */
 async function verifyAppleConsumable(transactionId: string, productId: string) {
-  const sandbox = appleEnvironment.value().toLowerCase() === "sandbox";
-  const host = sandbox ? "https://api.storekit-sandbox.apple.com" : "https://api.storekit.apple.com";
-  const response = await fetch(`${host}/inApps/v1/transactions/${encodeURIComponent(transactionId)}`, {
-    headers: {Authorization: `Bearer ${appleApiToken()}`},
-  });
+  const response = await fetchAppleStoreApi(
+    `/inApps/v1/transactions/${encodeURIComponent(transactionId)}`,
+  );
   if (!response.ok) throw new HttpsError("failed-precondition", "App Store nije potvrdio kupovinu paketa analiza.");
   const data = await response.json() as {signedTransactionInfo?: unknown};
   if (typeof data.signedTransactionInfo !== "string") {

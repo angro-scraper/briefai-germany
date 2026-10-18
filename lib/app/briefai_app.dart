@@ -2576,6 +2576,9 @@ class _QuestionnairePackagesScreenState
         };
         final prices = snapshot.data?.$2 ?? const <String, String>{};
         final native = snapshot.data?.$3 == true;
+        bool storeProductAvailable(String productId) => !kIsWeb
+            ? details.containsKey(productId)
+            : native && prices.containsKey(productId);
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -2585,6 +2588,10 @@ class _QuestionnairePackagesScreenState
             ),
             const SizedBox(height: 18),
             for (final pack in kAnalysisCreditPacks) ...[
+              // A native wrapper must only expose a purchase action after the
+              // device store has returned this exact product. Falling back to
+              // a locally configured price made an unavailable Apple/Google
+              // product look purchasable and ended in a generic failure.
               _PlanCard(
                 title: details[pack.productId]?.title ?? '${pack.credits}',
                 price:
@@ -2596,10 +2603,13 @@ class _QuestionnairePackagesScreenState
                   context.strings.creditPackText('detail'),
                 ],
                 action: kIsWeb
-                    ? native
+                    ? native && storeProductAvailable(pack.productId)
                           ? () => _buyNative(pack.productId)
                           : null
-                    : () => _buy(details[pack.productId]),
+                    : storeProductAvailable(pack.productId)
+                    ? () => _buy(details[pack.productId])
+                    : null,
+                unavailable: !storeProductAvailable(pack.productId),
               ),
               const SizedBox(height: 12),
             ],
@@ -4885,6 +4895,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               };
               final wrapperPrices =
                   snapshot.data?.wrapperPrices ?? const <String, String>{};
+              bool storeProductAvailable(String productId) => kIsWeb
+                  ? snapshot.data?.nativeWrapper == true &&
+                        wrapperPrices.containsKey(productId)
+                  : productById.containsKey(productId);
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
                 children: [
@@ -4970,10 +4984,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         strings.creditPackText('detail'),
                       ],
                       action: kIsWeb
-                          ? snapshot.data?.nativeWrapper == true
+                          ? snapshot.data?.nativeWrapper == true &&
+                                    storeProductAvailable(pack.productId)
                                 ? () => _buyNativePack(pack.productId)
                                 : null
-                          : () => _buy(productById[pack.productId]),
+                          : storeProductAvailable(pack.productId)
+                          ? () => _buy(productById[pack.productId])
+                          : null,
+                      unavailable: !storeProductAvailable(pack.productId),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -5001,8 +5019,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         strings.text('premiumFeature3'),
                       ],
                       action: kIsWeb
-                          ? () => _webCheckout(plan.key)
-                          : () => _buy(productById[plan.productId]),
+                          ? snapshot.data?.nativeWrapper == true
+                                ? storeProductAvailable(plan.productId)
+                                      ? () => _webCheckout(plan.key)
+                                      : null
+                                : () => _webCheckout(plan.key)
+                          : storeProductAvailable(plan.productId)
+                          ? () => _buy(productById[plan.productId])
+                          : null,
+                      unavailable:
+                          snapshot.data?.nativeWrapper == true &&
+                              !storeProductAvailable(plan.productId) ||
+                          !kIsWeb && !storeProductAvailable(plan.productId),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -5026,6 +5054,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   Text(
                     snapshot.hasError
                         ? strings.purchaseMessage('unavailable')
+                        : kIsWeb &&
+                              snapshot.data?.nativeWrapper == true &&
+                              wrapperPrices.length <
+                                  PurchaseService.productIds.length
+                        ? strings.purchaseMessage('notConfigured')
                         : kIsWeb && snapshot.data?.nativeWrapper != true
                         ? strings.purchaseMessage('webInfo')
                         : strings.purchaseMessage('storeInfo'),
@@ -6003,12 +6036,14 @@ class _PlanCard extends StatelessWidget {
     required this.features,
     this.action,
     this.selected = false,
+    this.unavailable = false,
   });
   final String title;
   final String price;
   final List<String> features;
   final VoidCallback? action;
   final bool selected;
+  final bool unavailable;
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
@@ -6079,6 +6114,14 @@ class _PlanCard extends StatelessWidget {
                   onPressed: action,
                   icon: const Icon(Icons.arrow_forward_rounded),
                   label: Text(context.strings.text('choosePlanButton')),
+                ),
+              )
+            else if (unavailable)
+              Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: Text(
+                  context.strings.purchaseMessage('notConfigured'),
+                  style: const TextStyle(color: BriefAiDesign.muted),
                 ),
               ),
           ],
