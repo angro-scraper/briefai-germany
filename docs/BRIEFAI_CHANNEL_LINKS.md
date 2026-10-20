@@ -21,6 +21,8 @@ match the server's allowed source format.
 | German search guide | `https://briefai.salvesca.com/deutschen-brief-verstehen/?utm_source=seo_de` |
 | Partner or newsletter | `https://briefai.salvesca.com/?lang=de&utm_source=partner_de` |
 | Product Hunt | `https://briefai.salvesca.com/?lang=en&utm_source=producthunt` |
+| Nahort business profile | `https://briefai.salvesca.com/?lang=de&utm_source=nahort` |
+| myLokaal expat community profile | `https://briefai.salvesca.com/?lang=en&utm_source=mylokaal` |
 
 ## Required disclosure for community comments
 
