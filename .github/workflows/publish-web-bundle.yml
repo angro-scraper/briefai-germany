@@ -40,9 +40,12 @@ jobs:
           fi
           git config user.name 'briefai-release-bot'
           git config user.email 'briefai-release-bot@users.noreply.github.com'
-          git add install-site/app
+          # Flutter may update more than one generated file under install-site.
+          # Stage the complete generated site so Git starts the rebase cleanly.
+          git add -A install-site
           git commit -m 'chore: publish current BriefAI web bundle'
           # Content commits can land while Flutter is building. Rebase the
           # generated bundle onto the current branch before writing it back.
-          git pull --rebase origin main
+          # --autostash also handles a late generated timestamp/manifest update.
+          git pull --rebase --autostash origin main
           git push
