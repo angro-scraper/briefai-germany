@@ -88,6 +88,42 @@ Bescheids.
   replacement for one. Do not submit it to Local Search unless the editors
   confirm this category is appropriate.
 
+### Prepared MigrateSpace submission copy (English)
+
+**Provider name:** BriefAI Germany — AMIA Technologies  
+**Category suggestion:** Education & Language / General digital support  
+**Description:** BriefAI helps newcomers understand and organise German
+official letters in their chosen language. It highlights key information and
+deadlines and can prepare an editable reply draft for the user to review.
+BriefAI is a digital information tool; it is not legal, tax, immigration or
+social advice.  
+**Website:** `https://briefai.salvesca.com/?lang=en&utm_source=migratespace`  
+**Android:** `https://play.google.com/store/apps/details?id=com.briefai.briefai_germany`  
+**iOS:** `https://apps.apple.com/app/id6757674090`
+
+### Prepared Handbook Germany enquiry (German)
+
+**To:** `localsearch@handbookgermany.de`  
+**Subject:** Anfrage: digitale Orientierungshilfe für deutsche Behördenpost
+
+> Guten Tag,  
+> wir sind AMIA Technologies und entwickeln BriefAI Germany, ein mehrsprachiges
+> digitales Informationswerkzeug für Menschen, die deutsche Behörden- und
+> Alltagspost besser verstehen möchten. BriefAI strukturiert den Inhalt eines
+> Schreibens, hebt Informationen und Fristen hervor und kann einen
+> bearbeitbaren Antwortentwurf vorbereiten.  
+>  
+> Wichtig: BriefAI ist keine Rechts-, Steuer-, Migrations- oder Sozialberatung
+> und ersetzt keine Beratungsstelle.  
+>  
+> Dürfen wir BriefAI als klar gekennzeichnetes digitales Hilfsangebot für Ihre
+> Local Search einreichen? Falls ja, senden wir gern die passenden Angaben und
+> Links.  
+>  
+> Freundliche Grüße  
+> AMIA Technologies  
+> https://briefai.salvesca.com/?lang=de&utm_source=handbook_germany
+
 ## Outreach principles
 
 - Name AMIA Technologies and BriefAI immediately; never pose as a user.
