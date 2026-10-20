@@ -1,16 +1,17 @@
 # iOS App Store alignment — BriefAI Germany
 
-## Verified public mismatch (20 October 2026)
+## Verified App Store Connect state (20 October 2026)
 
-The public App Store listing for app ID `6757674090` currently appears as
-**“BriefAI: Scan Official Letters”** and describes United States and United
-Kingdom agencies (for example IRS, USCIS and UK official post). The Android
-listing, public website and current product positioning instead describe
-**BriefAI Germany** for German official letters.
+The active iOS 1.0.40 configuration in App Store Connect is **BriefAI
+Germany**. Both German and English product-page descriptions, keywords and
+release notes describe German official letters, deadlines, private on-device
+archive handling, Word/PDF export and the legal disclaimer. The German and
+English promotional texts were saved on 20 October 2026.
 
-This mismatch is a conversion and trust risk: a person arriving from a Germany
-campaign can believe they installed a different product. Do not increase iOS
-organic traffic until the listing is aligned.
+An earlier observation of an English/US-facing public listing should be treated
+as historical or as a cached storefront view, not as the current App Store
+Connect configuration. Recheck the public storefront after Apple's propagation
+window before treating this as a resolved conversion issue.
 
 The public developer name is shown as **Adem Cilgin**. Marketing must not claim
 that AMIA Technologies is the App Store seller/developer unless that legal
@@ -20,7 +21,9 @@ identified as the product team only if legally accurate.
 ## Proposed German metadata
 
 Use this only after confirming that Germany is the intended primary market and
-that all claims match the shipped iOS version.
+that all claims match the shipped iOS version. The active configuration uses a
+shorter, verified description; the copy below remains a proposal for a future
+version rather than an instruction to overwrite current metadata.
 
 | Field | Proposed value |
 | --- | --- |
@@ -62,7 +65,7 @@ Die ersten fünf Briefanalysen können kostenlos ausprobiert werden. Weitere
 Analysen sind über verfügbare In-App-Käufe oder Abonnements erhältlich.
 ```
 
-## Required App Store Connect checks before saving
+## Remaining App Store Connect checks
 
 1. Check every sentence against the live iOS build: no claim may refer to a
    feature that is absent or currently failing.
@@ -71,5 +74,8 @@ Analysen sind über verfügbare In-App-Käufe oder Abonnements erhältlich.
 3. Verify the privacy policy and support URLs open correctly from Germany.
 4. Confirm the seller/developer identity shown in App Store Connect before
    mentioning AMIA Technologies in customer-facing copy.
-5. Submit metadata for Apple review where required; do not imply that an
-   App Store text change is live until Apple accepts it.
+5. The English Marketing URL is currently blank. The 1.0.40 page is already
+   "Ready for Distribution" and keeps that field locked, so add
+   `https://briefai.salvesca.com/?lang=en` with the next editable iOS version.
+6. Do not imply that an App Store text change is live until it has propagated
+   in the relevant storefront.
