@@ -207,6 +207,29 @@ public submission.
 > App Store: https://apps.apple.com/app/id6757674090
 > Google Play: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
 
+## Prepared German community resource post: Familienkasse / Kindergeld
+
+Use only where the current group rules expressly permit a clearly identified
+resource post. The exact destination and final text require fresh, immediate
+user confirmation before any submission.
+
+**Tracked guide link:**
+`https://briefai.salvesca.com/familienkasse-kindergeld-brief-verstehen/?utm_source=fb_groups_de`
+
+> Brief von der Familienkasse bekommen und unsicher, was zuerst wichtig ist?
+> Prüfen Sie Absender, Kindergeldnummer, die konkret verlangten Unterlagen und
+> die Frist im Schreiben. Reichen Sie nur passende Kopien ein und bewahren Sie
+> Ihre Unterlagen geordnet auf.
+>
+> Wir von AMIA Technologies haben dazu eine kostenlose Checkliste mit
+> offiziellen Quellen der Bundesagentur für Arbeit erstellt:
+> https://briefai.salvesca.com/familienkasse-kindergeld-brief-verstehen/?utm_source=fb_groups_de
+>
+> BriefAI Germany kann beim Strukturieren von deutschen Schreiben, Fristen und
+> offenen Aufgaben in der gewählten Sprache helfen. Es ist keine Rechts-,
+> Steuer- oder Sozialberatung. Bei kurzer Frist oder einer wichtigen Entscheidung
+> wenden Sie sich bitte rechtzeitig an eine anerkannte Beratungsstelle.
+
 ## Sources checked
 
 - Freundeskreis Asyl Altenholz, “Siyavash.de – Kostenlose mehrsprachige
