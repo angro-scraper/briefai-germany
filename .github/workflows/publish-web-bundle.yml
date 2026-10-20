@@ -17,6 +17,8 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # A stalled Flutter build must not block later content deployments indefinitely.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
