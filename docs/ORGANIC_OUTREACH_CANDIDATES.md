@@ -57,6 +57,37 @@ Bescheids.
 - **Constraint:** do not imply partnership, endorsement, or legal advice. A
   local municipality or operator controls each directory.
 
+## 4. MigrateSpace — free expat-service directory
+
+- **Fit:** high. MigrateSpace explicitly offers a free listing for providers
+  serving the migrant and expat community and includes Germany-focused service
+  categories.
+- **Route:** `https://migratespace.com/` → “Get Listed”. The listing is
+  reviewed against its migrant-friendly criteria.
+- **Positioning:** a digital information tool for understanding and organising
+  German official letters in the user’s chosen language; never describe it as
+  legal representation or official translation.
+- **Prepared description:** “BriefAI helps people understand German official
+  letters in their chosen language, identify information and deadlines, and
+  prepare an editable reply draft for their own review. It is an information
+  tool, not legal, tax or social advice.”
+- **Before action:** the form asks for public business and contact details;
+  obtain immediate confirmation for the exact email and final submission.
+
+## 5. Handbook Germany — Local Search / network enquiry
+
+- **Fit:** medium-high. Handbook Germany publicly says that organisations
+  offering counselling, support or assistance to refugees and immigrants can
+  be listed in its multilingual Local Search for free. It also names a network
+  contact for possible cooperation.
+- **Route:** send a short factual enquiry to `localsearch@handbookgermany.de`
+  asking whether a clearly labelled digital information tool is eligible;
+  contact `netzwerk@handbookgermany.de` only for a separate collaboration or
+  feedback enquiry.
+- **Constraint:** BriefAI must not be presented as a counselling centre or a
+  replacement for one. Do not submit it to Local Search unless the editors
+  confirm this category is appropriate.
+
 ## Outreach principles
 
 - Name AMIA Technologies and BriefAI immediately; never pose as a user.
