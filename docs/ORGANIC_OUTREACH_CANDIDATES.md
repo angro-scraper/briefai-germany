@@ -1,0 +1,61 @@
+# BriefAI Germany — organic outreach candidates
+
+Status date: 20 October 2026. This is a research log, not a record of
+contact. No message, registration, or listing has been submitted from this
+document.
+
+## 1. Siyavash.de — publish an organisation profile
+
+- **Fit:** high. It is a multilingual information platform for migrants in
+  Germany and explicitly invites organisations to publish projects, services,
+  and information offers.
+- **Cost / route:** a public announcement states that organisation
+  registration, profile creation, and publishing are free; it links to
+  `https://siyavash.de/register`.
+- **Safe positioning:** AMIA Technologies can publish BriefAI as an
+  information tool for understanding German letters, with the clear statement
+  that it is not legal, tax, or social-advice service.
+- **Before action:** review current platform rules and use only a transparent
+  company profile. The user must confirm the exact profile text and the final
+  registration/publish action.
+
+## 2. Immigrant Hub Germany — editorial / resource partnership
+
+- **Fit:** medium-high. Its weekly newsletter covers migration and Germany
+  updates and says it reaches an immigrant community; the site offers a public
+  contact route.
+- **What to ask for:** a short, factual resource mention or feedback on a
+  draft guide about recognising deadlines in German official letters.
+- **Constraint:** no public evidence that promotional placement is free or
+  guaranteed. Treat this as a personalised partnership enquiry, not a listing
+  submission.
+
+## 3. Integreat local networks — municipal / counselling referral route
+
+- **Fit:** medium, long-term. Integreat is a multilingual information
+  platform for newcomers used by municipalities. A Jobcenter Dortmund page
+  describes it as a local multilingual integration platform.
+- **What to ask for:** whether a local editorial team would accept a clearly
+  labelled, privacy-focused digital tool in a locally relevant resource list.
+- **Constraint:** do not imply partnership, endorsement, or legal advice. A
+  local municipality or operator controls each directory.
+
+## Outreach principles
+
+- Name AMIA Technologies and BriefAI immediately; never pose as a user.
+- Link to the app stores and the privacy page only where the destination rules
+  permit it.
+- Describe the product as help to understand and organise letters, not as a
+  lawyer, authority, or translator of record.
+- Ask for feedback or permission to list the resource; do not request ratings,
+  votes, installs, or reviews.
+
+## Sources checked
+
+- Freundeskreis Asyl Altenholz, “Siyavash.de – Kostenlose mehrsprachige
+  Plattform für Migrant:innen”, 29 June 2026:
+  <https://freundeskreis-asyl-altenholz.de/news/>.
+- Immigrant Hub Germany newsletter page:
+  <https://immigranthub.de/newsletter>.
+- Jobcenter Dortmund, Integreat-App:
+  <https://jobcenterdortmund.de/artikel/integreat-app>.
