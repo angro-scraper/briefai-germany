@@ -35,6 +35,7 @@ customers.
 | 21 October 2026 | `https://briefai.salvesca.com/krankenkasse-bescheid-verstehen/` | German practical guide for health- and care-insurance decisions, notices and documents | `seo_de_krankenkasse_bescheid` |
 | 21 October 2026 | `https://briefai.salvesca.com/auslaenderbehoerde-schreiben-verstehen/` | German practical guide for Foreigners Authority letters, appointments, deadlines and requested documents | `seo_de_auslaenderbehoerde_schreiben` |
 | 21 October 2026 | `https://briefai.salvesca.com/familienkasse-kindergeld-brief-verstehen/` | German practical guide for Familienkasse / Kindergeld letters, requested evidence and deadlines | `seo_de_familienkasse_kindergeld` |
+| 21 October 2026 | `https://briefai.salvesca.com/finanzamt-steuerbescheid-verstehen/` | German practical guide for Finanzamt tax notices, deadlines and the next steps | `seo_de_finanzamt_steuerbescheid` |
 
 The guide includes a clear product disclaimer, official Bundesagentur für
 Arbeit sources, direct store links, and FAQ structured data. It is a content
