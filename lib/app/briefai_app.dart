@@ -2626,6 +2626,8 @@ class _QuestionnairePackagesScreenState
     }
     try {
       await widget.services.purchases.buy(product);
+    } on StateError catch (error) {
+      if (mounted) _show(error.message);
     } on Object {
       if (mounted) _show(context.strings.purchaseMessage('failed'));
     }
@@ -2639,6 +2641,8 @@ class _QuestionnairePackagesScreenState
       widget.state.setAnalysisCredits(result.analysisCredits);
       widget.state.setQuestionnaireCredits(result.questionnaireCredits);
       if (mounted) Navigator.of(context).pop();
+    } on StateError catch (error) {
+      if (mounted) _show(error.message);
     } on Object {
       if (mounted) _show(context.strings.purchaseMessage('failed'));
     }
@@ -5109,6 +5113,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
           ),
         );
+      }
+    } on StateError catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } on Object {
       if (mounted) {

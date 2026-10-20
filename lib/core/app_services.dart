@@ -2503,11 +2503,27 @@ class PurchaseService {
     if (userId == null) {
       throw StateError('Prijavite se pre kupovine paketa.');
     }
-    await nativeStoreRequest('buy', {
+    final started = await nativeStoreRequest('buy', {
       'productId': productId,
       'applicationUserName': userId,
     });
+    if (started['ok'] != true) {
+      final error = started['error'];
+      throw StateError(
+        error is String && error.trim().isNotEmpty
+            ? error
+            : 'Store nije mogao da pokrene kupovinu.',
+      );
+    }
     final purchase = await nativeStoreRequest('waitPurchase');
+    if (purchase['ok'] != true) {
+      final error = purchase['error'];
+      throw StateError(
+        error is String && error.trim().isNotEmpty
+            ? error
+            : 'Kupovina nije završena u App Store-u ili Google Play-u.',
+      );
+    }
     return _verifyNativeBridgePurchase(purchase);
   }
 
