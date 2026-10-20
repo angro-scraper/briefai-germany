@@ -88,6 +88,29 @@ Bescheids.
   replacement for one. Do not submit it to Local Search unless the editors
   confirm this category is appropriate.
 
+## 6. WoYab — Persian-speaking business directory in Germany
+
+- **Fit:** medium. WoYab describes a free business listing and a directory for
+  Persian-speaking businesses in Germany. The audience is relevant if BriefAI
+  has a reviewed Persian-language interface and support journey.
+- **Route:** `https://woyab.com/en/for-businesses` → “Add your business”.
+- **Positioning:** only describe the currently available BriefAI languages and
+  features. Do not imply Persian support until the product UI and help content
+  have been reviewed for that language.
+- **Before action:** confirm the public contact details, exact language claims
+  and the final profile text. The listing is reviewed by WoYab.
+
+## 7. Brizz — Indian community directory in Germany
+
+- **Fit:** medium. Brizz publicly states that a provider can list a service or
+  product in Germany free of charge for the Indian community.
+- **Route:** `https://brizz.winayak.com/list-your-service`.
+- **Positioning:** an English-language digital information tool for sorting a
+  German official letter; not legal representation, immigration advice or a
+  substitute for official translation.
+- **Before action:** inspect the current category rules and require a fresh
+  confirmation for the public profile, contact details and final submission.
+
 ### Prepared MigrateSpace submission copy (English)
 
 **Provider name:** BriefAI Germany — AMIA Technologies  
@@ -168,3 +191,9 @@ public submission.
   <https://immigranthub.de/newsletter>.
 - Jobcenter Dortmund, Integreat-App:
   <https://jobcenterdortmund.de/artikel/integreat-app>.
+- MigrateSpace, provider listing page (free listing, reviewed eligibility):
+  <https://migratespace.com/>.
+- WoYab, business listing page (free provider profile for its community):
+  <https://woyab.com/en/for-businesses>.
+- Brizz, provider listing page (free listing claim for the Indian community in
+  Germany): <https://brizz.winayak.com/list-your-service>.
