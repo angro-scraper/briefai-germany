@@ -19,6 +19,23 @@ document.
   company profile. The user must confirm the exact profile text and the final
   registration/publish action.
 
+### Prepared business-profile copy (German)
+
+**Name:** BriefAI Germany — AMIA Technologies  
+**Short description:** BriefAI hilft dabei, deutsche Behörden- und
+Alltagsbriefe besser zu verstehen, Fristen zu erkennen und einen bearbeitbaren
+Antwortentwurf vorzubereiten.  
+**About:** AMIA Technologies entwickelt BriefAI Germany für Menschen, die
+deutsche Schreiben in ihrer eigenen Sprache besser einordnen möchten. Die App
+fasst Texte in klarer Sprache zusammen und unterstützt beim Strukturieren von
+Informationen, Fristen und nächsten Schritten. BriefAI ist keine Rechts-,
+Steuer- oder Sozialberatung und ersetzt keine individuelle Prüfung eines
+Bescheids.  
+**Website:** `https://briefai.salvesca.com/?lang=de&utm_source=siyavash`  
+**Android:** `https://play.google.com/store/apps/details?id=com.briefai.briefai_germany`  
+**iOS:** `https://apps.apple.com/app/id6757674090`  
+**Privacy:** `https://briefai.salvesca.com/privacy.html`
+
 ## 2. Immigrant Hub Germany — editorial / resource partnership
 
 - **Fit:** medium-high. Its weekly newsletter covers migration and Germany
