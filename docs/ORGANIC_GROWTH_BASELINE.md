@@ -33,6 +33,7 @@ customers.
 | --- | --- | --- | --- |
 | 20 October 2026 | `https://briefai.salvesca.com/jobcenter-bescheid-frist-pruefen/` | German practical guide for Jobcenter letters, deadlines and requested documents | `seo_de_jobcenter_frist` |
 | 21 October 2026 | `https://briefai.salvesca.com/krankenkasse-bescheid-verstehen/` | German practical guide for health- and care-insurance decisions, notices and documents | `seo_de_krankenkasse_bescheid` |
+| 21 October 2026 | `https://briefai.salvesca.com/auslaenderbehoerde-schreiben-verstehen/` | German practical guide for Foreigners Authority letters, appointments, deadlines and requested documents | `seo_de_auslaenderbehoerde_schreiben` |
 
 The guide includes a clear product disclaimer, official Bundesagentur für
 Arbeit sources, direct store links, and FAQ structured data. It is a content

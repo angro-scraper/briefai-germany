@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'install-site/app/**'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
