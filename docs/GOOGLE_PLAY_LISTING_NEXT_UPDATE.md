@@ -1,6 +1,16 @@
-# Google Play listing — next public update
+# Google Play listing — public metadata update
 
-## Why this update is needed
+## Submission status
+
+On 20 October 2026, the confirmed German short and full descriptions below
+were saved and submitted to Google Play for review. The publishing overview
+contained exactly two changes: the short description and the full description.
+It did not include an Android binary, a pricing change, or new screenshots.
+
+Google's automated pre-review checks were still running when the submission
+was verified. The listing becomes public only after Google completes review.
+
+## Why this update was needed
 
 The live German default listing was inspected on 20 October 2026. It says
 "three free analyses" and says that a monthly subscription is required for
