@@ -12,6 +12,7 @@ customers.
 | Cloud user profiles | 14 | Firestore `users` collection |
 | Completed analyses | 40 | Firestore `adminMetrics/current` (last updated 16 October 2026) |
 | Active or trial subscriptions | 0 | Firestore `subscriptions` collection contains no documents |
+| Google Search performance | Not measured | No Search Console property is configured for the domain in either currently signed-in Google account |
 
 ## Interpretation
 
@@ -21,3 +22,7 @@ customers.
   feature and still counts as a registered Firebase user.
 - Use store-console numbers only for acquisition; use the Firebase counts
   above for registration and entitlement conversion.
+- Add and verify `briefai.salvesca.com` in Google Search Console before using
+  search impressions or clicks as a campaign KPI. Site verification should be
+  performed through the domain owner, not by placing an unverified tracking
+  tag on the public site.
