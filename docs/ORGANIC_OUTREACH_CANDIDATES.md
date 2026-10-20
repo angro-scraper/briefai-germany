@@ -134,6 +134,31 @@ social advice.
 - Ask for feedback or permission to list the resource; do not request ratings,
   votes, installs, or reviews.
 
+## Ready-to-use Bulgarian community post
+
+The linked guide is live as of 20 October 2026. Use this only in a group
+whose rules allow a clearly identified resource post. The final destination
+and exact text still require a fresh, immediate user confirmation before any
+public submission.
+
+**Tracked guide link:**
+`https://briefai.salvesca.com/nemskoto-sluzhebno-pismo/?utm_source=bg_community`
+
+> Получили сте писмо от Jobcenter, Ausländerbehörde, Krankenkasse или
+> Finanzamt и не сте сигурни какво точно се иска? Първо проверете подателя,
+> номера на преписката, срока и исканите документи. Подготвихме безплатен
+> практичен списък на български:
+> https://briefai.salvesca.com/nemskoto-sluzhebno-pismo/?utm_source=bg_community
+>
+> Ние сме AMIA Technologies, екипът зад BriefAI Germany. Приложението помага
+> да подредите съдържанието на немско писмо, сроковете и следващите стъпки на
+> избран език. То е информационен инструмент, а не правен, данъчен или
+> социален съвет. При кратък срок или важно решение потърсете признат
+> консултантски център.
+>
+> App Store: https://apps.apple.com/app/id6757674090
+> Google Play: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
+
 ## Sources checked
 
 - Freundeskreis Asyl Altenholz, “Siyavash.de – Kostenlose mehrsprachige
