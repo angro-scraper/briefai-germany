@@ -111,6 +111,31 @@ Bescheids.
 - **Before action:** inspect the current category rules and require a fresh
   confirmation for the public profile, contact details and final submission.
 
+## 8. Nahort — free local business profile
+
+- **Fit:** medium. Nahort states that businesses in Germany can create a
+  free profile and receive direct enquiries. It is not migrant-specific, so
+  the profile should focus on the practical letter-understanding use case,
+  not on legal or immigration advice.
+- **Route:** `https://nahort.de/en/fuer-betriebe`.
+- **Positioning:** multilingual digital information tool for organising
+  German official letters, deadlines and editable response drafts.
+- **Before action:** review the category choices and terms in the live form,
+  then obtain a fresh confirmation for any public contact details and final
+  submission.
+
+## 9. myLokaal — expat community platform
+
+- **Fit:** medium. myLokaal presents itself as a community platform for
+  expats in Germany. Verify whether it accepts software or resource profiles
+  before proposing a listing.
+- **Route:** `https://mylokaal.com/`.
+- **Positioning:** a clearly labelled AMIA Technologies resource that helps
+  people understand and organise German letters; never present it as official
+  advice or individual legal guidance.
+- **Before action:** inspect the current provider / community rules and
+  require a fresh confirmation for the final public listing or contact.
+
 ### Prepared MigrateSpace submission copy (English)
 
 **Provider name:** BriefAI Germany — AMIA Technologies  
@@ -197,3 +222,6 @@ public submission.
   <https://woyab.com/en/for-businesses>.
 - Brizz, provider listing page (free listing claim for the Indian community in
   Germany): <https://brizz.winayak.com/list-your-service>.
+- Nahort, business profile page (states that a business profile is free):
+  <https://nahort.de/en/fuer-betriebe>.
+- myLokaal, expat community platform: <https://mylokaal.com/>.
