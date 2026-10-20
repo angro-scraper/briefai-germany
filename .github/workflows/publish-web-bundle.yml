@@ -47,5 +47,8 @@ jobs:
           # Content commits can land while Flutter is building. Rebase the
           # generated bundle onto the current branch before writing it back.
           # --autostash also handles a late generated timestamp/manifest update.
-          git pull --rebase --autostash origin main
+          # Another publish run can change the generated bootstrap while this
+          # build is running. During a rebase, "theirs" is this run's freshly
+          # generated bundle, so prefer it instead of stopping on that artifact.
+          git pull --rebase --autostash -X theirs origin main
           git push
