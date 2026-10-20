@@ -26,3 +26,13 @@ customers.
   search impressions or clicks as a campaign KPI. Site verification should be
   performed through the domain owner, not by placing an unverified tracking
   tag on the public site.
+
+## Organic assets published after the baseline
+
+| Date | Asset | Purpose | Tracking source |
+| --- | --- | --- | --- |
+| 20 October 2026 | `https://briefai.salvesca.com/jobcenter-bescheid-frist-pruefen/` | German practical guide for Jobcenter letters, deadlines and requested documents | `seo_de_jobcenter_frist` |
+
+The guide includes a clear product disclaimer, official Bundesagentur für
+Arbeit sources, direct store links, and FAQ structured data. It is a content
+asset, not a claim of legal advice or a record of an external promotion.
