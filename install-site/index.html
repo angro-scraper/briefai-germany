@@ -106,7 +106,12 @@
       };
       const selector = document.getElementById('language');
       Object.entries(languages).forEach(([code,label]) => selector.add(new Option(label, code)));
-      const queryLanguage = new URLSearchParams(location.search).get('lang');
+      const landingQuery = new URLSearchParams(location.search);
+      const queryLanguage = landingQuery.get('lang');
+      // Keep a short channel label when the landing page opens the web app.
+      // This lets consented web registrations be attributed to the campaign
+      // that sent the visitor, without forwarding referrers or personal data.
+      const campaignSource = landingQuery.get('utm_source');
       const browserLanguage = navigator.language.slice(0,2);
       const initial = languages[queryLanguage] ? queryLanguage : (languages[browserLanguage] ? browserLanguage : 'en');
       const googleLanguageCode = { zh: 'zh-CN' };
@@ -134,7 +139,9 @@
         });
         selector.setAttribute('aria-label', values.language);
         document.getElementById('download').setAttribute('aria-label', values.launch);
-        document.getElementById('open-app').href = `/app/?lang=${encodeURIComponent(code)}`;
+        const appQuery = new URLSearchParams({lang: code});
+        if (campaignSource) appQuery.set('utm_source', campaignSource);
+        document.getElementById('open-app').href = `/app/?${appQuery.toString()}`;
         ['privacy-link','terms-link','support-link'].forEach(id => {
           const link = document.getElementById(id);
           link.href = `${link.pathname}?lang=${encodeURIComponent(code)}`;
