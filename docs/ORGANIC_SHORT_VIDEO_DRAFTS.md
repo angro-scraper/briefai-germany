@@ -16,7 +16,7 @@ deadline.
 
 Store links:
 
-- iOS: <https://apps.apple.com/app/id6757674090>
+- iOS: <https://apps.apple.com/app/id6794959959>
 - Android: <https://play.google.com/store/apps/details?id=com.briefai.briefai_germany>
 
 ## 1. Jobcenter: find the deadline first
@@ -39,7 +39,7 @@ Store links:
 > Germany von AMIA Technologies hilft beim verständlichen Strukturieren eines
 > Briefs — es ersetzt keine Rechts- oder Sozialberatung.
 >
-> iOS: https://apps.apple.com/app/id6757674090
+> iOS: https://apps.apple.com/app/id6794959959
 > Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
 
 ## 2. Ausländerbehörde: separate appointment, application and documents
@@ -62,7 +62,7 @@ Store links:
 > Technologies dient zur Orientierung und ersetzt keine Rechts- oder
 > Migrationsberatung.
 >
-> iOS: https://apps.apple.com/app/id6757674090
+> iOS: https://apps.apple.com/app/id6794959959
 > Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
 
 ## 3. Krankenkasse: understand before responding
@@ -84,7 +84,7 @@ Store links:
 > ajută să organizezi informațiile pentru propria verificare. Nu este
 > consultanță juridică, socială sau medicală.
 >
-> iOS: https://apps.apple.com/app/id6757674090
+> iOS: https://apps.apple.com/app/id6794959959
 > Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
 
 ## Publishing checklist for a chosen channel

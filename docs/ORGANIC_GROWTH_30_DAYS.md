@@ -18,7 +18,7 @@ Every public message must:
 
 Store links:
 
-- iOS: <https://apps.apple.com/app/id6757674090>
+- iOS: <https://apps.apple.com/app/id6794959959>
 - Android: <https://play.google.com/store/apps/details?id=com.briefai.briefai_germany>
 
 ## Source of truth for measurement

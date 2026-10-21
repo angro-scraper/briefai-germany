@@ -33,7 +33,7 @@ Steuer- oder Sozialberatung und ersetzt keine individuelle Prüfung eines
 Bescheids.  
 **Website:** `https://briefai.salvesca.com/?lang=de&utm_source=siyavash`  
 **Android:** `https://play.google.com/store/apps/details?id=com.briefai.briefai_germany`  
-**iOS:** `https://apps.apple.com/app/id6757674090`  
+**iOS:** `https://apps.apple.com/app/id6794959959`  
 **Privacy:** `https://briefai.salvesca.com/privacy.html`
 
 ## 2. Immigrant Hub Germany — editorial / resource partnership
@@ -147,7 +147,7 @@ BriefAI is a digital information tool; it is not legal, tax, immigration or
 social advice.  
 **Website:** `https://briefai.salvesca.com/?lang=en&utm_source=migratespace`  
 **Android:** `https://play.google.com/store/apps/details?id=com.briefai.briefai_germany`  
-**iOS:** `https://apps.apple.com/app/id6757674090`
+**iOS:** `https://apps.apple.com/app/id6794959959`
 
 ### Prepared Handbook Germany enquiry (German)
 
@@ -204,7 +204,7 @@ public submission.
 > социален съвет. При кратък срок или важно решение потърсете признат
 > консултантски център.
 >
-> App Store: https://apps.apple.com/app/id6757674090
+> App Store: https://apps.apple.com/app/id6794959959
 > Google Play: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
 
 ## Prepared German community resource post: Familienkasse / Kindergeld
