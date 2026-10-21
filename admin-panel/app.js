@@ -28,6 +28,7 @@ let auth;
 let completingSignIn;
 let accounts = [];
 let testerLeads = [];
+let affiliatePartners = [];
 let nextAccountsPageToken = null;
 const configured = Object.values(firebaseConfig).every((value) => value !== 'REPLACE_ME' && value.length > 0);
 if (configured) {
@@ -57,6 +58,7 @@ if (configured) {
       }
       await loadAccounts({reset: true});
       await loadTesterLeads();
+      await loadAffiliatePartners();
       await loadAudit();
       document.body.classList.add('is-signed-in');
       document.querySelector('#sign-out').hidden = false;
@@ -135,7 +137,7 @@ if (configured) {
       return;
     }
     try {
-      await Promise.all([loadMetrics(), loadAccounts({reset: true}), loadTesterLeads()]);
+      await Promise.all([loadMetrics(), loadAccounts({reset: true}), loadTesterLeads(), loadAffiliatePartners()]);
       status.textContent = 'Dashboard refreshed.';
     } catch (error) {
       status.textContent = `Refresh failed: ${error.message}`;
@@ -166,6 +168,14 @@ if (configured) {
       status.textContent = 'Tester applications refreshed.';
     } catch (error) {
       status.textContent = `Could not load tester applications: ${error.message}`;
+    }
+  });
+  document.querySelector('#refresh-partners').addEventListener('click', async () => {
+    try {
+      await loadAffiliatePartners();
+      status.textContent = 'Partner referrals refreshed.';
+    } catch (error) {
+      status.textContent = `Could not load partner referrals: ${error.message}`;
     }
   });
   onAuthStateChanged(auth, async (user) => {
@@ -271,6 +281,41 @@ async function loadTesterLeads() {
   const result = await httpsCallable(functions, 'adminListTesterLeads')();
   testerLeads = Array.isArray(result.data?.leads) ? result.data.leads : [];
   renderTesterLeads();
+}
+
+async function loadAffiliatePartners() {
+  const result = await httpsCallable(functions, 'adminListAffiliatePartners')();
+  affiliatePartners = Array.isArray(result.data?.partners) ? result.data.partners : [];
+  const table = document.querySelector('#partners-table');
+  table.replaceChildren();
+  if (!affiliatePartners.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 5;
+    cell.textContent = 'No referral partners yet.';
+    row.append(cell);
+    table.append(row);
+    return;
+  }
+  for (const partner of affiliatePartners) {
+    const row = document.createElement('tr');
+    const link = `https://briefai.salvesca.com/?ref=${encodeURIComponent(partner.code)}`;
+    const linkCell = document.createElement('td');
+    const anchor = document.createElement('a');
+    anchor.href = link;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener';
+    anchor.textContent = link;
+    linkCell.append(anchor);
+    row.append(
+      textCell(String(partner.displayName || partner.code), partner.active ? 'Active' : 'Inactive'),
+      linkCell,
+      textCell(`${(Number(partner.commissionBps || 0) / 100).toFixed(2)}%`),
+      textCell(String(partner.attributedRegistrations || 0)),
+      textCell(String(partner.verifiedPurchases || 0)),
+    );
+    table.append(row);
+  }
 }
 
 function renderTesterLeads() {
@@ -530,5 +575,30 @@ document.querySelector('#notification-form').addEventListener('submit', async (e
     status.textContent = `Notification delivered to ${result.data.delivered} devices.`;
   } catch (error) {
     status.textContent = `Notification failed: ${error.message}`;
+  }
+});
+
+document.querySelector('#partner-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!functions) return;
+  const code = document.querySelector('#partner-code').value.trim().toLowerCase();
+  const displayName = document.querySelector('#partner-name').value.trim();
+  const commissionPercent = Number(document.querySelector('#partner-commission').value);
+  if (!/^[a-z0-9][a-z0-9_-]{2,31}$/.test(code) || !displayName ||
+      !Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 50) {
+    status.textContent = 'Enter a name, a 3–32 character code, and a commission from 0% to 50%.';
+    return;
+  }
+  try {
+    await httpsCallable(functions, 'adminCreatePartner')({
+      code,
+      displayName,
+      commissionBps: Math.round(commissionPercent * 100),
+    });
+    event.target.reset();
+    await Promise.all([loadAffiliatePartners(), loadAudit()]);
+    status.textContent = `Partner created. Share: https://briefai.salvesca.com/?ref=${code}`;
+  } catch (error) {
+    status.textContent = `Partner creation failed: ${error.message}`;
   }
 });

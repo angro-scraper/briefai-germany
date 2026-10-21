@@ -292,6 +292,7 @@ class PrivacyAnalyticsService {
 class AuthService {
   AuthService({required this.cloudEnabled});
   final bool cloudEnabled;
+  static const _pendingPartnerCodeKey = 'briefai.pending-partner-code';
   final StreamController<Map<String, dynamic>?> _profileUpdates =
       StreamController<Map<String, dynamic>?>.broadcast();
 
@@ -318,6 +319,47 @@ class AuthService {
     return userId == null
         ? LetterRepository.anonymousVaultKey
         : LetterRepository.userVaultKey(userId);
+  }
+
+  /// Stores only the partner's short public code on this device. It is sent to
+  /// the server after authentication, never written into the user profile or
+  /// mixed with the local letter archive.
+  Future<void> rememberPartnerCode(String value) async {
+    final code = value.trim().toLowerCase();
+    if (!RegExp(r'^[a-z0-9][a-z0-9_-]{2,31}$').hasMatch(code)) return;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_pendingPartnerCodeKey, code);
+  }
+
+  Future<void> _rememberPartnerCodeFromLaunch() async {
+    if (!kIsWeb) return;
+    final code = Uri.base.queryParameters['ref'];
+    if (code != null) await rememberPartnerCode(code);
+  }
+
+  Future<void> _claimPendingPartnerReferral() async {
+    if (!cloudEnabled || FirebaseAuth.instance.currentUser == null) return;
+    await _rememberPartnerCodeFromLaunch();
+    final preferences = await SharedPreferences.getInstance();
+    final code = preferences.getString(_pendingPartnerCodeKey);
+    if (code == null) return;
+    try {
+      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('claimPartnerReferral')
+          .call<Map<Object?, Object?>>({'code': code});
+      // An accepted claim or an already-bound account is final. Keep a code on
+      // transient/network failures so a later app start can safely retry.
+      if (result.data['claimed'] == true ||
+          result.data['alreadyAttributed'] == true) {
+        await preferences.remove(_pendingPartnerCodeKey);
+      }
+    } on FirebaseFunctionsException catch (error) {
+      if (error.code == 'not-found' || error.code == 'failed-precondition') {
+        await preferences.remove(_pendingPartnerCodeKey);
+      }
+    } on Object {
+      // Referral attribution must never make login fail.
+    }
   }
 
   Future<bool> ensureFreshSession() async {
@@ -709,6 +751,7 @@ class AuthService {
       // Authentication has succeeded. Profile mirroring is best-effort so a
       // closed Firestore ruleset cannot turn a successful login into an error.
     }
+    await _claimPendingPartnerReferral();
   }
 
   String _profileKey(String userId, String field) =>

@@ -1232,6 +1232,7 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _partnerCode = TextEditingController();
   // Most people arriving here from the public landing page are new.  Starting
   // with registration prevents them from mistaking the sign-in form for a
   // broken registration flow; returning users can switch to sign-in directly.
@@ -1243,6 +1244,7 @@ class _SignInScreenState extends State<SignInScreen> {
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _partnerCode.dispose();
     super.dispose();
   }
 
@@ -1284,6 +1286,19 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
+                TextField(
+                  controller: _partnerCode,
+                  autocorrect: false,
+                  textCapitalization: TextCapitalization.none,
+                  decoration: InputDecoration(
+                    labelText: strings.partnerCodeOptional,
+                    helperText: strings.partnerCodeHelper,
+                  ),
+                  onChanged: (value) => unawaited(
+                    widget.services.auth.rememberPartnerCode(value),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _GoogleSignInButton(
                   onPressed: _loading ? null : _google,
                   label: Text(strings.text('continueGoogle')),
@@ -1373,6 +1388,7 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
     await _run(() async {
+      await widget.services.auth.rememberPartnerCode(_partnerCode.text);
       final created = await widget.services.auth.signInWithEmail(
         email,
         _password.text,
@@ -1387,8 +1403,14 @@ class _SignInScreenState extends State<SignInScreen> {
     });
   }
 
-  Future<void> _google() => _run(widget.services.auth.signInWithGoogle);
-  Future<void> _apple() => _run(widget.services.auth.signInWithApple);
+  Future<void> _google() => _run(() async {
+    await widget.services.auth.rememberPartnerCode(_partnerCode.text);
+    await widget.services.auth.signInWithGoogle();
+  });
+  Future<void> _apple() => _run(() async {
+    await widget.services.auth.rememberPartnerCode(_partnerCode.text);
+    await widget.services.auth.signInWithApple();
+  });
 
   Future<void> _run(Future<void> Function() action) async {
     setState(() => _loading = true);

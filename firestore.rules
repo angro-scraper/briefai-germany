@@ -22,6 +22,19 @@ service cloud.firestore {
       allow read: if own(uid);
       allow write: if false; // Store/webhook functions are authoritative.
     }
+    // Referral attribution is written and reported only by Cloud Functions.
+    // A user can see at most whether their own account is attributed; partners
+    // never receive customer identities, letters or account records.
+    match /partnerAttributions/{uid} {
+      allow read: if own(uid);
+      allow write: if false;
+    }
+    match /partners/{partnerCode} {
+      allow read, write: if false;
+    }
+    match /affiliateConversions/{conversionId} {
+      allow read, write: if false;
+    }
     match /deviceTokens/{token} {
       allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;

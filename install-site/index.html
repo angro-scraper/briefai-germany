@@ -143,6 +143,11 @@
       // This lets consented web registrations be attributed to the campaign
       // that sent the visitor, without forwarding referrers or personal data.
       const campaignSource = landingQuery.get('utm_source');
+      const referralCandidate = (landingQuery.get('ref') || '').trim().toLowerCase();
+      const referralCode = /^[a-z0-9][a-z0-9_-]{2,31}$/.test(referralCandidate)
+        ? referralCandidate
+        : localStorage.getItem('briefai.pending-partner-code');
+      if (referralCode) localStorage.setItem('briefai.pending-partner-code', referralCode);
       const browserLanguage = navigator.language.slice(0,2);
       const initial = languages[queryLanguage] ? queryLanguage : (languages[browserLanguage] ? browserLanguage : 'en');
       const googleLanguageCode = { zh: 'zh-CN' };
@@ -172,6 +177,7 @@
         document.getElementById('download').setAttribute('aria-label', values.launch);
         const appQuery = new URLSearchParams({lang: code});
         if (campaignSource) appQuery.set('utm_source', campaignSource);
+        if (referralCode) appQuery.set('ref', referralCode);
         document.getElementById('open-app').href = `/app/?${appQuery.toString()}`;
         ['privacy-link','terms-link','support-link'].forEach(id => {
           const link = document.getElementById(id);
@@ -205,13 +211,19 @@
         localStorage.setItem('briefai.platform-language', code);
         const googleCode = googleLanguageCode[code] || code;
         setGoogleCookie(`/sr/${googleCode}`, 31536000);
-        location.search = `?lang=${encodeURIComponent(code)}`;
+        const nextQuery = new URLSearchParams(location.search);
+        nextQuery.set('lang', code);
+        location.search = `?${nextQuery.toString()}`;
       });
       const activeGoogleCode = googleLanguageCode[selector.value] || selector.value;
       const expectedCookie = `googtrans=/sr/${activeGoogleCode}`;
       if (selector.value === 'sr' && getGoogleCookie()) {
         setGoogleCookie('', 0);
-        if (location.search.includes('lang=')) location.replace(location.pathname);
+        if (location.search.includes('lang=')) {
+          const nextQuery = new URLSearchParams(location.search);
+          nextQuery.delete('lang');
+          location.replace(`${location.pathname}${nextQuery.toString() ? `?${nextQuery}` : ''}`);
+        }
       } else if (selector.value !== 'sr' && !getGoogleCookie().includes(expectedCookie)) {
         setGoogleCookie(`/sr/${activeGoogleCode}`, 31536000);
         location.reload();

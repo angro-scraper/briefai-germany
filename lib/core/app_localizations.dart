@@ -137,6 +137,54 @@ class AppStrings {
       _values['en']![key] ??
       key;
 
+  String get partnerCodeOptional => switch (locale.languageCode) {
+    'ar' => 'رمز الشريك (اختياري)',
+    'bg' => 'Код на партньор (по избор)',
+    'bs' => 'Kod partnera (opciono)',
+    'de' => 'Partnercode (optional)',
+    'el' => 'Κωδικός συνεργάτη (προαιρετικό)',
+    'hr' => 'Partnerski kod (nije obavezno)',
+    'it' => 'Codice partner (facoltativo)',
+    'mk' => 'Код на партнер (незадолжително)',
+    'pl' => 'Kod partnera (opcjonalnie)',
+    'ro' => 'Cod de partener (opțional)',
+    'ru' => 'Код партнёра (необязательно)',
+    'sq' => 'Kodi i partnerit (opsional)',
+    'sr' => 'Kod partnera (opciono)',
+    'tr' => 'İş ortağı kodu (isteğe bağlı)',
+    'uk' => 'Код партнера (необов’язково)',
+    _ => 'Partner code (optional)',
+  };
+
+  String get partnerCodeHelper => switch (locale.languageCode) {
+    'ar' => 'استخدمه فقط إذا تلقيت رابط إحالة أو رمز BriefAI.',
+    'bg' =>
+      'Използвайте го само ако сте получили реферален линк или код за BriefAI.',
+    'bs' => 'Koristite samo ako ste dobili BriefAI preporučeni link ili kod.',
+    'de' => 'Nur bei einem BriefAI-Empfehlungslink oder -Code.',
+    'el' =>
+      'Χρησιμοποιήστε το μόνο αν λάβατε σύνδεσμο ή κωδικό σύστασης BriefAI.',
+    'en' => 'Only for a BriefAI referral link or code.',
+    'sr' => 'Samo ako imate BriefAI preporučeni link ili kod.',
+    'hr' => 'Samo ako imate BriefAI preporučenu poveznicu ili kod.',
+    'it' =>
+      'Usalo solo se hai ricevuto un link o codice di segnalazione BriefAI.',
+    'mk' =>
+      'Користете го само ако сте добиле BriefAI препорачувачка врска или код.',
+    'pl' => 'Użyj tylko wtedy, gdy otrzymałeś link polecający lub kod BriefAI.',
+    'ro' =>
+      'Folosește-l doar dacă ai primit un link sau cod de recomandare BriefAI.',
+    'ru' =>
+      'Используйте только если получили реферальную ссылку или код BriefAI.',
+    'sq' =>
+      'Përdoreni vetëm nëse keni marrë lidhje ose kod rekomandimi BriefAI.',
+    'tr' =>
+      'Yalnızca BriefAI yönlendirme bağlantısı veya kodu aldıysanız kullanın.',
+    'uk' =>
+      'Використовуйте лише якщо отримали реферальне посилання або код BriefAI.',
+    _ => 'Only for a BriefAI referral link or code.',
+  };
+
   String format(String key, Map<String, Object> values) {
     var value = text(key);
     for (final entry in values.entries) {

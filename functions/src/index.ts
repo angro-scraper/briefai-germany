@@ -273,6 +273,12 @@ const storeProductIds = new Set<string>([
   ...creditProductIds,
   ...questionnaireCreditProductIds,
 ]);
+// Partner attribution deliberately contains no letters, OCR, e-mail address or
+// device identifier.  A partner only receives an aggregate conversion count
+// from the admin reporting function; commission is reconciled from the store
+// financial report, never guessed from a client price.
+const affiliateCodePattern = /^[a-z0-9][a-z0-9_-]{2,31}$/;
+const affiliateAttributionWindowMs = 30 * 24 * 60 * 60 * 1000;
 const freeAnalysisLimit = 5;
 const freeQuestionnaireLimit = 2;
 const publicRequestBuckets = new Map<string, {count: number; resetAt: number}>();
@@ -395,6 +401,50 @@ function creditsForProductId(productId: string): number | null {
       .credits;
   }
   return null;
+}
+
+function affiliateCode(value: unknown): string {
+  const normalized = requireString(value, "code", 32).trim().toLowerCase();
+  if (!affiliateCodePattern.test(normalized)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Partnerski kod mora imati 3–32 mala slova, broja, crtice ili donje crte.",
+    );
+  }
+  return normalized;
+}
+
+async function recordAffiliateConversion({
+  uid,
+  transactionId,
+  productId,
+  provider,
+  kind,
+}: {
+  uid: string;
+  transactionId: string;
+  productId: string;
+  provider: "google_play" | "app_store";
+  kind: "subscription" | "briefai_credits";
+}): Promise<void> {
+  const attribution = await db.collection("partnerAttributions").doc(uid).get();
+  const partnerCode = attribution.data()?.partnerCode;
+  if (typeof partnerCode !== "string") return;
+  const partner = await db.collection("partners").doc(partnerCode).get();
+  if (!partner.exists || partner.data()?.active !== true) return;
+  // The store proof, not a client callback, is the conversion trigger. A
+  // deterministic ID keeps retrying a receipt verification exactly-once.
+  await db.collection("affiliateConversions").doc(transactionId).create({
+    partnerCode,
+    productId,
+    provider,
+    kind,
+    commissionBps: Number(partner.data()?.commissionBps ?? 0),
+    commissionStatus: "awaiting_financials",
+    createdAt: FieldValue.serverTimestamp(),
+  }).catch((error: unknown) => {
+    if ((error as {code?: number}).code !== 6) throw error; // ALREADY_EXISTS
+  });
 }
 
 async function hasAnalysisCredits(uid: string): Promise<boolean> {
@@ -1945,6 +1995,96 @@ export const createStripePortal = onCall(
   },
 );
 
+/**
+ * Binds a new account to one active partner code. This is server-only so a
+ * client cannot attach arbitrary users or change an existing attribution.
+ * The account creation time comes from Firebase Auth rather than the mutable
+ * profile document.
+ */
+export const claimPartnerReferral = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const uid = requireUser(request.auth?.uid);
+    await requireUserRateAllowance(uid, "claim-partner-referral", 8, 60 * 60 * 1000);
+    const code = affiliateCode(request.data?.code);
+    const [account, partner, prior] = await Promise.all([
+      getAuth().getUser(uid),
+      db.collection("partners").doc(code).get(),
+      db.collection("partnerAttributions").doc(uid).get(),
+    ]);
+    if (prior.exists) {
+      return {claimed: prior.data()?.partnerCode === code, alreadyAttributed: true};
+    }
+    if (!partner.exists || partner.data()?.active !== true) {
+      throw new HttpsError("not-found", "Partnerski kod nije aktivan.");
+    }
+    const createdAt = Date.parse(account.metadata.creationTime ?? "");
+    if (!Number.isFinite(createdAt) || Date.now() - createdAt > affiliateAttributionWindowMs) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Partnerski kod može da se doda samo u prvih 30 dana od registracije.",
+      );
+    }
+    await db.collection("partnerAttributions").doc(uid).create({
+      partnerCode: code,
+      claimedAt: FieldValue.serverTimestamp(),
+      attributionWindowDays: 30,
+    });
+    return {claimed: true, alreadyAttributed: false};
+  },
+);
+
+// Partner setup is admin-only. The code intentionally does not create a
+// payout or expose buyers' identities; finance can approve payouts only after
+// reviewing the stores' net, non-refunded proceeds.
+export const adminCreatePartner = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const adminUid = await requireAdmin(request.auth?.uid);
+    const code = affiliateCode(request.data?.code);
+    const displayName = requireString(request.data?.displayName, "displayName", 80).trim();
+    const commissionBps = Number(request.data?.commissionBps);
+    if (!displayName || !Number.isInteger(commissionBps) || commissionBps < 0 || commissionBps > 5000) {
+      throw new HttpsError("invalid-argument", "Partner ili procenat provizije nije ispravan.");
+    }
+    const ref = db.collection("partners").doc(code);
+    if ((await ref.get()).exists) throw new HttpsError("already-exists", "Partnerski kod već postoji.");
+    await ref.create({
+      displayName,
+      commissionBps,
+      active: true,
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: adminUid,
+    });
+    await writeAdminAudit(adminUid, "affiliate-partner-created", undefined, {code, commissionBps});
+    return {code, displayName, commissionBps, active: true};
+  },
+);
+
+export const adminListAffiliatePartners = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    await requireAdmin(request.auth?.uid);
+    const partners = await db.collection("partners").orderBy("createdAt", "desc").limit(100).get();
+    const rows = await Promise.all(partners.docs.map(async (partner) => {
+      const [attributions, conversions] = await Promise.all([
+        db.collection("partnerAttributions").where("partnerCode", "==", partner.id).count().get(),
+        db.collection("affiliateConversions").where("partnerCode", "==", partner.id).count().get(),
+      ]);
+      const data = partner.data();
+      return {
+        code: partner.id,
+        displayName: data.displayName ?? partner.id,
+        active: data.active === true,
+        commissionBps: Number(data.commissionBps ?? 0),
+        attributedRegistrations: attributions.data().count,
+        verifiedPurchases: conversions.data().count,
+      };
+    }));
+    return {partners: rows};
+  },
+);
+
 // Native stores provide only a proof of purchase to the client. This callable
 // verifies that proof with the store and is the sole path that writes either a
 // subscription entitlement or consumable analysis credits. The client can
@@ -2006,6 +2146,15 @@ export const verifyStorePurchase = onCall(
           updatedAt: FieldValue.serverTimestamp(),
         }, {merge: true});
       });
+      if (verification.active) {
+        await recordAffiliateConversion({
+          uid,
+          transactionId: transactionRef.id,
+          productId,
+          provider,
+          kind: "subscription",
+        });
+      }
       return {isActive: verification.active, creditsAdded: 0};
     }
 
@@ -2049,6 +2198,15 @@ export const verifyStorePurchase = onCall(
         credits: creditsForPack,
         updatedAt: FieldValue.serverTimestamp(),
       }, {merge: true});
+    });
+    // A verified consumable is a paid conversion even when the receipt retry
+    // added zero new credits because it was already granted earlier.
+    await recordAffiliateConversion({
+      uid,
+      transactionId: transactionRef.id,
+      productId,
+      provider,
+      kind: "briefai_credits",
     });
     return {
       isActive: false,
@@ -2116,6 +2274,7 @@ export const deleteAccount = onCall({region: "europe-west3", enforceAppCheck: fa
   for (const token of deviceTokens.docs) cleanup.delete(token.ref);
   for (const delivery of deliveries.docs) cleanup.delete(delivery.ref);
   cleanup.delete(db.collection("subscriptions").doc(uid));
+  cleanup.delete(db.collection("partnerAttributions").doc(uid));
   await cleanup.close();
   try {
     await getStorage().bucket().deleteFiles({prefix: `users/${uid}/`});
