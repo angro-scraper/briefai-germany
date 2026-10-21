@@ -230,6 +230,29 @@ user confirmation before any submission.
 > Steuer- oder Sozialberatung. Bei kurzer Frist oder einer wichtigen Entscheidung
 > wenden Sie sich bitte rechtzeitig an eine anerkannte Beratungsstelle.
 
+## Prepared German community resource post: Rundfunkbeitrag / "GEZ"
+
+Use only where the current group rules expressly permit a clearly identified
+resource post. The exact destination and final text require fresh, immediate
+user confirmation before any submission.
+
+**Tracked guide link:**
+`https://briefai.salvesca.com/rundfunkbeitrag-gez-brief-verstehen/?utm_source=fb_groups_de`
+
+> Einen Brief zum Rundfunkbeitrag bekommen und unsicher, was genau verlangt
+> wird? Prüfen Sie zuerst den Anlass des Schreibens, Aktenzeichen oder
+> Beitragsnummer sowie die konkrete Frist. Nutzen Sie für eine Antwort nur die
+> offiziellen Formulare des Beitragsservice.
+>
+> Wir von AMIA Technologies haben dazu eine kostenlose Checkliste mit Links zu
+> den offiziellen Formularen und Hinweisen erstellt:
+> https://briefai.salvesca.com/rundfunkbeitrag-gez-brief-verstehen/?utm_source=fb_groups_de
+>
+> BriefAI Germany kann helfen, deutsche Schreiben, Fristen und offene Aufgaben
+> in der gewählten Sprache zu strukturieren. Es ist keine Rechts-, Steuer- oder
+> Sozialberatung. Bei einer kurzen Frist oder einer wichtigen Entscheidung
+> wenden Sie sich bitte rechtzeitig an eine unabhängige Beratungsstelle.
+
 ## Sources checked
 
 - Freundeskreis Asyl Altenholz, “Siyavash.de – Kostenlose mehrsprachige
