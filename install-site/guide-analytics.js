@@ -9,7 +9,10 @@ const visitorKey = 'briefai.analytics-visitor-id';
 // when a community post, directory or partner deliberately links here. This
 // lets the consented aggregate distinguish a useful referral from organic
 // search without storing a URL, letter, email address or IP address.
-const campaignSource = new URLSearchParams(location.search).get('utm_source')?.trim();
+const rawCampaignSource = new URLSearchParams(location.search).get('utm_source')?.trim();
+const campaignSource = rawCampaignSource && /^[a-z0-9_-]{1,32}$/i.test(rawCampaignSource)
+  ? rawCampaignSource.toLowerCase()
+  : null;
 const source = campaignSource || document.querySelector('meta[name="briefai-source"]')?.content || 'guide';
 
 function visitorId() {
@@ -65,6 +68,16 @@ function addConsentChoice() {
 
 addConsentChoice();
 void send('page_view');
+
+// The in-app registration path accepts the same source label. Preserve it for
+// valid campaign links so an opted-in visit from a community or directory is
+// not relabelled as generic SEO after the reader opens the app.
+document.querySelectorAll('a[href^="/app/"]').forEach((link) => {
+  const target = new URL(link.getAttribute('href'), location.origin);
+  target.searchParams.set('utm_source', source);
+  link.setAttribute('href', `${target.pathname}${target.search}${target.hash}`);
+});
+
 document.querySelectorAll('[data-analytics-install]').forEach((link) => {
   link.addEventListener('click', () => void send('install_click'));
 });
