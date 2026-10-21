@@ -5,7 +5,12 @@ import {recordPublicAnalytics} from '/firebase-site-security.js';
 // reuses the same consent choice as the BriefAI landing page.
 const consentKey = 'briefai.analytics-consent';
 const visitorKey = 'briefai.analytics-visitor-id';
-const source = document.querySelector('meta[name="briefai-source"]')?.content || 'guide';
+// Keep the guide's SEO label as the default, but honour a short UTM source
+// when a community post, directory or partner deliberately links here. This
+// lets the consented aggregate distinguish a useful referral from organic
+// search without storing a URL, letter, email address or IP address.
+const campaignSource = new URLSearchParams(location.search).get('utm_source')?.trim();
+const source = campaignSource || document.querySelector('meta[name="briefai-source"]')?.content || 'guide';
 
 function visitorId() {
   let value = localStorage.getItem(visitorKey);
