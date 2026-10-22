@@ -1447,6 +1447,11 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ),
       );
+    } on StateError catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

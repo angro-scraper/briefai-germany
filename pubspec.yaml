@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # One release identity for every platform.  Store workflows may provide their
 # own build number, but the source of truth for the next user-facing release
 # must never move backwards from the already shipped Android 1.0.35 train.
-version: 1.0.40+47
+version: 1.0.41+48
 
 environment:
   sdk: ^3.12.2
@@ -57,6 +57,9 @@ dependencies:
   flutter_svg: ^2.2.3
   google_mlkit_text_recognition: ^0.16.0
   google_sign_in: ^7.2.0
+  # Pin the current Android implementation, which contains Credential Manager
+  # fixes used by the native Google account picker.
+  google_sign_in_android: ^7.2.18
   image: ^4.9.1
   image_picker: ^1.2.3
   in_app_purchase: ^3.3.0

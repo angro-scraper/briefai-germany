@@ -57,6 +57,27 @@ const _wrapperImageMaxSide = 2200;
 late final Future<FirebaseApp> _nativeFirebaseReady;
 late final Future<void> _nativeGoogleSignInReady;
 
+String _googleSignInFailureMessage(GoogleSignInException error) {
+  // Do not send platform exception details (which can include device-specific
+  // information) into the WebView. The hosted sign-in UI receives this text,
+  // so it must be both safe to show and useful to a person trying again.
+  switch (error.code) {
+    case GoogleSignInExceptionCode.clientConfigurationError:
+    case GoogleSignInExceptionCode.providerConfigurationError:
+      return 'Google prijava trenutno nije dostupna. Pokušajte ponovo za nekoliko minuta.';
+    case GoogleSignInExceptionCode.uiUnavailable:
+      return 'Google prijava ne može da otvori izbor naloga na ovom uređaju. Ažurirajte Google Play usluge i pokušajte ponovo.';
+    case GoogleSignInExceptionCode.interrupted:
+      return 'Google prijava je prekinuta. Zatvorite aplikaciju i pokušajte ponovo.';
+    case GoogleSignInExceptionCode.canceled:
+      return 'Google prijava je prekinuta pre izbora naloga.';
+    case GoogleSignInExceptionCode.userMismatch:
+      return 'Google nalog je promenjen tokom prijave. Izaberite isti nalog i pokušajte ponovo.';
+    case GoogleSignInExceptionCode.unknownError:
+      return 'Google prijava trenutno nije dostupna. Pokušajte ponovo.';
+  }
+}
+
 String _appleNonce() {
   final random = Random.secure();
   final bytes = List<int>.generate(32, (_) => random.nextInt(256));
@@ -367,7 +388,17 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             if (!GoogleSignIn.instance.supportsAuthenticate()) {
               throw StateError('Google prijava nije dostupna na ovom uređaju.');
             }
-            final googleAccount = await GoogleSignIn.instance.authenticate();
+            final GoogleSignInAccount googleAccount;
+            try {
+              googleAccount = await GoogleSignIn.instance.authenticate();
+            } on GoogleSignInException catch (error, stackTrace) {
+              // Keep a developer diagnostic in the native log while returning
+              // only a privacy-safe, actionable explanation to the WebView.
+              debugPrint(
+                'Native Google sign-in failed: ${error.code}\n$stackTrace',
+              );
+              throw StateError(_googleSignInFailureMessage(error));
+            }
             final idToken = googleAccount.authentication.idToken;
             if (idToken == null || idToken.isEmpty) {
               throw StateError(
