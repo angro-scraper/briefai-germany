@@ -26,6 +26,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'German draft — review and edit',
     'questionnaireExplanation': 'What this questionnaire asks',
     'questionnaireOriginalQuestion': 'Original German question',
+    'questionnaireRecognizedText': 'Recognized form text',
     'questionnaireCompleteAnswers':
         'Please complete every answer before generating the German draft.',
   },
@@ -54,6 +55,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Deutscher Entwurf — prüfen und bearbeiten',
     'questionnaireExplanation': 'Worum es in diesem Fragebogen geht',
     'questionnaireOriginalQuestion': 'Originalfrage auf Deutsch',
+    'questionnaireRecognizedText': 'Erkannter Formulartext',
     'questionnaireCompleteAnswers':
         'Bitte beantworten Sie zuerst alle Fragen, bevor Sie den deutschen Entwurf erstellen.',
   },
@@ -82,6 +84,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Nemački nacrt — proverite i izmenite',
     'questionnaireExplanation': 'Šta se traži u ovom upitniku',
     'questionnaireOriginalQuestion': 'Originalno pitanje na nemačkom',
+    'questionnaireRecognizedText': 'Prepoznati tekst obrasca',
     'questionnaireCompleteAnswers':
         'Pre izrade nemačkog nacrta popunite sve odgovore.',
   },
@@ -110,6 +113,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Njemački nacrt — provjerite i uredite',
     'questionnaireExplanation': 'Što se traži u ovom upitniku',
     'questionnaireOriginalQuestion': 'Izvorno pitanje na njemačkom',
+    'questionnaireRecognizedText': 'Prepoznati tekst obrasca',
     'questionnaireCompleteAnswers':
         'Prije izrade njemačkog nacrta ispunite sve odgovore.',
   },
@@ -138,6 +142,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Njemački nacrt — provjeri i uredi',
     'questionnaireExplanation': 'Šta se traži u ovom upitniku',
     'questionnaireOriginalQuestion': 'Originalno pitanje na njemačkom',
+    'questionnaireRecognizedText': 'Prepoznati tekst obrasca',
     'questionnaireCompleteAnswers':
         'Prije izrade njemačkog nacrta popunite sve odgovore.',
   },
@@ -166,6 +171,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Проект на немски — проверете и редактирайте',
     'questionnaireExplanation': 'Какво се пита във въпросника',
     'questionnaireOriginalQuestion': 'Оригинален въпрос на немски',
+    'questionnaireRecognizedText': 'Разпознат текст от формуляра',
     'questionnaireCompleteAnswers':
         'Преди да създадете проекта на немски, попълнете всички отговори.',
   },
@@ -194,6 +200,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Proiect în germană — verifică și editează',
     'questionnaireExplanation': 'Ce solicită acest chestionar',
     'questionnaireOriginalQuestion': 'Întrebarea originală în germană',
+    'questionnaireRecognizedText': 'Textul recunoscut din formular',
     'questionnaireCompleteAnswers':
         'Completează toate răspunsurile înainte de a genera proiectul în germană.',
   },
@@ -222,6 +229,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Almanca taslak — kontrol et ve düzenle',
     'questionnaireExplanation': 'Bu ankette ne soruluyor',
     'questionnaireOriginalQuestion': 'Almanca orijinal soru',
+    'questionnaireRecognizedText': 'Formdan tanınan metin',
     'questionnaireCompleteAnswers':
         'Almanca taslağı oluşturmadan önce tüm yanıtları doldurun.',
   },
@@ -250,6 +258,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Черновик на немецком — проверьте и измените',
     'questionnaireExplanation': 'Что спрашивается в этой анкете',
     'questionnaireOriginalQuestion': 'Исходный вопрос на немецком',
+    'questionnaireRecognizedText': 'Распознанный текст формы',
     'questionnaireCompleteAnswers':
         'Перед созданием черновика на немецком заполните все ответы.',
   },
@@ -278,6 +287,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Чернетка німецькою — перевірте й відредагуйте',
     'questionnaireExplanation': 'Що запитує ця анкета',
     'questionnaireOriginalQuestion': 'Оригінальне запитання німецькою',
+    'questionnaireRecognizedText': 'Розпізнаний текст форми',
     'questionnaireCompleteAnswers':
         'Перед створенням чернетки німецькою заповніть усі відповіді.',
   },
@@ -306,6 +316,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Германски нацрт — проверете и уредете',
     'questionnaireExplanation': 'Што бара овој прашалник',
     'questionnaireOriginalQuestion': 'Оригинално прашање на германски',
+    'questionnaireRecognizedText': 'Препознаен текст од формуларот',
     'questionnaireCompleteAnswers':
         'Пополнете ги сите одговори пред да го подготвите германскиот нацрт.',
   },
@@ -334,6 +345,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Wersja niemiecka — sprawdź i edytuj',
     'questionnaireExplanation': 'O co pyta ten kwestionariusz',
     'questionnaireOriginalQuestion': 'Oryginalne pytanie po niemiecku',
+    'questionnaireRecognizedText': 'Rozpoznany tekst formularza',
     'questionnaireCompleteAnswers':
         'Uzupełnij wszystkie odpowiedzi przed przygotowaniem wersji niemieckiej.',
   },
@@ -362,6 +374,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Bozza in tedesco — controlla e modifica',
     'questionnaireExplanation': 'Cosa chiede questo questionario',
     'questionnaireOriginalQuestion': 'Domanda originale in tedesco',
+    'questionnaireRecognizedText': 'Testo del modulo riconosciuto',
     'questionnaireCompleteAnswers':
         'Completa tutte le risposte prima di generare la bozza in tedesco.',
   },
@@ -391,6 +404,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
         'Προσχέδιο στα γερμανικά — ελέγξτε και επεξεργαστείτε',
     'questionnaireExplanation': 'Τι ζητά αυτό το ερωτηματολόγιο',
     'questionnaireOriginalQuestion': 'Αρχική ερώτηση στα γερμανικά',
+    'questionnaireRecognizedText': 'Αναγνωρισμένο κείμενο φόρμας',
     'questionnaireCompleteAnswers':
         'Συμπληρώστε όλες τις απαντήσεις πριν δημιουργήσετε το προσχέδιο στα γερμανικά.',
   },
@@ -419,6 +433,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'Drafti në gjermanisht — kontrollo dhe ndrysho',
     'questionnaireExplanation': 'Çfarë kërkon ky pyetësor',
     'questionnaireOriginalQuestion': 'Pyetja origjinale në gjermanisht',
+    'questionnaireRecognizedText': 'Teksti i njohur i formularit',
     'questionnaireCompleteAnswers':
         'Plotësoni të gjitha përgjigjet para se të krijoni draftin në gjermanisht.',
   },
@@ -447,6 +462,7 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'questionnaireGermanDraft': 'مسودة ألمانية — راجعها وعدّلها',
     'questionnaireExplanation': 'ما الذي يطلبه هذا الاستبيان',
     'questionnaireOriginalQuestion': 'السؤال الأصلي بالألمانية',
+    'questionnaireRecognizedText': 'النص المستخرج من النموذج',
     'questionnaireCompleteAnswers':
         'أكمل جميع الإجابات قبل إنشاء المسودة بالألمانية.',
   },

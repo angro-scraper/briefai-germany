@@ -2252,26 +2252,6 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
     super.dispose();
   }
 
-  void _addField({String label = '', String value = ''}) {
-    _fields.add((
-      TextEditingController(text: label),
-      TextEditingController(text: value),
-    ));
-    _originalQuestions.add('');
-    _guidance.add('');
-    if (mounted) setState(() {});
-  }
-
-  void _removeField(int index) {
-    if (_fields.length == 1) return;
-    final removed = _fields.removeAt(index);
-    removed.$1.dispose();
-    removed.$2.dispose();
-    _originalQuestions.removeAt(index);
-    _guidance.removeAt(index);
-    setState(() {});
-  }
-
   Future<void> _select(Future<List<PickedDocument>> Function() source) async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -2573,6 +2553,14 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final hasDocument = _documents.isNotEmpty;
+    final hasAnalysis = _hasAnalyzedQuestions;
+    final allAnswersReady =
+        hasAnalysis &&
+        _fields.isNotEmpty &&
+        _fields.every((field) => field.$2.text.trim().isNotEmpty);
+    final languageName =
+        AppStrings.languageLabels[_analysisLanguage] ?? _analysisLanguage;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -2584,173 +2572,98 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         children: [
-          if (!_isExisting) ...[
-            Text(
-              strings.text('scanQuestionnaire'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              strings.text('questionnaireDescription'),
-              style: const TextStyle(color: BriefAiDesign.muted),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _capture,
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(strings.text('camera')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy
-                      ? null
-                      : () =>
-                            _select(widget.services.documents.galleryMultiple),
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: Text(strings.text('gallery')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy
-                      ? null
-                      : () => _select(widget.services.documents.files),
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(strings.text('pdfImage')),
-                ),
-              ],
-            ),
-            if (_documents.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(strings.pagesSelected(_documents.length)),
+          Text(
+            strings.text('questionnaireDescription'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: BriefAiDesign.muted),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Chip(
+              avatar: const Icon(Icons.translate_outlined, size: 18),
+              label: Text(
+                '${strings.text('preferredLanguage')}: $languageName',
               ),
-              const SizedBox(height: 10),
-              _questionnairePagePreview(),
-            ],
-            const SizedBox(height: 24),
-          ],
-          if (_isExisting && _documents.isNotEmpty) ...[
-            _questionnairePagePreview(),
-            const SizedBox(height: 18),
-          ],
-          TextField(
-            controller: _sourceText,
-            minLines: 3,
-            maxLines: 9,
-            readOnly: _hasAnalyzedQuestions,
-            decoration: InputDecoration(
-              labelText: strings.text('ocrText'),
-              alignLabelWithHint: true,
             ),
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _title,
-            decoration: InputDecoration(
-              labelText: strings.text('questionnaireTitle'),
-            ),
+          _questionnaireStep(
+            number: 1,
+            title: strings.text('scanQuestionnaire'),
+            active: !hasAnalysis,
+            complete: hasDocument,
           ),
-          const SizedBox(height: 16),
-          if (_explanation.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          if (!hasAnalysis) ...[
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      strings.text('questionnaireExplanation'),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(_explanation),
-                    if (_disclaimer.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _disclaimer,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: BriefAiDesign.muted,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _busy ? null : _capture,
+                          icon: const Icon(Icons.camera_alt_outlined),
+                          label: Text(strings.text('camera')),
                         ),
-                      ),
+                        OutlinedButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _select(
+                                  widget.services.documents.galleryMultiple,
+                                ),
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: Text(strings.text('gallery')),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _select(widget.services.documents.files),
+                          icon: const Icon(Icons.upload_file_outlined),
+                          label: Text(strings.text('pdfImage')),
+                        ),
+                      ],
+                    ),
+                    if (hasDocument) ...[
+                      const SizedBox(height: 14),
+                      Text(strings.pagesSelected(_documents.length)),
+                      const SizedBox(height: 8),
+                      _questionnairePagePreview(),
                     ],
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
-          ],
-          if (_hasQuestions)
-            Text(
-              strings.text('editQuestionnaire'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          const SizedBox(height: 8),
-          for (var index = 0; index < _fields.length; index++) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _fields[index].$1,
-                      readOnly: _hasAnalyzedQuestions,
-                      decoration: InputDecoration(
-                        labelText: strings.text('fieldLabel'),
-                      ),
-                    ),
-                    if (_originalQuestions[index].trim().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${strings.text('questionnaireOriginalQuestion')}: ${_originalQuestions[index]}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: BriefAiDesign.muted),
-                        ),
-                      ),
-                    ],
-                    if (_guidance[index].trim().isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(_guidance[index]),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _fields[index].$2,
-                      minLines: 2,
-                      maxLines: 5,
-                      onChanged: _hasAnalyzedQuestions
-                          ? (_) => setState(_germanDraft.clear)
-                          : null,
-                      decoration: InputDecoration(
-                        labelText: strings.text('fieldValue'),
-                      ),
-                    ),
-                    if (_fields.length > 1)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () => _removeField(index),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                      ),
-                  ],
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 12),
+              title: Text(strings.text('questionnaireRecognizedText')),
+              children: [
+                TextField(
+                  controller: _sourceText,
+                  minLines: 4,
+                  maxLines: 10,
+                  decoration: InputDecoration(
+                    labelText: strings.text('questionnaireRecognizedText'),
+                    alignLabelWithHint: true,
+                  ),
                 ),
+              ],
+            ),
+            TextField(
+              controller: _title,
+              decoration: InputDecoration(
+                labelText: strings.text('questionnaireTitle'),
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-          if (!_hasAnalyzedQuestions)
+            const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _busy ? null : _analyzeQuestionnaire,
               icon: _busy
@@ -2758,16 +2671,140 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.translate_outlined),
+                  : const Icon(Icons.document_scanner_outlined),
               label: Text(
                 _busy && _ocrPage > 0
                     ? strings.ocrProgress(_ocrPage, _documents.length)
                     : strings.text('questionnaireAnalyze'),
               ),
             ),
-          if (_hasQuestions) ...[
+            const SizedBox(height: 10),
+          ] else ...[
+            _questionnaireStep(
+              number: 1,
+              title: strings.text('scanQuestionnaire'),
+              active: false,
+              complete: true,
+            ),
+            if (hasDocument) ...[
+              Text(strings.pagesSelected(_documents.length)),
+              const SizedBox(height: 8),
+              _questionnairePagePreview(),
+              const SizedBox(height: 16),
+            ],
+            _questionnaireStep(
+              number: 2,
+              title: strings.text('questionnaireExplanation'),
+              active: _germanDraft.text.isEmpty,
+              complete: allAnswersReady,
+            ),
+            if (_explanation.isNotEmpty) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.auto_awesome_outlined),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${strings.text('preferredLanguage')}: $languageName',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _explanation,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      if (_disclaimer.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          _disclaimer,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BriefAiDesign.muted),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              strings.text('editQuestionnaire'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            for (var index = 0; index < _fields.length; index++) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(radius: 15, child: Text('${index + 1}')),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _fields[index].$1.text,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_originalQuestions[index].trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          '${strings.text('questionnaireOriginalQuestion')}: ${_originalQuestions[index]}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BriefAiDesign.muted),
+                        ),
+                      ],
+                      if (_guidance[index].trim().isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(_guidance[index]),
+                      ],
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _fields[index].$2,
+                        minLines: 2,
+                        maxLines: 5,
+                        onChanged: (_) => setState(_germanDraft.clear),
+                        decoration: InputDecoration(
+                          labelText: strings.text('fieldValue'),
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            _questionnaireStep(
+              number: 3,
+              title: strings.text('questionnaireGermanDraft'),
+              active: allAnswersReady,
+              complete: _germanDraft.text.trim().isNotEmpty,
+            ),
+            const SizedBox(height: 10),
             FilledButton.icon(
-              onPressed: _busy ? null : _generateGermanDraft,
+              onPressed: _busy || !allAnswersReady
+                  ? null
+                  : _generateGermanDraft,
               icon: _busy
                   ? const SizedBox.square(
                       dimension: 18,
@@ -2777,62 +2814,85 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
               label: Text(strings.text('questionnaireGenerateGerman')),
             ),
             if (_germanDraft.text.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                strings.text('questionnaireGermanDraft'),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 14),
               TextField(
                 controller: _germanDraft,
-                minLines: 8,
-                maxLines: 24,
+                minLines: 10,
+                maxLines: 26,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
+                  labelText: strings.text('questionnaireGermanDraft'),
                   alignLabelWithHint: true,
                   helperText: strings.text('editQuestionnaire'),
                 ),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _saveDraft,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(strings.text('saveQuestionnaire')),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _export(true),
+                      icon: const Icon(Icons.description_outlined),
+                      label: Text(strings.text('exportWord')),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _export(false),
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(strings.text('savePdf')),
+                    ),
+                  ),
+                ],
+              ),
             ],
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _saveDraft,
-              icon: const Icon(Icons.save_outlined),
-              label: Text(strings.text('saveQuestionnaire')),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : () => _export(true),
-                    icon: const Icon(Icons.description_outlined),
-                    label: Text(strings.text('exportWord')),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : () => _export(false),
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: Text(strings.text('savePdf')),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (!_hasAnalyzedQuestions) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _addField,
-              icon: const Icon(Icons.add),
-              label: Text(strings.text('addField')),
-            ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _questionnaireStep({
+    required int number,
+    required String title,
+    required bool active,
+    required bool complete,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: complete
+              ? colors.primary
+              : active
+              ? colors.primaryContainer
+              : colors.surfaceContainerHighest,
+          foregroundColor: complete
+              ? colors.onPrimary
+              : active
+              ? colors.onPrimaryContainer
+              : colors.onSurfaceVariant,
+          child: complete ? const Icon(Icons.check, size: 18) : Text('$number'),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+              color: active ? colors.onSurface : colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
