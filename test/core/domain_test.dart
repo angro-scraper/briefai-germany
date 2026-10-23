@@ -156,4 +156,56 @@ void main() {
     expect(reply.letter, startsWith('Sehr geehrte'));
     expect(reply.email, startsWith('Betreff:'));
   });
+
+  test(
+    'questionnaire drafts preserve localized questions and German drafts',
+    () {
+      final draft = QuestionnaireDraft(
+        id: 'form-1',
+        title: 'Antrag',
+        fields: const [
+          QuestionnaireField(
+            label: 'Wo wohnen Sie?',
+            value: 'In Berlin',
+            originalQuestion: 'Wo wohnen Sie?',
+            guidance: 'Geben Sie Ihre aktuelle Adresse an.',
+            germanAnswer: 'Ich wohne in Berlin.',
+          ),
+        ],
+        sourceText: 'Wo wohnen Sie?',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026, 1, 2),
+        explanation: 'Das Formular fragt nach Ihrer Adresse.',
+        disclaimer: 'Bitte mit dem Original abgleichen.',
+        germanDraft: 'Ich wohne in Berlin.',
+        analysisLanguage: 'de',
+      );
+
+      final restored = QuestionnaireDraft.fromMap(
+        id: draft.id,
+        map: Map<String, dynamic>.from(draft.toMap()),
+      );
+      expect(restored.fields.single.originalQuestion, 'Wo wohnen Sie?');
+      expect(
+        restored.fields.single.guidance,
+        'Geben Sie Ihre aktuelle Adresse an.',
+      );
+      expect(restored.fields.single.germanAnswer, 'Ich wohne in Berlin.');
+      expect(restored.germanDraft, draft.germanDraft);
+      expect(restored.analysisLanguage, 'de');
+
+      final legacy = QuestionnaireDraft.fromMap(
+        id: 'legacy',
+        map: {
+          'title': 'Legacy',
+          'fields': [
+            {'label': 'Frage', 'value': 'Antwort'},
+          ],
+        },
+      );
+      expect(legacy.fields.single.label, 'Frage');
+      expect(legacy.fields.single.originalQuestion, isEmpty);
+      expect(legacy.germanDraft, isEmpty);
+    },
+  );
 }

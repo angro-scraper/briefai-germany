@@ -101,17 +101,44 @@ class SavedGeneratedReply {
 /// deliberately treated only as a suggestion: the editable value is what is
 /// saved and exported.
 class QuestionnaireField {
-  const QuestionnaireField({required this.label, required this.value});
+  const QuestionnaireField({
+    required this.label,
+    required this.value,
+    this.originalQuestion = '',
+    this.guidance = '',
+    this.germanAnswer = '',
+  });
 
+  /// The question shown in the user's selected language.
   final String label;
+
+  /// The answer supplied by the user in their selected language.
   final String value;
 
-  Map<String, String> toMap() => {'label': label, 'value': value};
+  /// Original German question, retained so the final form can be checked.
+  final String originalQuestion;
+
+  /// Plain-language explanation of what information the question requests.
+  final String guidance;
+
+  /// German translation of the reviewed answer, editable before export.
+  final String germanAnswer;
+
+  Map<String, String> toMap() => {
+    'label': label,
+    'value': value,
+    'originalQuestion': originalQuestion,
+    'guidance': guidance,
+    'germanAnswer': germanAnswer,
+  };
 
   factory QuestionnaireField.fromMap(Map<String, dynamic> map) =>
       QuestionnaireField(
         label: (map['label'] as String? ?? '').trim(),
         value: (map['value'] as String? ?? '').trim(),
+        originalQuestion: (map['originalQuestion'] as String? ?? '').trim(),
+        guidance: (map['guidance'] as String? ?? '').trim(),
+        germanAnswer: (map['germanAnswer'] as String? ?? '').trim(),
       );
 }
 
@@ -126,6 +153,10 @@ class QuestionnaireDraft {
     required this.sourceText,
     required this.createdAt,
     required this.updatedAt,
+    this.explanation = '',
+    this.disclaimer = '',
+    this.germanDraft = '',
+    this.analysisLanguage = 'sr',
   });
 
   final String id;
@@ -134,11 +165,19 @@ class QuestionnaireDraft {
   final String sourceText;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String explanation;
+  final String disclaimer;
+  final String germanDraft;
+  final String analysisLanguage;
 
   QuestionnaireDraft copyWith({
     String? title,
     List<QuestionnaireField>? fields,
     String? sourceText,
+    String? explanation,
+    String? disclaimer,
+    String? germanDraft,
+    String? analysisLanguage,
     DateTime? updatedAt,
   }) => QuestionnaireDraft(
     id: id,
@@ -147,6 +186,10 @@ class QuestionnaireDraft {
     sourceText: sourceText ?? this.sourceText,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    explanation: explanation ?? this.explanation,
+    disclaimer: disclaimer ?? this.disclaimer,
+    germanDraft: germanDraft ?? this.germanDraft,
+    analysisLanguage: analysisLanguage ?? this.analysisLanguage,
   );
 
   Map<String, Object?> toMap() => {
@@ -155,6 +198,10 @@ class QuestionnaireDraft {
     'sourceText': sourceText,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    'explanation': explanation,
+    'disclaimer': disclaimer,
+    'germanDraft': germanDraft,
+    'analysisLanguage': analysisLanguage,
   };
 
   factory QuestionnaireDraft.fromMap({
@@ -177,8 +224,46 @@ class QuestionnaireDraft {
                 .toList(growable: false)
           : const <QuestionnaireField>[],
       sourceText: map['sourceText'] as String? ?? '',
+      explanation: map['explanation'] as String? ?? '',
+      disclaimer: map['disclaimer'] as String? ?? '',
+      germanDraft: map['germanDraft'] as String? ?? '',
+      analysisLanguage: map['analysisLanguage'] as String? ?? 'sr',
       createdAt: _readCreatedAt(map['createdAt']),
       updatedAt: _readCreatedAt(map['updatedAt']),
+    );
+  }
+}
+
+class QuestionnaireAnalysisResult {
+  const QuestionnaireAnalysisResult({
+    required this.title,
+    required this.explanation,
+    required this.disclaimer,
+    required this.fields,
+  });
+
+  final String title;
+  final String explanation;
+  final String disclaimer;
+  final List<QuestionnaireField> fields;
+
+  factory QuestionnaireAnalysisResult.fromMap(Map<String, dynamic> map) {
+    final rawFields = map['fields'];
+    return QuestionnaireAnalysisResult(
+      title: (map['title'] as String? ?? '').trim(),
+      explanation: (map['explanation'] as String? ?? '').trim(),
+      disclaimer: (map['disclaimer'] as String? ?? '').trim(),
+      fields: rawFields is List
+          ? rawFields
+                .whereType<Map>()
+                .map(
+                  (field) => QuestionnaireField.fromMap(
+                    Map<String, dynamic>.from(field),
+                  ),
+                )
+                .where((field) => field.label.isNotEmpty)
+                .toList(growable: false)
+          : const <QuestionnaireField>[],
     );
   }
 }

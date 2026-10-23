@@ -67,6 +67,12 @@ void main() {
         'choosePlan',
         'freeFeature',
         'deleteAccount',
+        'questionnaireAnalyze',
+        'questionnaireGenerateGerman',
+        'questionnaireGermanDraft',
+        'questionnaireExplanation',
+        'questionnaireOriginalQuestion',
+        'questionnaireCompleteAnswers',
       ];
 
       for (final locale in AppStrings.supportedLocales) {

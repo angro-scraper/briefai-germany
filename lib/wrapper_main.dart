@@ -271,7 +271,9 @@ class _WrapperScreenState extends State<_WrapperScreen> {
   late final WebViewController _controller;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
   final List<Map<String, dynamic>> _purchaseQueue = [];
+  final Set<String> _processingPurchases = {};
   final Map<String, PurchaseDetails> _pendingCompletion = {};
+  final Set<String> _completedTransactions = {};
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   Future<void>? _notificationsReady;
@@ -462,6 +464,27 @@ class _WrapperScreenState extends State<_WrapperScreen> {
             await GoogleSignIn.instance.signOut();
           }
           await _resolveNative(requestId, {'ok': true});
+        case 'authSync':
+          await _nativeFirebaseReady;
+          final idToken = payload['idToken'];
+          if (idToken is! String || idToken.isEmpty) {
+            throw StateError('Firebase sesija nije dostupna za kupovinu.');
+          }
+          final exchange =
+              await FirebaseFunctions.instanceFor(region: 'europe-west3')
+                  .httpsCallable('exchangeNativeAuth')
+                  .call<Map<Object?, Object?>>({'idToken': idToken});
+          final customToken = exchange.data['customToken'];
+          if (customToken is! String || customToken.isEmpty) {
+            throw StateError('Firebase nije potvrdio nalog za kupovinu.');
+          }
+          final credential = await FirebaseAuth.instance.signInWithCustomToken(
+            customToken,
+          );
+          await _resolveNative(requestId, {
+            'ok': true,
+            'uid': credential.user?.uid,
+          });
         case 'products':
           final response = await InAppPurchase.instance.queryProductDetails({
             ...kSubscriptionPlans.map((plan) => plan.productId),
@@ -531,25 +554,13 @@ class _WrapperScreenState extends State<_WrapperScreen> {
           if (transactionKey is! String) {
             throw StateError('Nedostaje Store transakcija.');
           }
-          final purchase = _pendingCompletion.remove(transactionKey);
-          if (purchase == null) {
-            throw StateError('Store transakcija nije pronađena.');
-          }
-          final isConsumable = kAnalysisCreditPacks.any(
-            (pack) => pack.productId == purchase.productID,
-          );
-          if (isConsumable &&
-              Platform.isAndroid &&
-              purchase is GooglePlayPurchaseDetails) {
-            final billing = InAppPurchase.instance
-                .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-            final result = await billing.consumePurchase(purchase);
-            if (result.responseCode != BillingResponse.ok) {
-              throw StateError('Google Play nije potvrdio potrošnju paketa.');
+          if (!_completedTransactions.contains(transactionKey)) {
+            final purchase = _pendingCompletion[transactionKey];
+            if (purchase == null) {
+              throw StateError('Store transakcija nije pronađena.');
             }
-          }
-          if (purchase.pendingCompletePurchase) {
-            await InAppPurchase.instance.completePurchase(purchase);
+            await _finalizeVerifiedPurchase(purchase);
+            _completedTransactions.add(transactionKey);
           }
           await _resolveNative(requestId, {'ok': true});
         case 'restore':
@@ -738,27 +749,96 @@ class _WrapperScreenState extends State<_WrapperScreen> {
 
   void _handlePurchaseUpdates(List<PurchaseDetails> purchases) {
     for (final purchase in purchases) {
-      if (purchase.status == PurchaseStatus.pending) continue;
-      if (purchase.status == PurchaseStatus.error ||
-          purchase.status == PurchaseStatus.canceled) {
-        _enqueuePurchase({
-          'ok': false,
-          'error': purchase.error?.message ?? 'Kupovina je otkazana.',
-        });
-        continue;
+      unawaited(_verifyAndFinalizePurchase(purchase));
+    }
+  }
+
+  Future<void> _verifyAndFinalizePurchase(PurchaseDetails purchase) async {
+    if (purchase.status == PurchaseStatus.pending) return;
+    if (purchase.status == PurchaseStatus.error ||
+        purchase.status == PurchaseStatus.canceled) {
+      _enqueuePurchase({
+        'ok': false,
+        'error': purchase.error?.message ?? 'Kupovina je otkazana.',
+      });
+      return;
+    }
+    if (purchase.status != PurchaseStatus.purchased &&
+        purchase.status != PurchaseStatus.restored) {
+      return;
+    }
+    final verificationData = purchase.verificationData.serverVerificationData;
+    if (verificationData.isEmpty) {
+      _enqueuePurchase({
+        'ok': false,
+        'error': 'Google Play nije dostavio dokaz o kupovini.',
+      });
+      return;
+    }
+    final transactionKey =
+        '${purchase.productID}:${purchase.purchaseID ?? verificationData.hashCode}';
+    if (_completedTransactions.contains(transactionKey)) return;
+    if (!_processingPurchases.add(transactionKey)) return;
+    _pendingCompletion[transactionKey] = purchase;
+    try {
+      await _nativeFirebaseReady;
+      if (FirebaseAuth.instance.currentUser == null) {
+        throw StateError(
+          'Prijavite se ponovo da bismo povezali kupovinu sa nalogom.',
+        );
       }
-      final transactionKey =
-          purchase.purchaseID ??
-          '${purchase.productID}:${DateTime.now().microsecondsSinceEpoch}';
-      _pendingCompletion[transactionKey] = purchase;
+      final response =
+          await FirebaseFunctions.instanceFor(
+            region: 'europe-west3',
+          ).httpsCallable('verifyStorePurchase').call<Map<Object?, Object?>>({
+            'provider': purchase.verificationData.source,
+            'productId': purchase.productID,
+            'purchaseId': purchase.purchaseID,
+            'verificationData': verificationData,
+          });
+      if (response.data['verified'] != true) {
+        throw StateError('Server nije potvrdio kupovinu.');
+      }
+      await _finalizeVerifiedPurchase(purchase);
+      _completedTransactions.add(transactionKey);
       _enqueuePurchase({
         'ok': true,
+        'verified': true,
         'transactionKey': transactionKey,
-        'provider': purchase.verificationData.source,
-        'productId': purchase.productID,
-        'purchaseId': purchase.purchaseID,
-        'verificationData': purchase.verificationData.serverVerificationData,
+        'result': response.data,
       });
+    } on Object catch (error, stackTrace) {
+      debugPrint('Store verification failed: $error\\n$stackTrace');
+      _enqueuePurchase({
+        'ok': false,
+        'error': error is FirebaseFunctionsException
+            ? error.message ??
+                  'Provera kupovine nije uspela; pokušajte obnovu kupovine.'
+            : error is StateError
+            ? error.message
+            : 'Provera kupovine nije uspela; pokušajte obnovu kupovine.',
+      });
+    } finally {
+      _processingPurchases.remove(transactionKey);
+    }
+  }
+
+  Future<void> _finalizeVerifiedPurchase(PurchaseDetails purchase) async {
+    final isConsumable = kAnalysisCreditPacks.any(
+      (pack) => pack.productId == purchase.productID,
+    );
+    if (isConsumable &&
+        Platform.isAndroid &&
+        purchase is GooglePlayPurchaseDetails) {
+      final billing = InAppPurchase.instance
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+      final result = await billing.consumePurchase(purchase);
+      if (result.responseCode != BillingResponse.ok) {
+        throw StateError('Google Play nije potvrdio potrošnju paketa.');
+      }
+    }
+    if (purchase.pendingCompletePurchase) {
+      await InAppPurchase.instance.completePurchase(purchase);
     }
   }
 

@@ -954,6 +954,78 @@ class AiService {
   String _apiOutputLanguage(String language) =>
       language == 'sr' ? 'sr-Latn' : language;
 
+  Future<QuestionnaireAnalysisResult> analyzeQuestionnaire({
+    required String questionnaireId,
+    required String sourceText,
+    required String language,
+  }) async {
+    if (!kCloudAiEnabled ||
+        !cloudEnabled ||
+        FirebaseAuth.instance.currentUser == null) {
+      throw StateError(
+        'Za AI analizu upitnika potrebna je prijava i internet veza.',
+      );
+    }
+    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('analyzeQuestionnaire')
+        .call<Map<Object?, Object?>>({
+          'questionnaireId': questionnaireId,
+          'ocrText': sourceText,
+          'preferredLanguage': _apiOutputLanguage(language),
+        });
+    final raw = result.data['analysis'];
+    if (raw is! Map) {
+      throw StateError('AI nije vratio analizu upitnika.');
+    }
+    final analysis = QuestionnaireAnalysisResult.fromMap(
+      Map<String, dynamic>.from(raw),
+    );
+    if (analysis.fields.isEmpty) {
+      throw StateError(
+        'Nisu prepoznata pitanja. Proverite fotografiju ili uneseni tekst.',
+      );
+    }
+    return analysis;
+  }
+
+  Future<String> generateQuestionnaireGerman({
+    required String questionnaireId,
+    required String sourceText,
+    required String language,
+    required List<QuestionnaireField> fields,
+  }) async {
+    if (!kCloudAiEnabled ||
+        !cloudEnabled ||
+        FirebaseAuth.instance.currentUser == null) {
+      throw StateError(
+        'Za generisanje nemačkog nacrta potrebna je prijava i internet veza.',
+      );
+    }
+    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+        .httpsCallable('generateQuestionnaireGerman')
+        .call<Map<Object?, Object?>>({
+          'questionnaireId': questionnaireId,
+          'ocrText': sourceText,
+          'answerLanguage': _apiOutputLanguage(language),
+          'answers': fields
+              .map(
+                (field) => {
+                  'question': field.originalQuestion.trim().isEmpty
+                      ? field.label
+                      : field.originalQuestion,
+                  'userLanguageQuestion': field.label,
+                  'answer': field.value,
+                },
+              )
+              .toList(growable: false),
+        });
+    final draft = result.data['germanDraft'];
+    if (draft is! String || draft.trim().isEmpty) {
+      throw StateError('AI nije vratio nemački nacrt upitnika.');
+    }
+    return draft.trim();
+  }
+
   Future<LetterAnalysis> analyse({
     required String letterId,
     required String text,
@@ -2352,8 +2424,10 @@ class StorePurchaseResult {
     required this.analysisCredits,
     required this.questionnaireCreditsAdded,
     required this.questionnaireCredits,
+    this.verified = false,
   });
 
+  final bool verified;
   final bool isPremium;
   final int creditsAdded;
   final int analysisCredits;
@@ -2432,6 +2506,7 @@ class PurchaseService {
           'verificationData': purchase.verificationData.serverVerificationData,
         });
     return StorePurchaseResult(
+      verified: result.data['verified'] == true,
       isPremium: result.data['isActive'] == true,
       creditsAdded: (result.data['creditsAdded'] as num? ?? 0).toInt(),
       analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
@@ -2444,6 +2519,7 @@ class PurchaseService {
 
   Future<void> restore() async {
     if (kIsWeb && await nativeStoreAvailable()) {
+      await _syncNativePurchaseSession();
       await nativeStoreRequest('restore');
       final purchase = await nativeStoreRequest('waitPurchase');
       await _verifyNativeBridgePurchase(purchase);
@@ -2546,6 +2622,7 @@ class PurchaseService {
     if (userId == null) {
       throw StateError('Prijavite se pre kupovine paketa.');
     }
+    await _syncNativePurchaseSession();
     final started = await nativeStoreRequest('buy', {
       'productId': productId,
       'applicationUserName': userId,
@@ -2586,34 +2663,38 @@ class PurchaseService {
 
   Future<bool> isNativeStoreWrapper() => nativeStoreAvailable();
 
+  Future<void> _syncNativePurchaseSession() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Prijavite se pre kupovine.');
+    }
+    final idToken = await user.getIdToken(true);
+    if (idToken == null || idToken.isEmpty) {
+      throw StateError('Firebase sesija nije dostupna za kupovinu.');
+    }
+    final response = await nativeStoreRequest('authSync', {'idToken': idToken});
+    if (response['ok'] != true || response['uid'] != user.uid) {
+      throw StateError('Kupovina nije mogla da se poveže sa ovim nalogom.');
+    }
+  }
+
   Future<StorePurchaseResult> _verifyNativeBridgePurchase(
     Map<String, dynamic> purchase,
   ) async {
-    final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
-        .httpsCallable('verifyStorePurchase')
-        .call<Map<Object?, Object?>>({
-          'provider': purchase['provider'],
-          'productId': purchase['productId'],
-          'purchaseId': purchase['purchaseId'],
-          'verificationData': purchase['verificationData'],
-        });
+    final result = purchase['result'];
+    if (purchase['verified'] != true || result is! Map) {
+      throw StateError('Prodavnica još nije bezbedno potvrdila kupovinu.');
+    }
     final purchaseResult = StorePurchaseResult(
-      isPremium: result.data['isActive'] == true,
-      creditsAdded: (result.data['creditsAdded'] as num? ?? 0).toInt(),
-      analysisCredits: (result.data['analysisCredits'] as num? ?? 0).toInt(),
+      verified: true,
+      isPremium: result['isActive'] == true,
+      creditsAdded: (result['creditsAdded'] as num? ?? 0).toInt(),
+      analysisCredits: (result['analysisCredits'] as num? ?? 0).toInt(),
       questionnaireCreditsAdded:
-          (result.data['questionnaireCreditsAdded'] as num? ?? 0).toInt(),
-      questionnaireCredits: (result.data['questionnaireCredits'] as num? ?? 0)
+          (result['questionnaireCreditsAdded'] as num? ?? 0).toInt(),
+      questionnaireCredits: (result['questionnaireCredits'] as num? ?? 0)
           .toInt(),
     );
-    if (!purchaseResult.isPremium &&
-        purchaseResult.creditsAdded <= 0 &&
-        purchaseResult.questionnaireCreditsAdded <= 0) {
-      throw StateError('Prodavnica nije potvrdila kupovinu.');
-    }
-    await nativeStoreRequest('complete', {
-      'transactionKey': purchase['transactionKey'],
-    });
     return purchaseResult;
   }
 }

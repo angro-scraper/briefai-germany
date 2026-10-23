@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -129,22 +130,25 @@ class _BriefAiAppState extends State<BriefAiApp> {
           final result = await widget.services.purchases.verifyPurchase(
             purchase,
           );
+          if (!result.verified) continue;
           if (result.isPremium) {
             _state.setPremium(true);
           }
-          if (result.creditsAdded > 0) {
+          if (result.verified &&
+              PurchaseService.isConsumableProduct(purchase.productID)) {
             _state.setAnalysisCredits(result.analysisCredits);
           }
-          if (result.questionnaireCreditsAdded > 0) {
+          if (result.verified && result.questionnaireCredits > 0) {
             _state.setQuestionnaireCredits(result.questionnaireCredits);
           }
         } catch (_) {
           // The server is authoritative. A failed verification never unlocks
-          // Premium, and the next store restore can retry it.
+          // Premium or credits; leave the transaction pending for retry.
+          continue;
         }
       }
-      if (purchase.pendingCompletePurchase ||
-          PurchaseService.isConsumableProduct(purchase.productID)) {
+      if (purchase.status == PurchaseStatus.purchased ||
+          purchase.status == PurchaseStatus.restored) {
         await widget.services.purchases.complete(purchase);
       }
     }
@@ -2189,7 +2193,13 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
   final _title = TextEditingController();
   final _sourceText = TextEditingController();
   final List<(TextEditingController, TextEditingController)> _fields = [];
+  final List<String> _originalQuestions = [];
+  final List<String> _guidance = [];
   final List<PickedDocument> _documents = [];
+  final _germanDraft = TextEditingController();
+  String _explanation = '';
+  String _disclaimer = '';
+  String _analysisLanguage = 'sr';
   bool _busy = false;
   int _ocrPage = 0;
 
@@ -2201,41 +2211,45 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
     final draft = widget.draft;
     _title.text = draft?.title ?? '';
     _sourceText.text = draft?.sourceText ?? '';
+    _germanDraft.text = draft?.germanDraft ?? '';
+    _explanation = draft?.explanation ?? '';
+    _disclaimer = draft?.disclaimer ?? '';
+    _analysisLanguage = draft?.analysisLanguage ?? widget.state.aiLanguageCode;
     for (final field in draft?.fields ?? const <QuestionnaireField>[]) {
       _fields.add((
         TextEditingController(text: field.label),
         TextEditingController(text: field.value),
       ));
+      _originalQuestions.add(field.originalQuestion);
+      _guidance.add(field.guidance);
     }
-    if (_fields.isEmpty) _addField();
+    if (draft != null) _loadSavedPages(draft.id);
+  }
+
+  Future<void> _loadSavedPages(String id) async {
+    final pages = await widget.services.questionnaires.loadDocuments(
+      widget.services.currentVaultKey,
+      id,
+    );
+    if (mounted && pages.isNotEmpty) {
+      setState(() {
+        _documents
+          ..clear()
+          ..addAll(pages.take(_maxPages));
+      });
+    }
   }
 
   @override
   void dispose() {
     _title.dispose();
     _sourceText.dispose();
+    _germanDraft.dispose();
     for (final controllers in _fields) {
       controllers.$1.dispose();
       controllers.$2.dispose();
     }
     super.dispose();
-  }
-
-  void _addField({String label = '', String value = ''}) {
-    setState(() {
-      _fields.add((
-        TextEditingController(text: label),
-        TextEditingController(text: value),
-      ));
-    });
-  }
-
-  void _removeField(int index) {
-    if (_fields.length == 1) return;
-    final removed = _fields.removeAt(index);
-    removed.$1.dispose();
-    removed.$2.dispose();
-    setState(() {});
   }
 
   Future<void> _select(Future<List<PickedDocument>> Function() source) async {
@@ -2249,6 +2263,10 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
           ..clear()
           ..addAll(picked.take(_maxPages));
         _sourceText.clear();
+        _germanDraft.clear();
+        _explanation = '';
+        _disclaimer = '';
+        _clearFields();
       });
     } on Object {
       _show(context.strings.text('ocrFailed'));
@@ -2262,7 +2280,17 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
     return document == null ? const <PickedDocument>[] : [document];
   });
 
-  Future<void> _recognizeAndSave() async {
+  void _clearFields() {
+    for (final controllers in _fields) {
+      controllers.$1.dispose();
+      controllers.$2.dispose();
+    }
+    _fields.clear();
+    _originalQuestions.clear();
+    _guidance.clear();
+  }
+
+  Future<void> _analyzeQuestionnaire() async {
     if (_busy) return;
     if (!_isExisting && !widget.state.canCreateQuestionnaire) {
       await Navigator.of(context).push(
@@ -2275,6 +2303,8 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
       );
       return;
     }
+    if (!await _ensureCloudAiAccess(context, widget.services)) return;
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
       if (_sourceText.text.trim().isEmpty && _documents.isNotEmpty) {
@@ -2286,12 +2316,11 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
         );
         if (!mounted) return;
         _sourceText.text = text;
-        _suggestFields(text);
       }
-      if (_sourceText.text.trim().isEmpty && !_isExisting) {
+      if (_sourceText.text.trim().isEmpty) {
         throw StateError(context.strings.text('enterTextFirst'));
       }
-      if (!_isExisting) {
+      if (!_isExisting && !_hasAnalyzedQuestions) {
         final uid = widget.services.auth.uid ?? 'local-device';
         final allowance = await widget.services.entitlements
             .consumeQuestionnaire(uid);
@@ -2301,41 +2330,41 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
           ..setQuestionnaireCredits(allowance.legacyQuestionnaireCredits);
         if (!mounted) return;
       }
-      final now = DateTime.now();
-      final title = _title.text.trim().isEmpty
-          ? _suggestTitle(
-              _sourceText.text,
-              context.strings.text('questionnaires'),
-            )
-          : _title.text.trim();
-      final draft = QuestionnaireDraft(
-        id: widget.draft?.id ?? newLetterId(),
-        title: title,
-        fields: _fields
-            .map(
-              (controllers) => QuestionnaireField(
-                label: controllers.$1.text.trim(),
-                value: controllers.$2.text.trim(),
-              ),
-            )
-            .where((field) => field.label.isNotEmpty || field.value.isNotEmpty)
-            .toList(growable: false),
+      final result = await widget.services.ai.analyzeQuestionnaire(
+        questionnaireId: _currentDraftId,
         sourceText: _sourceText.text.trim(),
-        createdAt: widget.draft?.createdAt ?? now,
-        updatedAt: now,
+        language: widget.state.aiLanguageCode,
       );
-      await widget.services.questionnaires.save(
-        widget.services.currentVaultKey,
-        draft,
-        documents: _documents.isEmpty ? null : List.unmodifiable(_documents),
-      );
-      widget.state.replaceQuestionnaires([
-        draft,
-        ...widget.state.questionnaires.where((value) => value.id != draft.id),
-      ]);
       if (!mounted) return;
-      _show(context.strings.text('questionnaireSaved'));
-      Navigator.of(context).pop();
+      for (final controllers in _fields) {
+        controllers.$1.dispose();
+        controllers.$2.dispose();
+      }
+      setState(() {
+        _fields
+          ..clear()
+          ..addAll(
+            result.fields.map(
+              (field) => (
+                TextEditingController(text: field.label),
+                TextEditingController(text: field.value),
+              ),
+            ),
+          );
+        _originalQuestions
+          ..clear()
+          ..addAll(result.fields.map((field) => field.originalQuestion));
+        _guidance
+          ..clear()
+          ..addAll(result.fields.map((field) => field.guidance));
+        _title.text = result.title;
+        _analysisLanguage = widget.state.aiLanguageCode;
+        _explanation = result.explanation;
+        _disclaimer = result.disclaimer;
+        _germanDraft.clear();
+      });
+      await _persistDraft();
+      if (mounted) _show(context.strings.text('questionnaireSaved'));
     } on Object catch (error) {
       if (mounted) _show('${context.strings.text('analysisFailed')}: $error');
     } finally {
@@ -2343,25 +2372,143 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
     }
   }
 
-  void _suggestFields(String text) {
-    final parsed = _questionnaireFieldsFromOcr(text);
-    if (parsed.isEmpty) return;
-    for (final controllers in _fields) {
-      controllers.$1.dispose();
-      controllers.$2.dispose();
-    }
-    setState(() {
-      _fields
-        ..clear()
-        ..addAll(
-          parsed.map(
-            (field) => (
-              TextEditingController(text: field.label),
-              TextEditingController(text: field.value),
-            ),
+  bool get _hasAnalyzedQuestions =>
+      _originalQuestions.any((question) => question.trim().isNotEmpty);
+
+  bool get _hasQuestions =>
+      _fields.any((field) => field.$1.text.trim().isNotEmpty);
+
+  Future<void> _persistDraft() async {
+    final now = DateTime.now();
+    final id = _currentDraftId;
+    final title = _title.text.trim().isEmpty
+        ? _suggestTitle(
+            _sourceText.text,
+            context.strings.text('questionnaires'),
+          )
+        : _title.text.trim();
+    final draft = QuestionnaireDraft(
+      id: id,
+      title: title,
+      fields: [
+        for (var index = 0; index < _fields.length; index++)
+          QuestionnaireField(
+            label: _fields[index].$1.text.trim(),
+            value: _fields[index].$2.text.trim(),
+            originalQuestion: _originalQuestions[index],
+            guidance: _guidance[index],
           ),
-        );
-    });
+      ].where((field) => field.label.isNotEmpty).toList(growable: false),
+      sourceText: _sourceText.text.trim(),
+      createdAt: widget.draft?.createdAt ?? now,
+      updatedAt: now,
+      explanation: _explanation,
+      disclaimer: _disclaimer,
+      germanDraft: _germanDraft.text,
+      analysisLanguage: _analysisLanguage,
+    );
+    await widget.services.questionnaires.save(
+      widget.services.currentVaultKey,
+      draft,
+      documents: _documents.isEmpty ? null : List.unmodifiable(_documents),
+    );
+    widget.state.replaceQuestionnaires([
+      draft,
+      ...widget.state.questionnaires.where((value) => value.id != draft.id),
+    ]);
+  }
+
+  String? _draftId;
+
+  String get _currentDraftId =>
+      widget.draft?.id ?? (_draftId ??= newLetterId());
+
+  Future<void> _saveDraft() async {
+    try {
+      await _persistDraft();
+      if (mounted) _show(context.strings.text('questionnaireSaved'));
+    } on Object catch (error) {
+      if (mounted) _show(_readableError(error));
+    }
+  }
+
+  Future<void> _generateGermanDraft() async {
+    if (_busy) return;
+    if (!_hasQuestions) {
+      return;
+    }
+    if (_fields.any((field) => field.$2.text.trim().isEmpty)) {
+      _show(context.strings.text('questionnaireCompleteAnswers'));
+      return;
+    }
+    if (!await _ensureCloudAiAccess(context, widget.services)) return;
+    if (!mounted) return;
+    setState(() => _busy = true);
+    try {
+      final generated = await widget.services.ai.generateQuestionnaireGerman(
+        questionnaireId: _currentDraftId,
+        sourceText: _sourceText.text.trim(),
+        language: _analysisLanguage,
+        fields: [
+          for (var index = 0; index < _fields.length; index++)
+            QuestionnaireField(
+              label: _fields[index].$1.text.trim(),
+              value: _fields[index].$2.text.trim(),
+              originalQuestion: _originalQuestions[index],
+            ),
+        ],
+      );
+      if (!mounted) return;
+      setState(() => _germanDraft.text = generated);
+      await _persistDraft();
+      if (mounted) _show(context.strings.text('questionnaireSaved'));
+    } on Object catch (error) {
+      if (mounted) _show(_readableError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _readableError(Object error) =>
+      error.toString().replaceFirst(RegExp(r'^(StateError|Exception):\s*'), '');
+
+  Future<void> _showDocument(PickedDocument document) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: SafeArea(
+          child: Column(
+            children: [
+              AppBar(
+                title: Text(document.name),
+                leading: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+              Expanded(
+                child: document.isPdf
+                    ? PdfPreview(
+                        build: (_) async => document.bytes,
+                        allowPrinting: false,
+                        allowSharing: false,
+                        canChangeOrientation: false,
+                        canChangePageFormat: false,
+                      )
+                    : InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 5,
+                        child: Image.memory(
+                          document.bytes,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _export(bool word) async {
@@ -2371,13 +2518,22 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
             context.strings.text('questionnaires'),
           )
         : _title.text.trim();
-    final body = _fields
-        .where((controllers) => controllers.$1.text.trim().isNotEmpty)
-        .map(
-          (controllers) =>
-              '${controllers.$1.text.trim()}\n${controllers.$2.text.trim()}',
-        )
-        .join('\n\n');
+    final body = _germanDraft.text.trim().isNotEmpty
+        ? _germanDraft.text.trim()
+        : _fields
+              .where((controllers) => controllers.$1.text.trim().isNotEmpty)
+              .map((controllers) {
+                final index = _fields.indexOf(controllers);
+                final question = _originalQuestions[index].trim().isEmpty
+                    ? controllers.$1.text.trim()
+                    : _originalQuestions[index].trim();
+                return '$question\n${controllers.$2.text.trim()}';
+              })
+              .join('\n\n');
+    if (body.isEmpty) {
+      _show(context.strings.text('enterTextFirst'));
+      return;
+    }
     try {
       if (word) {
         await widget.services.exports.saveWord(title: title, body: body);
@@ -2397,6 +2553,14 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final hasDocument = _documents.isNotEmpty;
+    final hasAnalysis = _hasAnalyzedQuestions;
+    final allAnswersReady =
+        hasAnalysis &&
+        _fields.isNotEmpty &&
+        _fields.every((field) => field.$2.text.trim().isNotEmpty);
+    final languageName =
+        AppStrings.languageLabels[_analysisLanguage] ?? _analysisLanguage;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -2408,144 +2572,379 @@ class _QuestionnaireEditorScreenState extends State<QuestionnaireEditorScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         children: [
-          if (!_isExisting) ...[
-            Text(
-              strings.text('scanQuestionnaire'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              strings.text('questionnaireDescription'),
-              style: const TextStyle(color: BriefAiDesign.muted),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _capture,
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(strings.text('camera')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy
-                      ? null
-                      : () =>
-                            _select(widget.services.documents.galleryMultiple),
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: Text(strings.text('gallery')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy
-                      ? null
-                      : () => _select(widget.services.documents.files),
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(strings.text('pdfImage')),
-                ),
-              ],
-            ),
-            if (_documents.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(strings.pagesSelected(_documents.length)),
+          Text(
+            strings.text('questionnaireDescription'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: BriefAiDesign.muted),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Chip(
+              avatar: const Icon(Icons.translate_outlined, size: 18),
+              label: Text(
+                '${strings.text('preferredLanguage')}: $languageName',
               ),
-            const SizedBox(height: 24),
-          ],
-          TextField(
-            controller: _title,
-            decoration: InputDecoration(
-              labelText: strings.text('questionnaireTitle'),
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            strings.text('editQuestionnaire'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          _questionnaireStep(
+            number: 1,
+            title: strings.text('scanQuestionnaire'),
+            active: !hasAnalysis,
+            complete: hasDocument,
           ),
-          const SizedBox(height: 8),
-          for (var index = 0; index < _fields.length; index++) ...[
+          const SizedBox(height: 12),
+          if (!hasAnalysis) ...[
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
-                      controller: _fields[index].$1,
-                      decoration: InputDecoration(
-                        labelText: strings.text('fieldLabel'),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _fields[index].$2,
-                      minLines: 2,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        labelText: strings.text('fieldValue'),
-                      ),
-                    ),
-                    if (_fields.length > 1)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () => _removeField(index),
-                          icon: const Icon(Icons.delete_outline),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _busy ? null : _capture,
+                          icon: const Icon(Icons.camera_alt_outlined),
+                          label: Text(strings.text('camera')),
                         ),
-                      ),
+                        OutlinedButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _select(
+                                  widget.services.documents.galleryMultiple,
+                                ),
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: Text(strings.text('gallery')),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _select(widget.services.documents.files),
+                          icon: const Icon(Icons.upload_file_outlined),
+                          label: Text(strings.text('pdfImage')),
+                        ),
+                      ],
+                    ),
+                    if (hasDocument) ...[
+                      const SizedBox(height: 14),
+                      Text(strings.pagesSelected(_documents.length)),
+                      const SizedBox(height: 8),
+                      _questionnairePagePreview(),
+                    ],
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-          OutlinedButton.icon(
-            onPressed: _busy ? null : _addField,
-            icon: const Icon(Icons.add),
-            label: Text(strings.text('addField')),
-          ),
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: _busy ? null : _recognizeAndSave,
-            icon: _busy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(
-              _busy && _ocrPage > 0
-                  ? strings.ocrProgress(_ocrPage, _documents.length)
-                  : strings.text('saveQuestionnaire'),
-            ),
-          ),
-          if (_isExisting) ...[
             const SizedBox(height: 12),
-            Row(
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 12),
+              title: Text(strings.text('questionnaireRecognizedText')),
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _export(true),
-                    icon: const Icon(Icons.description_outlined),
-                    label: Text(strings.text('exportWord')),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _export(false),
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: Text(strings.text('savePdf')),
+                TextField(
+                  controller: _sourceText,
+                  minLines: 4,
+                  maxLines: 10,
+                  decoration: InputDecoration(
+                    labelText: strings.text('questionnaireRecognizedText'),
+                    alignLabelWithHint: true,
                   ),
                 ),
               ],
             ),
+            TextField(
+              controller: _title,
+              decoration: InputDecoration(
+                labelText: strings.text('questionnaireTitle'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _busy ? null : _analyzeQuestionnaire,
+              icon: _busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.document_scanner_outlined),
+              label: Text(
+                _busy && _ocrPage > 0
+                    ? strings.ocrProgress(_ocrPage, _documents.length)
+                    : strings.text('questionnaireAnalyze'),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ] else ...[
+            _questionnaireStep(
+              number: 1,
+              title: strings.text('scanQuestionnaire'),
+              active: false,
+              complete: true,
+            ),
+            if (hasDocument) ...[
+              Text(strings.pagesSelected(_documents.length)),
+              const SizedBox(height: 8),
+              _questionnairePagePreview(),
+              const SizedBox(height: 16),
+            ],
+            _questionnaireStep(
+              number: 2,
+              title: strings.text('questionnaireExplanation'),
+              active: _germanDraft.text.isEmpty,
+              complete: allAnswersReady,
+            ),
+            if (_explanation.isNotEmpty) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.auto_awesome_outlined),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${strings.text('preferredLanguage')}: $languageName',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _explanation,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      if (_disclaimer.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          _disclaimer,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BriefAiDesign.muted),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              strings.text('editQuestionnaire'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            for (var index = 0; index < _fields.length; index++) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(radius: 15, child: Text('${index + 1}')),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _fields[index].$1.text,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_originalQuestions[index].trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          '${strings.text('questionnaireOriginalQuestion')}: ${_originalQuestions[index]}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BriefAiDesign.muted),
+                        ),
+                      ],
+                      if (_guidance[index].trim().isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(_guidance[index]),
+                      ],
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _fields[index].$2,
+                        minLines: 2,
+                        maxLines: 5,
+                        onChanged: (_) => setState(_germanDraft.clear),
+                        decoration: InputDecoration(
+                          labelText: strings.text('fieldValue'),
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            _questionnaireStep(
+              number: 3,
+              title: strings.text('questionnaireGermanDraft'),
+              active: allAnswersReady,
+              complete: _germanDraft.text.trim().isNotEmpty,
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: _busy || !allAnswersReady
+                  ? null
+                  : _generateGermanDraft,
+              icon: _busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.language_outlined),
+              label: Text(strings.text('questionnaireGenerateGerman')),
+            ),
+            if (_germanDraft.text.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              TextField(
+                controller: _germanDraft,
+                minLines: 10,
+                maxLines: 26,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: strings.text('questionnaireGermanDraft'),
+                  alignLabelWithHint: true,
+                  helperText: strings.text('editQuestionnaire'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _saveDraft,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(strings.text('saveQuestionnaire')),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _export(true),
+                      icon: const Icon(Icons.description_outlined),
+                      label: Text(strings.text('exportWord')),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _export(false),
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(strings.text('savePdf')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _questionnaireStep({
+    required int number,
+    required String title,
+    required bool active,
+    required bool complete,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: complete
+              ? colors.primary
+              : active
+              ? colors.primaryContainer
+              : colors.surfaceContainerHighest,
+          foregroundColor: complete
+              ? colors.onPrimary
+              : active
+              ? colors.onPrimaryContainer
+              : colors.onSurfaceVariant,
+          child: complete ? const Icon(Icons.check, size: 18) : Text('$number'),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+              color: active ? colors.onSurface : colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _questionnairePagePreview() {
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: 132,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _documents.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final document = _documents[index];
+          return InkWell(
+            onTap: () => _showDocument(document),
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 108,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: document.isPdf
+                          ? Container(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.picture_as_pdf_outlined,
+                                  size: 38,
+                                ),
+                              ),
+                            )
+                          : Image.memory(
+                              document.bytes,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    document.isPdf ? document.name : '${index + 1}.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -2678,22 +3077,6 @@ class _QuestionnairePackagesScreenState
   void _show(String message) => ScaffoldMessenger.of(
     context,
   ).showSnackBar(SnackBar(content: Text(message)));
-}
-
-List<QuestionnaireField> _questionnaireFieldsFromOcr(String source) {
-  final fields = <QuestionnaireField>[];
-  final linePattern = RegExp(r'^\s*([^\n:]{2,96}?)(?:\s*[:?])\s*(.*)$');
-  for (final line in source.split(RegExp(r'\r?\n'))) {
-    final match = linePattern.firstMatch(line);
-    if (match == null) continue;
-    final label = match.group(1)?.trim() ?? '';
-    final value = match.group(2)?.trim() ?? '';
-    if (label.isNotEmpty && !label.startsWith('[[')) {
-      fields.add(QuestionnaireField(label: label, value: value));
-    }
-    if (fields.length == 24) break;
-  }
-  return fields;
 }
 
 String _suggestTitle(String source, String fallback) {
@@ -4592,7 +4975,7 @@ Future<bool> _ensureCloudAiAccess(
     }
   }
   final preferences = await SharedPreferences.getInstance();
-  if (preferences.getBool('cloudAiConsentV1') == true) return true;
+  if (preferences.getBool('cloudAiConsentV2') == true) return true;
   if (!context.mounted) return false;
   final language = Localizations.localeOf(context).languageCode;
   final copy = _cloudAiConsentCopy[language] ?? _cloudAiConsentCopy['en']!;
@@ -4615,104 +4998,104 @@ Future<bool> _ensureCloudAiAccess(
     ),
   );
   if (accepted != true) return false;
-  await preferences.setBool('cloudAiConsentV1', true);
+  await preferences.setBool('cloudAiConsentV2', true);
   return true;
 }
 
 const _cloudAiConsentCopy = <String, (String, String, String, String)>{
   'sr': (
     'OpenAI analiza',
-    'Radi kvalitetnije analize, prepoznati OCR tekst ovog pisma biće bezbedno poslat OpenAI-ju samo za trenutni zahtev. Originalna fotografija/PDF, analiza i arhiva ostaju lokalno na ovom uređaju i ne čuvaju se u Firebase-u. Ne nastavljajte ako ne želite slanje OCR teksta.',
+    'Radi kvalitetnije obrade, OCR tekst pisma ili upitnika biće bezbedno poslat OpenAI-ju samo za trenutni zahtev. Kada generišete odgovor, šalju se i odgovori koje unesete. Originalna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne čuvaju se u Firebase-u.',
     'Odustani',
     'Prihvatam i nastavi',
   ),
   'hr': (
     'OpenAI analiza',
-    'Radi kvalitetnije analize, prepoznati OCR tekst ovog pisma sigurno će se poslati OpenAI-ju samo za trenutačni zahtjev. Izvorna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne spremaju se u Firebase.',
+    'Za kvalitetniju obradu, OCR tekst pisma ili upitnika sigurno se šalje OpenAI-ju samo za trenutačni zahtjev. Pri izradi odgovora šalju se i vaši uneseni odgovori. Izvorna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne spremaju se u Firebase.',
     'Odustani',
     'Prihvaćam i nastavi',
   ),
   'bs': (
     'OpenAI analiza',
-    'Radi kvalitetnije analize, prepoznati OCR tekst ovog pisma sigurno će se poslati OpenAI-ju samo za trenutni zahtjev. Originalna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne čuvaju se u Firebase-u.',
+    'Radi kvalitetnije obrade, OCR tekst pisma ili upitnika sigurno se šalje OpenAI-ju samo za trenutni zahtjev. Kada generišete odgovor, šalju se i vaši uneseni odgovori. Originalna fotografija/PDF, analiza i arhiva ostaju lokalno na uređaju i ne čuvaju se u Firebase-u.',
     'Odustani',
     'Prihvatam i nastavi',
   ),
   'mk': (
     'OpenAI анализа',
-    'За поквалитетна анализа, препознаениот OCR текст ќе биде безбедно испратен до OpenAI само за тековното барање. Оригиналната фотографија/PDF, анализата и архивата остануваат локално на уредот.',
+    'За поквалитетна обработка, OCR текстот од писмото или прашалникот се испраќа безбедно до OpenAI само за тековното барање. При создавање одговор се испраќаат и вашите внесени одговори. Оригиналната фотографија/PDF, анализата и архивата остануваат локално на уредот.',
     'Откажи',
     'Прифаќам и продолжи',
   ),
   'bg': (
     'OpenAI анализ',
-    'За по-качествен анализ разпознатият OCR текст ще бъде изпратен сигурно до OpenAI само за текущата заявка. Оригиналната снимка/PDF, анализът и архивът остават локално на устройството.',
+    'За по-качествена обработка OCR текстът от писмото или въпросника се изпраща сигурно до OpenAI само за текущата заявка. При създаване на отговор се изпращат и въведените от вас отговори. Оригиналната снимка/PDF, анализът и архивът остават локално на устройството.',
     'Отказ',
     'Приемам и продължи',
   ),
   'de': (
     'OpenAI-Analyse',
-    'Für eine bessere Analyse wird der erkannte OCR-Text nur für diese Anfrage sicher an OpenAI gesendet. Originalfoto/PDF, Analyse und Archiv bleiben lokal auf diesem Gerät und werden nicht in Firebase gespeichert.',
+    'Für die Analyse wird der OCR-Text des Schreibens oder Fragebogens nur für diese Anfrage sicher an OpenAI gesendet. Beim Erstellen eines Entwurfs werden auch Ihre eingegebenen Antworten übermittelt. Originalfoto/PDF, Analyse und Archiv bleiben lokal auf diesem Gerät und werden nicht in Firebase gespeichert.',
     'Abbrechen',
     'Zustimmen und fortfahren',
   ),
   'en': (
     'OpenAI analysis',
-    'For a higher-quality analysis, the recognized OCR text will be sent securely to OpenAI for this request only. The original photo/PDF, analysis, and archive remain local on this device and are not stored in Firebase.',
+    'The OCR text of a letter or questionnaire is sent securely to OpenAI for this request only. When you generate a draft, the answers you enter are also sent. The original photo/PDF, analysis, and archive remain local on this device and are not stored in Firebase.',
     'Cancel',
     'Agree and continue',
   ),
   'tr': (
     'OpenAI analizi',
-    'Daha kaliteli bir analiz için tanınan OCR metni yalnızca bu istek kapsamında güvenli biçimde OpenAI’ye gönderilir. Orijinal fotoğraf/PDF, analiz ve arşiv bu cihazda yerel kalır ve Firebase’de saklanmaz.',
+    'Mektup veya anketin OCR metni yalnızca bu istek için güvenli biçimde OpenAI’ye gönderilir. Taslak oluştururken girdiğiniz yanıtlar da gönderilir. Orijinal fotoğraf/PDF, analiz ve arşiv bu cihazda kalır ve Firebase’de saklanmaz.',
     'İptal',
     'Kabul et ve devam et',
   ),
   'ru': (
     'Анализ OpenAI',
-    'Для более качественного анализа распознанный текст этого письма будет безопасно отправлен OpenAI только для текущего запроса. Оригинальная фотография или PDF, анализ и архив остаются локально на этом устройстве и не сохраняются в Firebase.',
+    'Распознанный текст письма или анкеты отправляется OpenAI только для текущего запроса. При создании черновика также отправляются введённые вами ответы. Оригинальное фото или PDF, анализ и архив остаются на устройстве и не сохраняются в Firebase.',
     'Отмена',
     'Согласиться и продолжить',
   ),
   'uk': (
     'Аналіз OpenAI',
-    'Для якіснішого аналізу розпізнаний текст цього листа буде безпечно надіслано OpenAI лише для поточного запиту. Оригінальна фотографія або PDF, аналіз і архів залишаються локально на цьому пристрої та не зберігаються у Firebase.',
+    'Розпізнаний текст листа або анкети безпечно надсилається OpenAI лише для поточного запиту. Під час створення чернетки також надсилаються введені вами відповіді. Оригінальне фото або PDF, аналіз і архів залишаються на пристрої та не зберігаються у Firebase.',
     'Скасувати',
     'Погодитися й продовжити',
   ),
   'ar': (
     'تحليل OpenAI',
-    'لتحليل أكثر جودة، سيُرسل النص المستخرج من هذه الرسالة بأمان إلى OpenAI لهذا الطلب فقط. تبقى الصورة الأصلية أو ملف PDF والتحليل والأرشيف محلياً على هذا الجهاز ولا تُحفظ في Firebase.',
+    'يُرسل النص المستخرج من الرسالة أو الاستبيان إلى OpenAI بأمان لهذا الطلب فقط. وعند إنشاء مسودة، تُرسل إجاباتك المدخلة أيضاً. تبقى الصورة الأصلية أو ملف PDF والتحليل والأرشيف محلياً على هذا الجهاز ولا تُحفظ في Firebase.',
     'إلغاء',
     'موافق والمتابعة',
   ),
   'ro': (
     'Analiză OpenAI',
-    'Pentru o analiză mai bună, textul OCR recunoscut va fi trimis în siguranță către OpenAI numai pentru această solicitare. Fotografia sau PDF-ul original, analiza și arhiva rămân local pe acest dispozitiv și nu sunt stocate în Firebase.',
+    'Textul OCR al scrisorii sau chestionarului este trimis în siguranță către OpenAI numai pentru această solicitare. La generarea unei schițe sunt trimise și răspunsurile introduse de tine. Fotografia sau PDF-ul original, analiza și arhiva rămân local pe acest dispozitiv și nu sunt stocate în Firebase.',
     'Anulează',
     'Sunt de acord și continuă',
   ),
   'pl': (
     'Analiza OpenAI',
-    'Aby zapewnić lepszą analizę, rozpoznany tekst OCR zostanie bezpiecznie wysłany do OpenAI wyłącznie na potrzeby tego zapytania. Oryginalne zdjęcie lub PDF, analiza i archiwum pozostają lokalnie na tym urządzeniu i nie są przechowywane w Firebase.',
+    'Tekst OCR pisma lub kwestionariusza jest bezpiecznie wysyłany do OpenAI wyłącznie na potrzeby tego zapytania. Podczas tworzenia wersji roboczej wysyłane są również wpisane odpowiedzi. Oryginalne zdjęcie lub PDF, analiza i archiwum pozostają lokalnie na tym urządzeniu i nie są przechowywane w Firebase.',
     'Anuluj',
     'Zgadzam się i kontynuuję',
   ),
   'it': (
     'Analisi OpenAI',
-    'Per un’analisi migliore, il testo OCR riconosciuto verrà inviato in modo sicuro a OpenAI solo per questa richiesta. La foto o il PDF originale, l’analisi e l’archivio restano in locale su questo dispositivo e non vengono salvati in Firebase.',
+    'Il testo OCR della lettera o del questionario viene inviato in modo sicuro a OpenAI solo per questa richiesta. Quando generi una bozza, vengono inviate anche le risposte che inserisci. La foto o il PDF originale, l’analisi e l’archivio restano in locale su questo dispositivo e non vengono salvati in Firebase.',
     'Annulla',
     'Accetta e continua',
   ),
   'el': (
     'Ανάλυση OpenAI',
-    'Για καλύτερη ανάλυση, το αναγνωρισμένο κείμενο OCR θα αποσταλεί με ασφάλεια στο OpenAI μόνο για αυτό το αίτημα. Η αρχική φωτογραφία ή το PDF, η ανάλυση και το αρχείο παραμένουν τοπικά σε αυτή τη συσκευή και δεν αποθηκεύονται στο Firebase.',
+    'Το κείμενο OCR της επιστολής ή του ερωτηματολογίου αποστέλλεται με ασφάλεια στο OpenAI μόνο για αυτό το αίτημα. Κατά τη δημιουργία προσχεδίου αποστέλλονται και οι απαντήσεις που καταχωρίζετε. Η αρχική φωτογραφία ή το PDF, η ανάλυση και το αρχείο παραμένουν τοπικά σε αυτή τη συσκευή και δεν αποθηκεύονται στο Firebase.',
     'Ακύρωση',
     'Συμφωνώ και συνεχίζω',
   ),
   'sq': (
     'Analizë OpenAI',
-    'Për një analizë më të mirë, teksti i njohur me OCR do t’i dërgohet në mënyrë të sigurt OpenAI vetëm për këtë kërkesë. Fotografia ose PDF-ja origjinale, analiza dhe arkivi mbeten lokalisht në këtë pajisje dhe nuk ruhen në Firebase.',
+    'Teksti OCR i letrës ose pyetësorit i dërgohet në mënyrë të sigurt OpenAI vetëm për këtë kërkesë. Kur krijoni një draft, dërgohen edhe përgjigjet që shkruani. Fotografia ose PDF-ja origjinale, analiza dhe arkivi mbeten lokalisht në këtë pajisje dhe nuk ruhen në Firebase.',
     'Anulo',
     'Pranoj dhe vazhdo',
   ),
