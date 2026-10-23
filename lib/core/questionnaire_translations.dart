@@ -21,6 +21,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'View questionnaire packs',
     'editQuestionnaire': 'Review and edit answers',
     'exportWord': 'Save Word',
+    'questionnaireAnalyze': 'Understand the questionnaire',
+    'questionnaireGenerateGerman': 'Prepare German draft',
+    'questionnaireGermanDraft': 'German draft — review and edit',
+    'questionnaireExplanation': 'What this questionnaire asks',
+    'questionnaireOriginalQuestion': 'Original German question',
+    'questionnaireCompleteAnswers':
+        'Please complete every answer before generating the German draft.',
   },
   'de': {
     'questionnaires': 'Fragebögen',
@@ -42,6 +49,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Fragebogen-Pakete ansehen',
     'editQuestionnaire': 'Antworten prüfen und bearbeiten',
     'exportWord': 'Word speichern',
+    'questionnaireAnalyze': 'Fragebogen verstehen',
+    'questionnaireGenerateGerman': 'Deutschen Entwurf erstellen',
+    'questionnaireGermanDraft': 'Deutscher Entwurf — prüfen und bearbeiten',
+    'questionnaireExplanation': 'Worum es in diesem Fragebogen geht',
+    'questionnaireOriginalQuestion': 'Originalfrage auf Deutsch',
+    'questionnaireCompleteAnswers':
+        'Bitte beantworten Sie zuerst alle Fragen, bevor Sie den deutschen Entwurf erstellen.',
   },
   'sr': {
     'questionnaires': 'Upitnici',
@@ -63,6 +77,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Pogledaj pakete upitnika',
     'editQuestionnaire': 'Proveri i izmeni odgovore',
     'exportWord': 'Sačuvaj Word',
+    'questionnaireAnalyze': 'Razumi upitnik',
+    'questionnaireGenerateGerman': 'Pripremi nemački nacrt',
+    'questionnaireGermanDraft': 'Nemački nacrt — proverite i izmenite',
+    'questionnaireExplanation': 'Šta se traži u ovom upitniku',
+    'questionnaireOriginalQuestion': 'Originalno pitanje na nemačkom',
+    'questionnaireCompleteAnswers':
+        'Pre izrade nemačkog nacrta popunite sve odgovore.',
   },
   'hr': {
     'questionnaires': 'Upitnici',
@@ -84,6 +105,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Pogledaj pakete upitnika',
     'editQuestionnaire': 'Provjeri i uredi odgovore',
     'exportWord': 'Spremi Word',
+    'questionnaireAnalyze': 'Razumij upitnik',
+    'questionnaireGenerateGerman': 'Pripremi njemački nacrt',
+    'questionnaireGermanDraft': 'Njemački nacrt — provjerite i uredite',
+    'questionnaireExplanation': 'Što se traži u ovom upitniku',
+    'questionnaireOriginalQuestion': 'Izvorno pitanje na njemačkom',
+    'questionnaireCompleteAnswers':
+        'Prije izrade njemačkog nacrta ispunite sve odgovore.',
   },
   'bs': {
     'questionnaires': 'Upitnici',
@@ -105,6 +133,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Pogledaj pakete upitnika',
     'editQuestionnaire': 'Provjeri i izmijeni odgovore',
     'exportWord': 'Sačuvaj Word',
+    'questionnaireAnalyze': 'Razumij upitnik',
+    'questionnaireGenerateGerman': 'Pripremi njemački nacrt',
+    'questionnaireGermanDraft': 'Njemački nacrt — provjeri i uredi',
+    'questionnaireExplanation': 'Šta se traži u ovom upitniku',
+    'questionnaireOriginalQuestion': 'Originalno pitanje na njemačkom',
+    'questionnaireCompleteAnswers':
+        'Prije izrade njemačkog nacrta popunite sve odgovore.',
   },
   'bg': {
     'questionnaires': 'Въпросници',
@@ -126,6 +161,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Вижте пакетите с въпросници',
     'editQuestionnaire': 'Проверете и редактирайте отговорите',
     'exportWord': 'Запази Word',
+    'questionnaireAnalyze': 'Разберете въпросника',
+    'questionnaireGenerateGerman': 'Подгответе проект на немски',
+    'questionnaireGermanDraft': 'Проект на немски — проверете и редактирайте',
+    'questionnaireExplanation': 'Какво се пита във въпросника',
+    'questionnaireOriginalQuestion': 'Оригинален въпрос на немски',
+    'questionnaireCompleteAnswers':
+        'Преди да създадете проекта на немски, попълнете всички отговори.',
   },
   'ro': {
     'questionnaires': 'Chestionare',
@@ -147,6 +189,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Vezi pachetele de chestionare',
     'editQuestionnaire': 'Verifică și editează răspunsurile',
     'exportWord': 'Salvează Word',
+    'questionnaireAnalyze': 'Înțelege chestionarul',
+    'questionnaireGenerateGerman': 'Pregătește proiectul în germană',
+    'questionnaireGermanDraft': 'Proiect în germană — verifică și editează',
+    'questionnaireExplanation': 'Ce solicită acest chestionar',
+    'questionnaireOriginalQuestion': 'Întrebarea originală în germană',
+    'questionnaireCompleteAnswers':
+        'Completează toate răspunsurile înainte de a genera proiectul în germană.',
   },
   'tr': {
     'questionnaires': 'Anketler',
@@ -168,6 +217,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Anket paketlerini görüntüle',
     'editQuestionnaire': 'Yanıtları kontrol et ve düzenle',
     'exportWord': 'Word olarak kaydet',
+    'questionnaireAnalyze': 'Anketi anla',
+    'questionnaireGenerateGerman': 'Almanca taslak hazırla',
+    'questionnaireGermanDraft': 'Almanca taslak — kontrol et ve düzenle',
+    'questionnaireExplanation': 'Bu ankette ne soruluyor',
+    'questionnaireOriginalQuestion': 'Almanca orijinal soru',
+    'questionnaireCompleteAnswers':
+        'Almanca taslağı oluşturmadan önce tüm yanıtları doldurun.',
   },
   'ru': {
     'questionnaires': 'Анкеты',
@@ -189,6 +245,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Посмотреть пакеты анкет',
     'editQuestionnaire': 'Проверить и изменить ответы',
     'exportWord': 'Сохранить Word',
+    'questionnaireAnalyze': 'Разобраться в анкете',
+    'questionnaireGenerateGerman': 'Подготовить черновик на немецком',
+    'questionnaireGermanDraft': 'Черновик на немецком — проверьте и измените',
+    'questionnaireExplanation': 'Что спрашивается в этой анкете',
+    'questionnaireOriginalQuestion': 'Исходный вопрос на немецком',
+    'questionnaireCompleteAnswers':
+        'Перед созданием черновика на немецком заполните все ответы.',
   },
   'uk': {
     'questionnaires': 'Анкети',
@@ -210,6 +273,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Переглянути пакети анкет',
     'editQuestionnaire': 'Перевірити й редагувати відповіді',
     'exportWord': 'Зберегти Word',
+    'questionnaireAnalyze': 'Зрозуміти анкету',
+    'questionnaireGenerateGerman': 'Підготувати чернетку німецькою',
+    'questionnaireGermanDraft': 'Чернетка німецькою — перевірте й відредагуйте',
+    'questionnaireExplanation': 'Що запитує ця анкета',
+    'questionnaireOriginalQuestion': 'Оригінальне запитання німецькою',
+    'questionnaireCompleteAnswers':
+        'Перед створенням чернетки німецькою заповніть усі відповіді.',
   },
   'mk': {
     'questionnaires': 'Прашалници',
@@ -231,6 +301,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Види пакети прашалници',
     'editQuestionnaire': 'Провери и измени одговори',
     'exportWord': 'Зачувај Word',
+    'questionnaireAnalyze': 'Разберете го прашалникот',
+    'questionnaireGenerateGerman': 'Подгответе германски нацрт',
+    'questionnaireGermanDraft': 'Германски нацрт — проверете и уредете',
+    'questionnaireExplanation': 'Што бара овој прашалник',
+    'questionnaireOriginalQuestion': 'Оригинално прашање на германски',
+    'questionnaireCompleteAnswers':
+        'Пополнете ги сите одговори пред да го подготвите германскиот нацрт.',
   },
   'pl': {
     'questionnaires': 'Kwestionariusze',
@@ -252,6 +329,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Zobacz pakiety kwestionariuszy',
     'editQuestionnaire': 'Sprawdź i edytuj odpowiedzi',
     'exportWord': 'Zapisz Word',
+    'questionnaireAnalyze': 'Zrozum kwestionariusz',
+    'questionnaireGenerateGerman': 'Przygotuj wersję po niemiecku',
+    'questionnaireGermanDraft': 'Wersja niemiecka — sprawdź i edytuj',
+    'questionnaireExplanation': 'O co pyta ten kwestionariusz',
+    'questionnaireOriginalQuestion': 'Oryginalne pytanie po niemiecku',
+    'questionnaireCompleteAnswers':
+        'Uzupełnij wszystkie odpowiedzi przed przygotowaniem wersji niemieckiej.',
   },
   'it': {
     'questionnaires': 'Questionari',
@@ -273,6 +357,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Vedi pacchetti questionari',
     'editQuestionnaire': 'Controlla e modifica risposte',
     'exportWord': 'Salva Word',
+    'questionnaireAnalyze': 'Comprendi il questionario',
+    'questionnaireGenerateGerman': 'Prepara la bozza in tedesco',
+    'questionnaireGermanDraft': 'Bozza in tedesco — controlla e modifica',
+    'questionnaireExplanation': 'Cosa chiede questo questionario',
+    'questionnaireOriginalQuestion': 'Domanda originale in tedesco',
+    'questionnaireCompleteAnswers':
+        'Completa tutte le risposte prima di generare la bozza in tedesco.',
   },
   'el': {
     'questionnaires': 'Ερωτηματολόγια',
@@ -294,6 +385,14 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Δείτε πακέτα ερωτηματολογίων',
     'editQuestionnaire': 'Έλεγχος και επεξεργασία απαντήσεων',
     'exportWord': 'Αποθήκευση Word',
+    'questionnaireAnalyze': 'Κατανοήστε το ερωτηματολόγιο',
+    'questionnaireGenerateGerman': 'Ετοιμάστε προσχέδιο στα γερμανικά',
+    'questionnaireGermanDraft':
+        'Προσχέδιο στα γερμανικά — ελέγξτε και επεξεργαστείτε',
+    'questionnaireExplanation': 'Τι ζητά αυτό το ερωτηματολόγιο',
+    'questionnaireOriginalQuestion': 'Αρχική ερώτηση στα γερμανικά',
+    'questionnaireCompleteAnswers':
+        'Συμπληρώστε όλες τις απαντήσεις πριν δημιουργήσετε το προσχέδιο στα γερμανικά.',
   },
   'sq': {
     'questionnaires': 'Pyetësorë',
@@ -315,6 +414,13 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'Shiko paketat e pyetësorëve',
     'editQuestionnaire': 'Kontrollo dhe ndrysho përgjigjet',
     'exportWord': 'Ruaj Word',
+    'questionnaireAnalyze': 'Kupto pyetësorin',
+    'questionnaireGenerateGerman': 'Përgatit draftin në gjermanisht',
+    'questionnaireGermanDraft': 'Drafti në gjermanisht — kontrollo dhe ndrysho',
+    'questionnaireExplanation': 'Çfarë kërkon ky pyetësor',
+    'questionnaireOriginalQuestion': 'Pyetja origjinale në gjermanisht',
+    'questionnaireCompleteAnswers':
+        'Plotësoni të gjitha përgjigjet para se të krijoni draftin në gjermanisht.',
   },
   'ar': {
     'questionnaires': 'الاستبيانات',
@@ -336,5 +442,12 @@ const questionnaireInterfaceTranslations = <String, Map<String, String>>{
     'buyQuestionnaires': 'عرض حزم الاستبيانات',
     'editQuestionnaire': 'مراجعة وتعديل الإجابات',
     'exportWord': 'حفظ Word',
+    'questionnaireAnalyze': 'افهم الاستبيان',
+    'questionnaireGenerateGerman': 'أعد مسودة بالألمانية',
+    'questionnaireGermanDraft': 'مسودة ألمانية — راجعها وعدّلها',
+    'questionnaireExplanation': 'ما الذي يطلبه هذا الاستبيان',
+    'questionnaireOriginalQuestion': 'السؤال الأصلي بالألمانية',
+    'questionnaireCompleteAnswers':
+        'أكمل جميع الإجابات قبل إنشاء المسودة بالألمانية.',
   },
 };
