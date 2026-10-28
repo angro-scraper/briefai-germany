@@ -149,8 +149,7 @@
         ? referralCandidate
         : localStorage.getItem('briefai.pending-partner-code');
       if (referralCode) localStorage.setItem('briefai.pending-partner-code', referralCode);
-      const browserLanguage = navigator.language.slice(0,2);
-      const initial = languages[queryLanguage] ? queryLanguage : (languages[browserLanguage] ? browserLanguage : 'en');
+      const initial = languages[queryLanguage] ? queryLanguage : (localStorage.getItem('briefai.platform-language') || 'sr');
       const googleLanguageCode = { zh: 'zh-CN' };
       function getGoogleCookie() {
         return document.cookie.split('; ').find(cookie => cookie.startsWith('googtrans=')) || '';
@@ -167,10 +166,10 @@
         // every visible section, including the realistic letter preview.
         const values = copy.sr;
         const metadata = copy[code] || copy.en;
-        document.documentElement.lang = code;
-        document.documentElement.dir = ['ar','fa','he','ps','ur'].includes(code) ? 'rtl' : 'ltr';
-        document.title = metadata.pageTitle;
-        document.querySelector('meta[name="description"]').content = metadata.intro;
+        document.documentElement.lang = 'sr';
+        document.documentElement.dir = 'ltr';
+        document.title = copy.sr.pageTitle;
+        document.querySelector('meta[name="description"]').content = copy.sr.intro;
         document.querySelectorAll('[data-i18n]').forEach(element => {
           element.textContent = values[element.dataset.i18n] || copy.en[element.dataset.i18n];
         });
@@ -185,6 +184,40 @@
           link.href = `${link.pathname}?lang=${encodeURIComponent(code)}`;
         });
         localStorage.setItem('briefai.platform-language', code);
+      }
+      const translationConsentKey = 'briefai.google-translate-consent';
+      let googleTranslateLoading = false;
+      function loadGoogleTranslate() {
+        if (googleTranslateLoading || document.getElementById('google-translate-script')) return;
+        googleTranslateLoading = true;
+        const script = document.createElement('script');
+        script.id = 'google-translate-script';
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=briefaiGoogleTranslateReady';
+        script.async = true;
+        script.onerror = () => { googleTranslateLoading = false; };
+        document.head.appendChild(script);
+      }
+      function requestGoogleTranslation(code) {
+        if (code === 'sr') return;
+        if (localStorage.getItem(translationConsentKey) !== 'yes') {
+          const message = 'Za prevod se koristi Google Translate. Google može dobiti sadržaj stranice, izabrani jezik i tehničke podatke o vezi, uključujući IP adresu. Veza se uspostavlja tek posle vaše saglasnosti. Da li želite da nastavite? / This translation uses Google Translate. Google may receive page content, your selected language and technical connection data including your IP address. Continue?';
+          if (!window.confirm(message)) {
+            localStorage.setItem(translationConsentKey, 'no');
+            selector.value = 'sr';
+            applyLanguage('sr');
+            setGoogleCookie('', 0);
+            const cleared = new URLSearchParams(location.search);
+            cleared.delete('lang');
+            history.replaceState(null, '', `${location.pathname}${cleared.toString() ? `?${cleared}` : ''}`);
+            return;
+          }
+          localStorage.setItem(translationConsentKey, 'yes');
+        }
+        const googleCode = googleLanguageCode[code] || code;
+        setGoogleCookie(`/sr/${googleCode}`, 31536000);
+        const nextQuery = new URLSearchParams(location.search);
+        nextQuery.set('lang', code);
+        location.search = `?${nextQuery.toString()}`;
       }
       window.briefaiGoogleTranslateReady = function () {
         if (!window.google || !google.translate) return;
@@ -203,32 +236,35 @@
       setInterval(hideTranslationChrome, 300);
       // A language explicitly included in a shared link must override an
       // earlier choice saved in this browser.
-      selector.value = languages[queryLanguage]
-        ? queryLanguage
-        : (localStorage.getItem('briefai.platform-language') || initial);
+      selector.value = initial;
       applyLanguage(selector.value);
+      if (selector.value !== 'sr') {
+        if (localStorage.getItem(translationConsentKey) === 'yes') {
+          const expected = `googtrans=/sr/${googleLanguageCode[selector.value] || selector.value}`;
+          if (!getGoogleCookie().includes(expected)) {
+            setGoogleCookie(expected.replace('googtrans=', ''), 31536000);
+            location.reload();
+          } else {
+            loadGoogleTranslate();
+          }
+        } else {
+          requestGoogleTranslation(selector.value);
+        }
+      } else if (getGoogleCookie()) {
+        setGoogleCookie('', 0);
+      }
       selector.addEventListener('change', event => {
         const code = event.target.value;
-        localStorage.setItem('briefai.platform-language', code);
-        const googleCode = googleLanguageCode[code] || code;
-        setGoogleCookie(`/sr/${googleCode}`, 31536000);
-        const nextQuery = new URLSearchParams(location.search);
-        nextQuery.set('lang', code);
-        location.search = `?${nextQuery.toString()}`;
-      });
-      const activeGoogleCode = googleLanguageCode[selector.value] || selector.value;
-      const expectedCookie = `googtrans=/sr/${activeGoogleCode}`;
-      if (selector.value === 'sr' && getGoogleCookie()) {
-        setGoogleCookie('', 0);
-        if (location.search.includes('lang=')) {
+        if (code === 'sr') {
+          localStorage.setItem(translationConsentKey, 'no');
+          setGoogleCookie('', 0);
           const nextQuery = new URLSearchParams(location.search);
           nextQuery.delete('lang');
-          location.replace(`${location.pathname}${nextQuery.toString() ? `?${nextQuery}` : ''}`);
+          location.search = `?${nextQuery.toString()}`;
+          return;
         }
-      } else if (selector.value !== 'sr' && !getGoogleCookie().includes(expectedCookie)) {
-        setGoogleCookie(`/sr/${activeGoogleCode}`, 31536000);
-        location.reload();
-      }
+        requestGoogleTranslation(code);
+      });
     </script>
     <script type="module">
       import {recordPublicAnalytics} from '/firebase-site-security.js';
@@ -265,6 +301,5 @@
         );
       })();
     </script>
-    <script src="https://translate.google.com/translate_a/element.js?cb=briefaiGoogleTranslateReady"></script>
   </body>
 </html>
