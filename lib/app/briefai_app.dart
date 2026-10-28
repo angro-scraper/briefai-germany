@@ -12,6 +12,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:url_launcher/link.dart';
 
 import '../core/domain.dart';
 import '../core/app_config.dart';
@@ -4393,20 +4394,34 @@ class ProfileScreen extends StatelessWidget {
             title: Text(strings.text('signOut')),
             onTap: services.auth.signOut,
           ),
-        ListTile(
-          leading: const Icon(Icons.privacy_tip_outlined),
-          title: Text(strings.text('privacyPolicy')),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const LegalScreen(privacy: true)),
+        Link(
+          uri: Uri.parse('https://briefai.salvesca.com/privacy.html'),
+          target: LinkTarget.self,
+          builder: (context, followLink) => ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: Text(strings.text('privacyPolicy')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: followLink,
           ),
         ),
-        ListTile(
-          leading: const Icon(Icons.gavel_outlined),
-          title: Text(strings.text('terms')),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const LegalScreen(privacy: false),
-            ),
+        Link(
+          uri: Uri.parse('https://briefai.salvesca.com/terms.html'),
+          target: LinkTarget.self,
+          builder: (context, followLink) => ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: Text(strings.text('terms')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: followLink,
+          ),
+        ),
+        Link(
+          uri: Uri.parse('https://briefai.salvesca.com/impressum.html'),
+          target: LinkTarget.self,
+          builder: (context, followLink) => ListTile(
+            leading: const Icon(Icons.business_outlined),
+            title: const Text('Impressum'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: followLink,
           ),
         ),
         ListTile(
