@@ -14,34 +14,38 @@
   </head>
   <body>
     <main>
-      <nav><a href="/">← BriefAI Germany</a></nav>
+      <nav><a href="/">← BriefAI Germany</a> · <a href="/impressum.html">Impressum</a> · <a href="/terms.html">Nutzungsbedingungen</a></nav>
       <article class="card">
         <h1>Datenschutzerklärung</h1>
-        <small>Stand: 4. August 2026</small>
+        <small>Stand: 28. Oktober 2026</small>
         <h2>1. Verantwortlicher und Kontakt</h2>
-        <p>BriefAI Germany, vertreten durch Ivica Trajkov. Datenschutzanfragen: <a href="mailto:trajkoff@yahoo.com">trajkoff@yahoo.com</a>.</p>
+        <p>Verantwortlicher ist <strong>AMIA TECHNOLOGIES DOO VRANJE</strong>, eine Gesellschaft mit beschränkter Haftung nach serbischem Recht, vertreten durch den Geschäftsführer Ivica Trajkov. Sitz: Vere Stojanović Pavlovne 4, 2. Stock, 17501 Vranje, Republik Serbien. Datenschutzanfragen: <a href="mailto:trajkoff@yahoo.com">trajkoff@yahoo.com</a>.</p>
         <h2>2. Welche Daten verarbeitet werden</h2>
-        <p>Für Anmeldung und Betrieb verarbeiten wir Kontodaten (E-Mail-Adresse, Anzeigename, Sprache), technische Sicherheits- und Nutzungsdaten, den Status der kostenlosen Analysen bzw. des Abonnements sowie – nur mit Einwilligung – einen Geräte-Token für Benachrichtigungen.</p>
-        <h2>3. Dokumente bleiben lokal</h2>
-        <p>Originalbilder und PDFs, lokal erkannter OCR-Text, gespeicherte Analysen, Antworten und der Dokumentenverlauf werden im lokalen Speicher des Geräts bzw. Browsers abgelegt. Sie werden nicht als Dokumentenarchiv in Firebase Storage oder Firestore hochgeladen. Das Löschen der App oder der Browserdaten kann diese lokale Ablage dauerhaft entfernen.</p>
+        <p>Für Anmeldung und Betrieb verarbeiten Firebase Authentication und Firestore unter anderem Nutzerkennung, E-Mail-Adresse, Anzeigenamen (soweit übermittelt), Sprache, Konto- und Aktivitätszeitpunkte, Analyse-Kontingente und Abonnementstatus. Je nach Funktion kommen Partnercodes, eine freiwillige Testprogramm-Anmeldung und ein Geräte-Token für erlaubte Benachrichtigungen hinzu. Native Release-Versionen verwenden Firebase Crashlytics zur Fehlerdiagnose; dabei können technische Angaben wie Stacktrace, App-Version und Gerätedaten verarbeitet werden.</p>
+        <h2>3. Lokale Dokumente und optionales Cloud-Backup</h2>
+        <p>Originalbilder und PDFs, lokal erkannter OCR-Text, Analysen, Antworten und der Dokumentenverlauf werden standardmäßig auf dem Gerät bzw. im Browser abgelegt. Sie werden nicht automatisch als Dokumentenarchiv in Firebase hochgeladen. Wenn Sie ein Cloud-Backup ausdrücklich starten, verschlüsselt die App das Archiv mit Ihrem gewählten Passwort (AES-256-GCM) und lädt die verschlüsselte Datei in einen privaten Firebase-Storage-Bereich hoch. Wir speichern das Backup-Passwort nicht. Das Löschen der App oder der Browserdaten entfernt dieses Cloud-Backup nicht; es bleibt bis zur Überschreibung oder Kontolöschung bestehen.</p>
+        <p>Bei einem von Ihnen angeforderten Kontodatenexport wird vorübergehend eine Datei mit verfügbaren Konto-, Profil- und Nutzungsdaten in einem privaten Storage-Bereich bereitgestellt. Die App versucht, diese Datei nach dem Download zu entfernen. Ein lokales Dokumentenarchiv ist nicht automatisch Teil dieses Kontoexports.</p>
         <h2>4. Optionale Nutzungsmetriken</h2>
-        <p>Nur nach ausdrücklicher Einwilligung erfassen wir aggregierte Seitenaufrufe, anonyme Besucher, Klicks auf Store-Links und Einwilligungs-basierte Registrierungen. Dafür wird eine lokal erzeugte Kennung ausschließlich gehasht verarbeitet; BriefAI speichert weder die Kennung im Klartext noch Briefinhalte, OCR-Text, Chat, E-Mail-Adresse oder die IP-Adresse als Analysewert. Die Einwilligung kann jederzeit über die Browserdaten bzw. die Privatsphäre-Einstellung der App widerrufen werden.</p>
+        <p>Nur nach Ihrer gesonderten Auswahl erfassen wir Produktmesswerte wie Seitenaufrufe, Store-Link-Klicks, Registrierung und bestimmte App-Funktionsereignisse. Dabei verarbeiten wir Ereignistyp, eine gehashte lokale Zufallskennung und eine kurze Quellenangabe; bei bestätigten Registrierungen kann eine Konto-ID zur Vermeidung doppelter Zählung hinzukommen. Wir senden dabei nicht absichtlich Briefinhalt, OCR-Text oder Antworten als Analyseinhalt. Die Auswahl kann in der App widerrufen werden; auf der Website kann sie durch Löschen der lokalen Browserdaten zurückgesetzt werden. Unabhängig von dieser Produktmessung können Hosting- und Firebase-Dienste technische Protokolldaten einschließlich IP-Adresse und Zeitstempel für Bereitstellung und Sicherheit verarbeiten.</p>
         <h2>5. KI-Analyse</h2>
-        <p>Nur wenn der Nutzer ausdrücklich zustimmt, wird der aus dem Dokument erkannte Text verschlüsselt an unsere geschützte Firebase-Funktion und von dort an OpenAI zur einmaligen Analyse übertragen. Der API-Schlüssel befindet sich ausschließlich als serverseitiges Secret. Dokumentbilder und PDFs werden dabei nicht an OpenAI gesendet.</p>
+        <p>Wenn Sie eine KI-Analyse anfordern und der angezeigten Verarbeitung zustimmen, wird der dafür benötigte OCR-Text über eine authentifizierte Firebase-Funktion an die OpenAI-API gesendet. Bei Antwort- und Formularentwürfen werden auch Ihre dafür eingegebenen Antworten übermittelt. Die Analysefunktionen senden keine Originalbilder oder PDFs an OpenAI. Die Anfragen setzen <code>store: false</code>; das bedeutet nicht automatisch, dass OpenAI keine Sicherheitsprotokolle führt. Laut <a href="https://developers.openai.com/api/docs/guides/your-data">OpenAI-API-Dokumentation</a> werden API-Inhalte standardmäßig nicht zum Modelltraining genutzt, sofern kein Opt-in erfolgt; Standard-Sicherheitsprotokolle können Inhalte bis zu 30 Tage enthalten, sofern keine abweichende genehmigte Kontoeinstellung gilt.</p>
         <h2>6. Zwecke und Rechtsgrundlagen</h2>
         <ul>
-          <li>Vertragserfüllung: Anmeldung, Analyse, Kontingent und Abonnement.</li>
-          <li>Einwilligung: KI-Übertragung und optionale Benachrichtigungen.</li>
-          <li>Berechtigte Interessen: Sicherheit, Missbrauchsschutz und Fehlerdiagnose.</li>
+          <li>Vertragserfüllung und angeforderte Funktionen: Anmeldung, Kontingent und Abonnement, Kontoexport und von Ihnen gestartetes Backup.</li>
+          <li>Ihre gesonderte Auswahl: KI-Übermittlung, optionale Produktmessung und Benachrichtigungen.</li>
+          <li>Berechtigte Interessen, soweit rechtlich zulässig: Betriebssicherheit, Missbrauchsschutz und Fehlerdiagnose.</li>
           <li>Rechtliche Pflichten: Abrechnung und gesetzlich erforderliche Nachweise.</li>
         </ul>
         <h2>7. Empfänger</h2>
-        <p>Je nach Funktion werden Firebase/Google Cloud für Anmeldung und Backend, OpenAI für die ausdrücklich angeforderte Textanalyse sowie Apple oder Google für Store-Abonnements eingesetzt. Zahlungsdaten werden von der jeweiligen Store-Plattform verarbeitet und nicht von BriefAI gespeichert.</p>
-        <h2>8. Speicherdauer und Rechte</h2>
-        <p>Kontodaten werden bis zur Kontolöschung oder solange gesetzliche Pflichten bestehen gespeichert. Lokale Dokumentdaten kann der Nutzer jederzeit in der App löschen. Betroffene Personen haben nach Maßgabe der DSGVO Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit, Widerruf einer Einwilligung und Beschwerde bei einer Datenschutzaufsichtsbehörde.</p>
-        <h2>9. Sicherheit und Minderjährige</h2>
+        <p>Je nach Funktion werden Google/Firebase (Anmeldung, Datenbank, Funktionen, Storage, Benachrichtigungen und Crashlytics), OpenAI (angeforderte KI-Verarbeitung), Apple oder Google (Store-Käufe), Stripe (soweit ein Webkauf genutzt wird) und der Website-Host Render eingesetzt. Die mehrsprachige Startseite lädt derzeit außerdem Google Translate; dabei können technische Verbindungsdaten an Google gelangen, auch bevor Sie die optionale Produktmessung auswählen. Zahlungsdaten werden durch den jeweiligen Zahlungsanbieter verarbeitet; BriefAI speichert keine vollständigen Kartenangaben.</p>
+        <h2>8. Verarbeitungsorte und internationale Übermittlung</h2>
+        <p>Unsere Firebase-Funktionen sind für die Region <code>europe-west3</code> konfiguriert. Daraus folgt nicht, dass alle Firebase-Dienste dort laufen. Google/Firebase und OpenAI können abhängig vom Dienst und der Kontokonfiguration Daten auch außerhalb des Europäischen Wirtschaftsraums verarbeiten. Für die Firebase- und OpenAI-Dienste gelten deren jeweilige Datenschutz- und Auftragsverarbeitungsbedingungen.</p>
+        <h2>9. Speicherdauer und Rechte</h2>
+        <p>Lokale Daten bleiben bis zu Ihrer Löschung oder Entfernung der App-/Browserdaten auf dem Gerät. Ein ausdrücklich angelegtes Cloud-Backup bleibt bis zur Überschreibung oder Kontolöschung gespeichert. Konto- und Nutzungsdaten bleiben während der Kontonutzung und danach nur, soweit gesetzliche Aufbewahrungspflichten oder technische Löschfristen dies erfordern. Technische Sicherheits- und Fehlerprotokolle unterliegen den Aufbewahrungsregeln der jeweiligen Dienstleister. Sie können nach Maßgabe der DSGVO Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und den Widerruf einer Einwilligung verlangen sowie sich bei einer zuständigen Datenschutzaufsichtsbehörde beschweren.</p>
+        <h2>10. Sicherheit und sensible Daten</h2>
         <p>Übertragungen erfolgen verschlüsselt per HTTPS. Zugriff auf Backend-Funktionen wird authentifiziert und begrenzt. Die App richtet sich nicht gezielt an Kinder.</p>
-        <h2>10. Änderungen</h2>
+        <p>Behördenschreiben können Gesundheits-, Sozial- oder andere besonders sensible Angaben enthalten. Geben Sie nur die für Ihre Anfrage nötigen Daten ein. KI-Ergebnisse können fehlerhaft sein; BriefAI bietet keine Rechtsberatung und ersetzt nicht die Prüfung des Originals oder qualifizierte Beratung.</p>
+        <h2>11. Änderungen</h2>
         <p>Diese Erklärung wird angepasst, wenn sich Funktionen, Dienstleister oder rechtliche Anforderungen ändern. Die jeweils aktuelle Fassung ist auf dieser Seite verfügbar.</p>
       </article>
     </main>
