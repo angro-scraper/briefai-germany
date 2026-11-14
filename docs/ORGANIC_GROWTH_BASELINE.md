@@ -104,3 +104,15 @@ asset, not a claim of legal advice or a record of an external promotion.
   effort on a relevant migrant-facing directory/partner and a German-reviewed
   short video, each with a distinct source label and the user's exact approval
   before any external submission.
+
+## Search Console follow-up — 14 November 2026, about 22:49 Berlin time
+
+- URL inspection for the existing Jobcenter guide reported **"URL is not on
+  Google"** because it was unknown to Google; no crawl date or referring
+  sitemap was shown for this URL yet. The live URL test reported that the page
+  is available to Google and can be indexed.
+- Submitted a single **Request indexing** for
+  `https://briefai.salvesca.com/jobcenter-bescheid-frist-pruefen/`.
+  Search Console confirmed that the URL was added to the priority crawling
+  queue. This is **not** proof that it has been crawled, indexed, ranked or
+  visited. Do not resubmit it merely to change its queue priority.
