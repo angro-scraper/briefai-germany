@@ -234,3 +234,24 @@ asset, not a claim of legal advice or a record of an external promotion.
   of the exact pitch and destination before outreach. Track any resulting
   link with a distinct short source label; do not treat a publication as a
   registration or subscription without verified data.
+
+## Directory screening — 15 November 2026
+
+- Expat.com explicitly offers a **basic free** business-directory listing:
+  https://www.expat.com/en/faq.html (Business Directory FAQ). Its Germany
+  directory is active: https://www.expat.com/en/business/europe/germany/.
+  The FAQ also says listings may be rejected for an invalid physical address
+  or poor fit. The `/en/business/add` entry redirected to the directory when
+  viewed without a logged-in account, so the form, Germany eligibility for a
+  Serbia-registered company, categories, and whether a mobile app can be
+  listed are **not verified**. Do not invent a German address or submit a
+  misleading category. If eligible, use a transparent AMIA/BriefAI listing
+  that says it is a freemium information tool, not legal advice, and that
+  requested AI analysis sends extracted text to the AI provider.
+- FindEnglish.de calls itself a free directory in its footer, but its actual
+  provider page says to choose a plan and pay through Stripe, with a flat
+  annual fee. Exclude it from this no-paid-advertising campaign:
+  https://www.findenglish.de/get-listed.
+- InterNations content guidelines exclude articles written to advertise a
+  specific product or service; do not pitch BriefAI as a guest article there:
+  https://assets.in-cdn.net/guidelines/content.
