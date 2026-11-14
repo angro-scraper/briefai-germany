@@ -170,3 +170,21 @@ asset, not a claim of legal advice or a record of an external promotion.
   reviewed. It did not add a free option to the previous advertorial offer of
   €590 excluding VAT, so no paid campaign was accepted under this organic-only
   plan.
+
+## BBA Community editorial enquiry — 14 November 2026, 23:51 Berlin time
+
+- BBA Community publicly welcomes unpaid guest articles for international
+  women living in Germany, ideally 1,000–1,500 words. Its community includes
+  discussions of bureaucracy and daily life in Germany. This is a relevant
+  audience, but its article form asks for personal author details and an
+  editable Google Drive folder; a company-authored article with an app link
+  has not been confirmed as acceptable.
+- After the user's approval of the exact text and final send action, sent one
+  eligibility enquiry from `info@amia.rs` to `team@bbacommunity.com`, subject
+  `Free educational guide for international women in Germany — BriefAI`.
+  Roundcube's **Sent** folder listed the message at 23:51. The enquiry offers
+  an original, sourced guide and transparent AMIA authorship, and asks about
+  editorial/byline/link policy before preparing or submitting it.
+- Do not submit a guest article or send a duplicate enquiry while awaiting
+  their response. The Sent entry proves mailbox submission only, not delivery,
+  acceptance, publication, visits, registrations or subscriptions.
