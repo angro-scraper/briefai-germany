@@ -73,6 +73,16 @@ Bescheids.
   tool, not legal, tax or social advice.”
 - **Before action:** the form asks for public business and contact details;
   obtain immediate confirmation for the exact email and final submission.
+- **14 November 2026 live check:** its public page still says listings are free
+  and reviewed against migrant-friendly criteria: accessible to EU and non-EU
+  nationals, English-language support, transparent pricing, and an actively
+  operating service. The linked Google Form has seven sections and states that
+  the submitter's Google account name, email and profile image are recorded on
+  submission. It was opened under the owner's personal Google account, so it
+  was **not submitted**. A tailored enquiry from `info@amia.rs` to
+  `contact@migratespace.com` was prepared to ask whether a Serbia-based app
+  serving Germany is eligible and whether an email application is possible;
+  sending it still requires the user's exact approval.
 
 ## 5. Handbook Germany — Local Search / network enquiry
 

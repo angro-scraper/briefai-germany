@@ -73,3 +73,16 @@ asset, not a claim of legal advice or a record of an external promotion.
 | 14 November 2026 | AMIA Technologies Bluesky | `https://bsky.app/profile/amiatechnologies.bsky.social/post/3n2cef7pma22v` | `https://briefai.salvesca.com/arbeitslosengeld-bescheid-verstehen/?utm_source=bluesky&utm_medium=organic` | Published from the AMIA account with German language metadata and a no-legal-advice disclaimer; visits, registrations and subscriptions not yet measured. |
 | 14 November 2026 | AMIA Technologies product page | `https://amia.rs/apps/briefai-germany/?lang=de` | `https://briefai.salvesca.com/de/?utm_source=amia_website&utm_medium=organic` and the guide with the same source tags | Render deployed commit `d06d1e3`; public page shows official site, guide, store links, privacy/terms links, and a clear AI/no-legal-advice warning. Conversions not yet measured. |
 | 14 November 2026 | Reddit `u/AMIA_Technologies` in `r/sideprojects` | `https://www.reddit.com/r/sideprojects/comments/1xh6owe/what_are_you_building_lets_self_promote/` | Direct iOS and Android store links (no UTM tags) | The thread explicitly invited project introductions. Reddit confirmed "Komentar je uspešno objavljen" and displayed the approved text under `AMIA_Technologies`; visits, registrations and subscriptions not yet measured. |
+
+## Follow-up — 14 November 2026, about 22:35 Berlin time
+
+- The approved Reddit comment is publicly visible at
+  `https://www.reddit.com/r/sideprojects/comments/1xh6owe/comment/19sn4mk78tt2c/`.
+  The account's comment view showed **1 view** and the focused thread showed no
+  reply to it yet. One view is not an app visit or a conversion.
+- Firebase Authentication still showed **17 total accounts** (`1–17 of 17`),
+  unchanged from the checkpoint above. This does not establish that any account
+  came from Reddit or Bluesky.
+- Search Console's Performance and Page Indexing reports both still said data
+  was processing. No clicks, impressions or indexed-page count can be reported
+  from those reports yet.
