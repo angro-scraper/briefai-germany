@@ -268,16 +268,15 @@ asset, not a claim of legal advice or a record of an external promotion.
   moderation, or count this as active distribution. Prioritise channels whose
   editorial policy explicitly accepts disclosed company-authored resources.
 
-## Deutschland Decoded pitch ready for approval — 15 November 2026
+## Deutschland Decoded editorial pitch — 15 November 2026
 
 - Its current `Write for Us` page still invites collaboration ideas from
   like-minded brands and asks for a short introduction, concept and audience
   value at `deutschlanddecoded@gmail.com`:
   https://deutschlanddecoded.com/write-for-us/
-- A specific, unpaid editorial pitch is prepared below. No email has been sent;
-  article acceptance, link policy, audience size and no-cost placement remain
-  unverified. Obtain immediate approval of this exact recipient and text
-  before sending.
+- A specific, unpaid editorial pitch was prepared and approved by the user.
+  Article acceptance, link policy, audience size and no-cost placement remain
+  unverified. Its reported delivery status is recorded below.
 
 **To:** `deutschlanddecoded@gmail.com`
 
@@ -306,3 +305,10 @@ asset, not a claim of legal advice or a record of an external promotion.
 > AMIA Technologies
 >
 > info@amia.rs
+
+**Delivery status update, 15 November 2026:** The user reported sending this
+pitch personally from the prepared Roundcube composer. Browser control was
+stopped before the Sent folder could be checked, so mailbox submission is not
+independently verified. Do not send a duplicate. Await a reply or verify the
+existing Sent entry when access is available; do not count this as a published
+article, visit, registration or subscription.

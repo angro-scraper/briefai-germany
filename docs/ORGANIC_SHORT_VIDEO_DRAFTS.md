@@ -111,6 +111,39 @@ No video or caption has been posted.
 > iOS: https://apps.apple.com/app/id6794959959
 > Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
 
+## 4. English: four checks for any German official letter
+
+**Audience / language:** English-speaking international residents in Germany.
+
+**Rendered candidate (15 November 2026):**
+[`outputs/organic-official-letter-en.mp4`](../outputs/organic-official-letter-en.mp4)
+(27 seconds, 720 × 1280, H.264, silent). Render with
+`python scripts/render_organic_official_letter_short.py`. Five static cards
+with short fades explain sender, reference, dates and requested action using
+an explicitly fictional sample. The end card names AMIA Technologies and says
+it is an information tool, not legal advice. This is a draft, not a product
+demo or a posted video. A human should review the final video and the exact
+destination-specific caption before publication.
+
+**Caption proposed for review, not publication:**
+
+> Got an official letter in German? First check the sender, file reference,
+> requested action and every date in the original letter. If the matter
+> affects your rights or money, contact the issuing office or a qualified
+> adviser promptly. BriefAI Germany by AMIA Technologies can help organise
+> the information and prepare an editable German reply draft for your own
+> review. The first five analyses are free; paid options follow. It is an
+> information tool, not legal advice.
+>
+> Guide: https://briefai.salvesca.com/read-german-official-letter/
+>
+> iOS: https://apps.apple.com/app/id6794959959
+> Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
+
+Before choosing a channel, confirm its video and link rules; add a distinct
+source tag to the guide link for that channel. Do not imply the static cards
+show the actual app interface. No channel post has been approved or published.
+
 ## Publishing checklist for a chosen channel
 
 1. Have a fluent speaker review the final spoken text and captions.
