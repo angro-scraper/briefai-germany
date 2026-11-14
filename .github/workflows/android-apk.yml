@@ -3,6 +3,11 @@ name: Build Android APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      # Static landing pages and growth notes do not change the APK. The
+      # web-bundle workflow has its own validation and publishes those files.
+      - 'install-site/**'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
@@ -15,6 +20,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          # Keep the Android CI toolchain reproducible. Flutter 3.50 introduced
+          # deprecation infos that made the existing analyze step fail.
+          flutter-version: '3.47.8'
           channel: stable
       - run: flutter pub get
       - run: flutter analyze --no-pub
