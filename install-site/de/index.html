@@ -43,7 +43,7 @@
   </head>
   <body>
     <main>
-      <nav class="nav"><a class="brand" href="/de/"><img src="/briefai-logo.svg" alt="" />BriefAI Germany</a><a class="lang" href="/">Andere Sprache wählen</a></nav>
+      <nav class="nav"><a class="brand" href="/de/"><img src="/briefai-logo.svg" alt="" />BriefAI Germany</a><a class="lang" href="/?lang=sr">Andere Sprache wählen</a></nav>
       <section class="hero">
         <div>
           <span class="eyebrow">KI-Hilfe für deutsche Schreiben</span>
@@ -74,7 +74,16 @@
         const visitorKey = 'briefai.analytics-visitor-id';
         const banner = document.getElementById('analytics-choice');
         const consent = localStorage.getItem(consentKey);
-        const source = new URLSearchParams(location.search).get('utm_source') || 'seo_de_landing';
+        const landingQuery = new URLSearchParams(location.search);
+        const source = landingQuery.get('utm_source') || 'seo_de_landing';
+        const referralCode = (landingQuery.get('ref') || '').trim().toLowerCase();
+        document.querySelectorAll('a[href^="/app/"]').forEach(link => {
+          const destination = new URL(link.href);
+          destination.searchParams.set('utm_source', source);
+          if (landingQuery.get('utm_medium')) destination.searchParams.set('utm_medium', landingQuery.get('utm_medium'));
+          if (/^[a-z0-9][a-z0-9_-]{2,31}$/.test(referralCode)) destination.searchParams.set('ref', referralCode);
+          link.href = `${destination.pathname}${destination.search}`;
+        });
         const visitorId = () => {
           let value = localStorage.getItem(visitorKey);
           if (!value) { value = crypto.randomUUID(); localStorage.setItem(visitorKey, value); }

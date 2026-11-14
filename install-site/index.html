@@ -204,6 +204,15 @@
       }
       function requestGoogleTranslation(code) {
         if (code === 'sr') return;
+        if (code === 'de') {
+          // German has a fully written landing page. Use it instead of showing
+          // Serbian copy while the third-party translation widget loads.
+          localStorage.setItem('briefai.platform-language', 'de');
+          const nextQuery = new URLSearchParams(location.search);
+          nextQuery.delete('lang');
+          location.replace(`/de/${nextQuery.toString() ? `?${nextQuery}` : ''}${location.hash}`);
+          return;
+        }
         if (localStorage.getItem(translationConsentKey) !== 'yes') {
           const message = 'Za prevod se koristi Google Translate. Google može dobiti sadržaj stranice, izabrani jezik i tehničke podatke o vezi, uključujući IP adresu. Veza se uspostavlja tek posle vaše saglasnosti. Da li želite da nastavite? / This translation uses Google Translate. Google may receive page content, your selected language and technical connection data including your IP address. Continue?';
           if (!window.confirm(message)) {
@@ -243,7 +252,9 @@
       // earlier choice saved in this browser.
       selector.value = initial;
       applyLanguage(selector.value);
-      if (selector.value !== 'sr') {
+      if (selector.value === 'de') {
+        requestGoogleTranslation('de');
+      } else if (selector.value !== 'sr') {
         if (localStorage.getItem(translationConsentKey) === 'yes') {
           const expected = `googtrans=/sr/${googleLanguageCode[selector.value] || selector.value}`;
           if (!getGoogleCookie().includes(expected)) {

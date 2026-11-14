@@ -116,3 +116,15 @@ asset, not a claim of legal advice or a record of an external promotion.
   Search Console confirmed that the URL was added to the priority crawling
   queue. This is **not** proof that it has been crawled, indexed, ranked or
   visited. Do not resubmit it merely to change its queue priority.
+
+## Directory outreach — 14 November 2026, 23:04 Berlin time
+
+- Sent the user's approved free-listing eligibility enquiry from
+  `info@amia.rs` to `contact@migratespace.com`, subject
+  `Free directory listing enquiry — BriefAI Germany`. Roundcube's **Sent**
+  folder shows the message to that recipient at 23:04. This proves submission
+  through our mailbox, not delivery, acceptance, a listing or conversions.
+- The enquiry asks whether MigrateSpace accepts a non-EU company's mobile
+  information tool serving Germany and whether the listing can be arranged by
+  email instead of its Google form. Do not submit a duplicate while awaiting a
+  response.
