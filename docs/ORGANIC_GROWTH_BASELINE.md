@@ -188,3 +188,24 @@ asset, not a claim of legal advice or a record of an external promotion.
 - Do not submit a guest article or send a duplicate enquiry while awaiting
   their response. The Sent entry proves mailbox submission only, not delivery,
   acceptance, publication, visits, registrations or subscriptions.
+
+## Attribution audit — 14 November 2026, about 23:56 Berlin time
+
+- The public guides' `guide-analytics.js` sends consented, pseudonymous
+  `page_view` and `install_click` events with a short source label. Guide links
+  to `/app/` preserve that label as `utm_source`; the web app reads it for
+  consented events. A store-link click is **not** an installation or a new user.
+- The app currently calls `trackRegistration()` only after a newly created
+  email/password Firebase identity. Google and Apple sign-in paths do not call
+  it. Consequently, `productAnalyticsDaily.registrations` undercounts new
+  accounts and cannot be used as the sole measure of the 1,000-user goal.
+- Firebase Authentication user count is the account baseline; verified paid
+  subscription records/store financial reports are the subscription baseline.
+  No new account or subscription count was read in this audit. Keep the last
+  verified figures (17 total accounts, zero subscription documents) labelled
+  as **last verified**, not current. Do not infer a conversion from visits,
+  clicks, article submissions or email outreach.
+- Fix provider-specific registration attribution only after an end-to-end
+  auth test on Android and iOS and a consent/privacy review. Native Apple uses
+  a custom-token bridge, so its "new user" status is not equivalent to a
+  normal web `UserCredential` and must not be guessed from recent timestamps.
