@@ -312,3 +312,11 @@ stopped before the Sent folder could be checked, so mailbox submission is not
 independently verified. Do not send a duplicate. Await a reply or verify the
 existing Sent entry when access is available; do not count this as a published
 article, visit, registration or subscription.
+
+**Editorial preparation, 15 November 2026:** A 900-word, original English
+guest-article draft is saved as `docs/EDITORIAL_OFFICIAL_LETTER_GUEST_DRAFT.md`.
+It is based on current Federal Employment Agency and Bundesportal guidance,
+uses a disclosed AMIA byline, and confines any BriefAI link to an optional
+author note. This is an internal draft, **not** an accepted or published
+placement. Wait for the editor's reply about cost, fit, length and links before
+tailoring or submitting it; obtain approval for the final text and destination.
