@@ -72,6 +72,7 @@ asset, not a claim of legal advice or a record of an external promotion.
 | Date | Channel | Public post | Tracked destination | Outcome evidence |
 | --- | --- | --- | --- | --- |
 | 14 November 2026 | AMIA Technologies Bluesky | `https://bsky.app/profile/amiatechnologies.bsky.social/post/3n2cef7pma22v` | `https://briefai.salvesca.com/arbeitslosengeld-bescheid-verstehen/?utm_source=bluesky&utm_medium=organic` | Published from the AMIA account with German language metadata and a no-legal-advice disclaimer; visits, registrations and subscriptions not yet measured. |
+| 14 November 2026 | AMIA Technologies Bluesky | `https://bsky.app/profile/amiatechnologies.bsky.social/post/3n2ckim5obk2w` | `https://briefai.salvesca.com/read-german-official-letter/?utm_source=bluesky&utm_medium=organic` | User-approved English checklist post published from the AMIA account, with English language metadata, attribution and no-legal-advice disclaimer. Bluesky profile displayed it publicly; conversions not yet measured. |
 | 14 November 2026 | AMIA Technologies product page | `https://amia.rs/apps/briefai-germany/?lang=de` | `https://briefai.salvesca.com/de/?utm_source=amia_website&utm_medium=organic` and the guide with the same source tags | Render deployed commit `d06d1e3`; public page shows official site, guide, store links, privacy/terms links, and a clear AI/no-legal-advice warning. Conversions not yet measured. |
 | 14 November 2026 | Reddit `u/AMIA_Technologies` in `r/sideprojects` | `https://www.reddit.com/r/sideprojects/comments/1xh6owe/what_are_you_building_lets_self_promote/` | Direct iOS and Android store links (no UTM tags) | The thread explicitly invited project introductions. Reddit confirmed "Komentar je uspešno objavljen" and displayed the approved text under `AMIA_Technologies`; visits, registrations and subscriptions not yet measured. |
 
@@ -152,3 +153,19 @@ asset, not a claim of legal advice or a record of an external promotion.
   or account was created. Before doing so, verify that a Serbia-based remote
   information app is acceptable for the Germany directory and confirm the
   public contact/address details to display. Do not invent a German address.
+
+## Partner outreach and account check — 14 November 2026, about 23:30 Berlin time
+
+- Firebase Authentication still showed **17 total accounts** (`1–17 of 17`),
+  with no new account since the previous checkpoint. No registrations can be
+  attributed to today's organic posts.
+- Sent the user's exact approved free-editorial enquiry from `info@amia.rs` to
+  `contact@ananthya.com`, subject
+  `Free educational resource enquiry — BriefAI Germany`. Roundcube's **Sent**
+  folder displayed the message to that recipient at 23:30. This is not proof
+  of delivery, editorial acceptance, a listing or a conversion. Do not send
+  a duplicate while awaiting a response.
+- IamExpat sent a follow-up asking whether the earlier material had been
+  reviewed. It did not add a free option to the previous advertorial offer of
+  €590 excluding VAT, so no paid campaign was accepted under this organic-only
+  plan.
