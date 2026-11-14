@@ -255,3 +255,54 @@ asset, not a claim of legal advice or a record of an external promotion.
 - InterNations content guidelines exclude articles written to advertise a
   specific product or service; do not pitch BriefAI as a guest article there:
   https://assets.in-cdn.net/guidelines/content.
+
+## Reddit distribution correction — 15 November 2026
+
+- The public Reddit API now returns `body: "[removed]"` and `author:
+  "[deleted]"` for the previously approved r/sideprojects comment
+  `19sn4mk78tt2c`:
+  https://www.reddit.com/api/info.json?id=t1_19sn4mk78tt2c
+- This supersedes the 14 November observation that the comment was visible.
+  The public record does not establish why it was removed or whether it ever
+  produced a visit. Do not re-post the same text, use another account to evade
+  moderation, or count this as active distribution. Prioritise channels whose
+  editorial policy explicitly accepts disclosed company-authored resources.
+
+## Deutschland Decoded pitch ready for approval — 15 November 2026
+
+- Its current `Write for Us` page still invites collaboration ideas from
+  like-minded brands and asks for a short introduction, concept and audience
+  value at `deutschlanddecoded@gmail.com`:
+  https://deutschlanddecoded.com/write-for-us/
+- A specific, unpaid editorial pitch is prepared below. No email has been sent;
+  article acceptance, link policy, audience size and no-cost placement remain
+  unverified. Obtain immediate approval of this exact recipient and text
+  before sending.
+
+**To:** `deutschlanddecoded@gmail.com`
+
+**Subject:** Guest guide idea: five checks before replying to a German official letter
+
+> Hello Deutschland Decoded team,
+>
+> We are AMIA Technologies, the team behind BriefAI Germany. Your guide for
+> people navigating life in Germany seems a good fit for a practical article:
+> “A German official letter arrived: five checks before you reply.” It would
+> help readers identify the sender and file reference, the action requested,
+> every date or deadline, and when to seek qualified advice. We would cite
+> relevant official sources and avoid giving case-specific legal advice.
+>
+> We can provide an original, non-promotional draft. We would disclose our
+> connection to BriefAI in the byline and mention the app only in a short
+> author note if your editorial rules permit it. BriefAI is an information
+> tool with free and paid options, not legal advice.
+>
+> Would this topic fit your editorial calendar? If so, please let us know
+> your length, attribution and link rules, and whether unpaid guest
+> contributions from companies are accepted.
+>
+> Best regards,
+>
+> AMIA Technologies
+>
+> info@amia.rs
