@@ -129,3 +129,14 @@ asset, not a claim of legal advice or a record of an external promotion.
   information tool serving Germany and whether the listing can be arranged by
   email instead of its Google form. Do not submit a duplicate while awaiting a
   response.
+
+## English-guide indexing — 14 November 2026, 23:22 Berlin time
+
+- Google Search Console URL inspection reported that
+  `https://briefai.salvesca.com/read-german-official-letter/` is **not yet on
+  Google** because the URL is unknown to it. The live URL test reported that
+  the page is available to Google and can be indexed.
+- Submitted one **Request indexing** for that URL. Search Console confirmed
+  that it was added to its priority crawling queue. This is not proof of an
+  actual crawl, indexing, search impressions, visits or registrations. Do not
+  repeat the request merely to change its queue position.
