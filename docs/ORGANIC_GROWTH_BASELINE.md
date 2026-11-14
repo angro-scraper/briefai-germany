@@ -42,6 +42,14 @@ subscriptions within 30 days. This checkpoint is not evidence that the goal is
 met. The small increase in accounts despite more analyses makes distribution
 and conversion measurement the immediate priorities.
 
+The public German Google Play listing showed the coarse "5+ downloads" band on
+14 November; this is not a count of new installs. The German App Store listing
+still points its privacy-policy field at the legacy `onrender.com` host. That
+legacy page now forwards browsers to the current policy on
+`briefai.salvesca.com`; Apple says the store-field URL itself changes only with
+the next app version. App Store Connect required a fresh login during this
+check, so its metadata was not edited.
+
 ## Organic assets published after the baseline
 
 | Date | Asset | Purpose | Tracking source |
