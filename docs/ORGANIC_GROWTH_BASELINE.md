@@ -12,7 +12,7 @@ customers.
 | Cloud user profiles | 14 | Firestore `users` collection |
 | Completed analyses | 40 | Firestore `adminMetrics/current` (last updated 16 October 2026) |
 | Active or trial subscriptions | 0 | Firestore `subscriptions` collection contains no documents |
-| Google Search performance | Not measured | No Search Console property is configured for the domain in either currently signed-in Google account |
+| Google Search performance | Not measured | `https://briefai.salvesca.com/` URL-prefix property verified on 14 November 2026 under `ivicatrajkov702@gmail.com`; Search Console says performance data is still processing |
 
 ## Interpretation
 
@@ -22,10 +22,11 @@ customers.
   feature and still counts as a registered Firebase user.
 - Use store-console numbers only for acquisition; use the Firebase counts
   above for registration and entitlement conversion.
-- Add and verify `briefai.salvesca.com` in Google Search Console before using
-  search impressions or clicks as a campaign KPI. Site verification should be
-  performed through the domain owner, not by placing an unverified tracking
-  tag on the public site.
+- The Search Console URL-prefix property is verified with the exact HTML file
+  Google issued (`install-site/googlec259e446428cd451.html`). Keep the file in
+  place to retain verification. The submitted sitemap was processed with 19
+  discovered pages. The new Arbeitslosengeld guide passed live URL inspection
+  and was queued for priority crawling; neither step proves it is indexed yet.
 
 ## Organic assets published after the baseline
 
@@ -48,3 +49,4 @@ asset, not a claim of legal advice or a record of an external promotion.
 | Date | Channel | Public post | Tracked destination | Outcome evidence |
 | --- | --- | --- | --- | --- |
 | 14 November 2026 | AMIA Technologies Bluesky | `https://bsky.app/profile/amiatechnologies.bsky.social/post/3n2cef7pma22v` | `https://briefai.salvesca.com/arbeitslosengeld-bescheid-verstehen/?utm_source=bluesky&utm_medium=organic` | Published from the AMIA account with German language metadata and a no-legal-advice disclaimer; visits, registrations and subscriptions not yet measured. |
+| 14 November 2026 | AMIA Technologies product page | `https://amia.rs/apps/briefai-germany/?lang=de` | `https://briefai.salvesca.com/de/?utm_source=amia_website&utm_medium=organic` and the guide with the same source tags | Render deployed commit `d06d1e3`; public page shows official site, guide, store links, privacy/terms links, and a clear AI/no-legal-advice warning. Conversions not yet measured. |
