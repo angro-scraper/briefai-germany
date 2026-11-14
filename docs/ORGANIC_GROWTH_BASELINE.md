@@ -140,3 +140,15 @@ asset, not a claim of legal advice or a record of an external promotion.
   that it was added to its priority crawling queue. This is not proof of an
   actual crawl, indexing, search impressions, visits or registrations. Do not
   repeat the request merely to change its queue position.
+
+## ExpatListing screening — 14 November 2026
+
+- Its current Germany directory states 228 listings, but does not provide
+  verified audience or conversion figures. Its terms say a basic business
+  listing is currently free and must be accurate, relevant to a covered
+  country, and submitted by an authorised representative.
+- The submission path requires a new account, plus business category,
+  address, website, phone, contact email and description. No BriefAI listing
+  or account was created. Before doing so, verify that a Serbia-based remote
+  information app is acceptable for the Germany directory and confirm the
+  public contact/address details to display. Do not invent a German address.
