@@ -86,3 +86,21 @@ asset, not a claim of legal advice or a record of an external promotion.
 - Search Console's Performance and Page Indexing reports both still said data
   was processing. No clicks, impressions or indexed-page count can be reported
   from those reports yet.
+
+## Distribution checkpoint — 14 November 2026, about 22:45 Berlin time
+
+- All **19 public URLs** in the live sitemap returned HTTP 200. The German
+  landing page already exposes the first-five-analyses offer, web-app and store
+  CTAs, a privacy explanation and a legal-information disclaimer. There is no
+  evidence yet that changing that CTA would improve registrations.
+- Firestore `productAnalyticsDaily/2026-11-14` recorded **1 page view, 1 store
+  install click and 1 unique visitor**, all under `sources.direct`. These are
+  consent-dependent aggregate events, not verified external visitors, installs
+  or registrations; internal testing may account for them.
+- The public Bluesky API reported **0 likes, 0 reposts, 0 replies and 0 quotes**
+  on the 14 November AMIA post. It does not report visits or registrations.
+- Decision: do not repeat the same promotion in generic maker channels or
+  attribute sign-ups to them without evidence. Focus the next distribution
+  effort on a relevant migrant-facing directory/partner and a German-reviewed
+  short video, each with a distinct source label and the user's exact approval
+  before any external submission.
