@@ -61,6 +61,7 @@ check, so its metadata was not edited.
 | 21 October 2026 | `https://briefai.salvesca.com/finanzamt-steuerbescheid-verstehen/` | German practical guide for Finanzamt tax notices, deadlines and the next steps | `seo_de_finanzamt_steuerbescheid` |
 | 21 October 2026 | `https://briefai.salvesca.com/rundfunkbeitrag-gez-brief-verstehen/` | German practical guide for Rundfunkbeitrag / "GEZ" letters, reference numbers, deadlines and official forms | `seo_de_rundfunkbeitrag_gez` |
 | 14 November 2026 | `https://briefai.salvesca.com/arbeitslosengeld-bescheid-verstehen/` | German guide to reading an Arbeitslosengeld decision, change or repayment notice, linked to official Bundesagentur für Arbeit guidance | `seo_de_alg_bescheid` |
+| 14 November 2026 | `https://briefai.salvesca.com/read-german-official-letter/` | English five-point checklist for reading German official letters, with clear AI limitations and official sources; live URL checked after deployment | `seo_en_official_letter` |
 
 The guide includes a clear product disclaimer, official Bundesagentur für
 Arbeit sources, direct store links, and FAQ structured data. It is a content
