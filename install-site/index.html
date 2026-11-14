@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#071a3d" />
     <meta name="description" content="BriefAI Germany prepoznaje nemačka pisma, objašnjava ih na vašem jeziku i čuva rokove." />
+    <link rel="canonical" href="https://briefai.salvesca.com/" />
+    <link rel="alternate" hreflang="sr" href="https://briefai.salvesca.com/" />
+    <link rel="alternate" hreflang="de" href="https://briefai.salvesca.com/de/" />
+    <link rel="alternate" hreflang="x-default" href="https://briefai.salvesca.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://briefai.salvesca.com/" />
     <meta property="og:site_name" content="BriefAI Germany" />
@@ -47,6 +51,7 @@
       .brand small { display:block; font-size:.67rem; letter-spacing:.08em; color:#63708c; text-transform:uppercase; margin:0; }
       .nav-tools { display:flex; align-items:center; gap:10px; } .language { padding:10px 12px; border-radius:10px; color:#263653; background:white; border:1px solid #dbe1ed; font:inherit; }
       .nav-link { color:#475675; font-size:.92rem; font-weight:700; text-decoration:none; } .nav-link:hover { color:#234bd4; }
+      .german-link { color:#173b9b; font-size:.9rem; font-weight:800; text-decoration:none; white-space:nowrap; } .german-link:hover { text-decoration:underline; }
       .hero { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(350px,.92fr); gap:64px; align-items:center; padding:58px 0 62px; }
       .eyebrow { display:inline-flex; align-items:center; gap:8px; color:#315bca; background:#e8eeff; padding:8px 11px; border-radius:999px; letter-spacing:.08em; font-weight:800; font-size:.72rem; text-transform:uppercase; }
       .eyebrow::before { content:''; width:7px; height:7px; background:#5278ff; border-radius:50%; box-shadow:0 0 0 4px #cfd9ff; }
@@ -71,14 +76,14 @@
       footer { margin-top:34px; border-top:1px solid #e0e5ef; padding:25px 0 0; display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; color:#6d7890; font-size:.88rem; } .footer-links { display:flex; flex-wrap:wrap; gap:17px; } footer a { color:#52617d; text-decoration:none; } footer a:hover { color:#234bd4; }
       .analytics-choice { position:fixed; z-index:20; right:22px; bottom:22px; max-width:430px; padding:18px; border-radius:16px; color:#edf3ff; background:#0b1b40; box-shadow:0 20px 54px #07163b55; } .analytics-choice strong { display:block; font-size:1rem; } .analytics-choice p { margin:8px 0 14px; color:#cad7f7; font-size:.88rem; line-height:1.45; } .analytics-choice-actions { display:flex; justify-content:flex-end; gap:9px; } .analytics-choice button { border:1px solid #98b1ef; border-radius:9px; padding:8px 12px; font:inherit; font-weight:700; cursor:pointer; } .analytics-choice .decline { background:transparent; color:#eaf0ff; } .analytics-choice .accept { color:#0b1b40; background:#dbe5ff; }
       #google_translate_element { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; } iframe.goog-te-banner-frame,.goog-te-banner-frame,.goog-te-balloon-frame { display:none!important; visibility:hidden!important; height:0!important; } body { top:0!important; }
-      @media (max-width:800px) { main { padding:18px 18px 32px; } .site-header { padding-bottom:24px; } .brand { font-size:1.08rem; gap:10px; } .brand-mark { width:48px; height:48px; border-radius:15px; } .nav-link { display:none; } .hero { grid-template-columns:1fr; gap:32px; padding:35px 0 48px; } .preview-shell { min-height:430px; max-width:540px; } .proof { grid-template-columns:1fr; gap:16px; } .proof div { padding:0; border-left:0; } .steps { grid-template-columns:1fr; } .step h3 { margin-top:25px; } .privacy-band { grid-template-columns:1fr; padding:30px; gap:22px; } .section { padding:58px 0; } }
+      @media (max-width:800px) { main { padding:18px 18px 32px; } .site-header { padding-bottom:24px; flex-wrap:wrap; } .nav-tools { width:100%; justify-content:space-between; } .brand { font-size:1.08rem; gap:10px; } .brand-mark { width:48px; height:48px; border-radius:15px; } .nav-link { display:none; } .hero { grid-template-columns:1fr; gap:32px; padding:35px 0 48px; } .preview-shell { min-height:430px; max-width:540px; } .proof { grid-template-columns:1fr; gap:16px; } .steps { grid-template-columns:1fr; } .step h3 { margin-top:25px; } .privacy-band { grid-template-columns:1fr; padding:30px; gap:22px; } .section { padding:58px 0; } }
     </style>
   </head>
   <body>
     <main>
       <header class="site-header">
         <a class="brand" href="/" aria-label="BriefAI Germany"><span class="brand-mark"><img src="/briefai-logo.svg" alt="" /></span><span>BriefAI Germany<small>Salvesca platform</small></span></a>
-        <div class="nav-tools"><a class="nav-link" href="#how">Kako radi</a><a class="nav-link" href="#privacy">Privatnost</a><select class="language" id="language" aria-label="Language"></select></div>
+        <div class="nav-tools"><a class="nav-link" href="#how">Kako radi</a><a class="nav-link" href="#privacy">Privatnost</a><a class="german-link" href="/de/" lang="de" hreflang="de">Deutsch lesen</a><select class="language" id="language" aria-label="Language"></select></div>
       </header>
       <section class="hero">
         <div>
