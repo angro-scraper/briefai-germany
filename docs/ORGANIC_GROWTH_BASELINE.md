@@ -209,3 +209,28 @@ asset, not a claim of legal advice or a record of an external promotion.
   auth test on Android and iOS and a consent/privacy review. Native Apple uses
   a custom-token bridge, so its "new user" status is not equivalent to a
   normal web `UserCredential` and must not be guessed from recent timestamps.
+
+## Deutschland Decoded editorial candidate — 14 November 2026
+
+- Its current `Write for Us` page explicitly welcomes collaboration ideas
+  from like-minded brands and asks for a short introduction, concept and
+  audience benefit at `deutschlanddecoded@gmail.com`:
+  https://deutschlanddecoded.com/write-for-us/
+- Its blog published guest posts by the founders of Job Badger (13 November)
+  and Airpiv (9 November). Both use a disclosed founder byline and a linked
+  author bio, so a transparent AMIA Technologies piece is plausible, though
+  editorial acceptance, free placement, link rules and readership are **not**
+  confirmed:
+  https://deutschlanddecoded.com/2026/11/13/job-in-germany-without-german/
+  https://deutschlanddecoded.com/2026/11/09/berlins-12-districts-arent-12-neighbourhoods-how-to-choose-a-kiez-before-you-move/
+- Proposed original English topic: **"A German official letter arrived: five
+  checks before you reply"** — sender and authenticity, file reference,
+  requested action, every date/deadline, and when to seek qualified help.
+  Cite the relevant public authority for any concrete deadline. Mention
+  BriefAI only in a clearly identified AMIA author note if permitted; disclose
+  paid options and say it is information, not legal advice. Do not invent a
+  personal migration experience.
+- No email, submission or article was sent or published. Seek fresh approval
+  of the exact pitch and destination before outreach. Track any resulting
+  link with a distinct short source label; do not treat a publication as a
+  registration or subscription without verified data.
