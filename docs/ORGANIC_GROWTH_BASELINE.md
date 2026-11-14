@@ -28,6 +28,20 @@ customers.
   discovered pages. The new Arbeitslosengeld guide passed live URL inspection
   and was queued for priority crawling; neither step proves it is indexed yet.
 
+## Production checkpoint — 14 November 2026, about 22:15 Berlin time
+
+| Metric | Current | Change from baseline | Source and caveat |
+| --- | ---: | ---: | --- |
+| Firebase Authentication accounts | 17 | +3 | Production Authentication showed 1–17 of 17. One new account is the owner's, so at most two new accounts are potential external users; the other two have not been qualified as customers. |
+| Active or trialing subscriptions | 0 | 0 | Production Firestore has no `subscriptions` collection. The deployed `adminOverview` definition counts active/trialing documents in that collection. This does not measure app-store purchases that failed to create a server entitlement. |
+| Completed analyses | 62 | +22 | Production `adminMetrics/current`, updated 14 November 2026 at 10:27 Berlin time. Analyses are not unique users. |
+| Google Search impressions/clicks | Not available yet | — | Search Console property was newly verified and still says performance data is processing. |
+
+The original goal remains 1,000 new registered users and at least 20
+subscriptions within 30 days. This checkpoint is not evidence that the goal is
+met. The small increase in accounts despite more analyses makes distribution
+and conversion measurement the immediate priorities.
+
 ## Organic assets published after the baseline
 
 | Date | Asset | Purpose | Tracking source |
