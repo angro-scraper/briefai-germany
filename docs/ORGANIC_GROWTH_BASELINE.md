@@ -42,3 +42,9 @@ customers.
 The guide includes a clear product disclaimer, official Bundesagentur für
 Arbeit sources, direct store links, and FAQ structured data. It is a content
 asset, not a claim of legal advice or a record of an external promotion.
+
+## Organic distribution
+
+| Date | Channel | Public post | Tracked destination | Outcome evidence |
+| --- | --- | --- | --- | --- |
+| 14 November 2026 | AMIA Technologies Bluesky | `https://bsky.app/profile/amiatechnologies.bsky.social/post/3n2cef7pma22v` | `https://briefai.salvesca.com/arbeitslosengeld-bescheid-verstehen/?utm_source=bluesky&utm_medium=organic` | Published from the AMIA account with German language metadata and a no-legal-advice disclaimer; visits, registrations and subscriptions not yet measured. |
