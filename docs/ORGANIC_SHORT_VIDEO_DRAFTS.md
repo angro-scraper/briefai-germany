@@ -23,6 +23,30 @@ Store links:
 
 **Audience / language:** German (native review required)
 
+**Rendered candidate (14 November 2026):**
+[`outputs/organic-jobcenter-checklist.mp4`](../outputs/organic-jobcenter-checklist.mp4)
+(27 seconds, 720 × 1280, H.264, silent). Render with
+`python scripts/render_organic_jobcenter_short.py`. The five cards use an
+explicitly fictional letter and the actual BriefAI brand asset. The rendered
+wording is a shorter adaptation of the storyboard below; it still requires a
+fluent German review and destination-specific approval before publication.
+No video or caption has been posted.
+
+**Caption proposed for review, not publication:**
+
+> Post vom Jobcenter? Prüfen Sie im Original zuerst Absender, Aktenzeichen,
+> die konkrete Frist und die verlangte Handlung. Wenn etwas unklar ist,
+> wenden Sie sich rechtzeitig an das zuständige Jobcenter oder eine
+> unabhängige Beratungsstelle. BriefAI Germany von AMIA Technologies kann
+> Informationen verständlich strukturieren und einen bearbeitbaren
+> Antwortentwurf vorbereiten. Es ist ein Informationswerkzeug, keine Rechts-
+> oder Sozialberatung.
+>
+> Offizielle Hinweise: https://www.arbeitsagentur.de/grundsicherung/finanziell-absichern/antrag-bescheid
+>
+> iOS: https://apps.apple.com/app/id6794959959
+> Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
+
 | Time | Visual | Caption / voice-over |
 | --- | --- | --- |
 | 0–3 s | Fictional envelope labelled `Jobcenter` on a neutral desk. | `Post vom Jobcenter? Nicht zuerst raten — zuerst die Frist finden.` |
