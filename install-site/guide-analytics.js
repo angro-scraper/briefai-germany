@@ -8,7 +8,8 @@ const visitorKey = 'briefai.analytics-visitor-id';
 // Keep the guide's SEO label as the default, but honour a short UTM source
 // when a community post, directory or partner deliberately links here. This
 // lets the consented aggregate distinguish a useful referral from organic
-// search without storing a URL, letter, email address or IP address.
+// search without putting a URL, letter, email address or IP address in the
+// product analytics payload. Hosting/Firebase can still process technical IPs.
 const rawCampaignSource = new URLSearchParams(location.search).get('utm_source')?.trim();
 const campaignSource = rawCampaignSource && /^[a-z0-9_-]{1,32}$/i.test(rawCampaignSource)
   ? rawCampaignSource.toLowerCase()
@@ -41,6 +42,7 @@ function addConsentChoice() {
     .briefai-analytics-choice { position:fixed; z-index:30; right:18px; bottom:18px; max-width:390px; padding:16px; border-radius:14px; color:#edf3ff; background:#0b1b40; box-shadow:0 20px 54px #07163b55; font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif; }
     .briefai-analytics-choice strong { display:block; font-size:15px; }
     .briefai-analytics-choice p { margin:7px 0 12px; color:#cad7f7; }
+    .briefai-analytics-choice a { color:#dbe5ff; }
     .briefai-analytics-choice div { display:flex; justify-content:flex-end; gap:9px; }
     .briefai-analytics-choice button { border:1px solid #98b1ef; border-radius:9px; padding:8px 11px; font:inherit; font-weight:700; cursor:pointer; }
     .briefai-analytics-no { background:transparent; color:#eaf0ff; }
@@ -51,8 +53,11 @@ function addConsentChoice() {
   const banner = document.createElement('aside');
   banner.className = 'briefai-analytics-choice';
   banner.setAttribute('role', 'dialog');
-  banner.setAttribute('aria-label', 'Datenschutz und Messung');
-  banner.innerHTML = '<strong>Datenschutz &amp; Messung</strong><p>Dürfen wir anonym messen, ob dieser Ratgeber und die Store-Links hilfreich sind? Wir erfassen keine Briefe, Texte, E-Mail-Adressen oder IP-Adressen.</p><div><button class="briefai-analytics-no" type="button">Nein danke</button><button class="briefai-analytics-yes" type="button">Zustimmen</button></div>';
+  const english = document.documentElement.lang.toLowerCase().startsWith('en');
+  banner.setAttribute('aria-label', english ? 'Privacy and optional measurement' : 'Datenschutz und freiwillige Messung');
+  banner.innerHTML = english
+    ? '<strong>Privacy &amp; optional measurement</strong><p>May we measure guide views and store-link clicks using a pseudonymous visitor ID? We do not send letter contents, OCR text or reply drafts to product analytics. Our hosting and Firebase services may separately process technical data, including IP addresses, to operate and secure the site. <a href="/privacy.html">Privacy policy (German)</a>.</p><div><button class="briefai-analytics-no" type="button">No thanks</button><button class="briefai-analytics-yes" type="button">Agree</button></div>'
+    : '<strong>Datenschutz &amp; freiwillige Messung</strong><p>Dürfen wir Seitenaufrufe und Store-Link-Klicks mit einer pseudonymen Besucherkennung messen? Briefinhalte, OCR-Texte und Antwortentwürfe senden wir nicht an die Produktanalyse. Hosting und Firebase können für Betrieb und Sicherheit technische Daten einschließlich IP-Adressen separat verarbeiten. <a href="/privacy.html">Datenschutzerklärung</a>.</p><div><button class="briefai-analytics-no" type="button">Nein danke</button><button class="briefai-analytics-yes" type="button">Zustimmen</button></div>';
   document.body.append(banner);
 
   banner.querySelector('.briefai-analytics-no').addEventListener('click', () => {
