@@ -374,3 +374,19 @@ tailoring or submitting it; obtain approval for the final text and destination.
   their author-note link rules are. Do not imply editorial approval or send a
   guest post. No email has been sent. Source:
   https://germanpedia.com/contact/
+
+## Website funnel checkpoint — 15 November 2026, 01:27 Berlin time
+
+- Production Firestore `productAnalyticsDaily/2026-11-14` recorded 1 page
+  view, 1 unique visitor and 1 `install_click`, all attributed to `direct`.
+  This click does **not** establish an app install or registration; the visit
+  may have been an internal test.
+- `productAnalyticsDaily/2026-11-15` recorded 1 page view and 1 unique
+  visitor, attributed to `seo_de_landing`; no install-click field was present
+  at this check. This source label describes page attribution, not verified
+  Google Search traffic.
+- These website events require analytics consent and therefore are not a
+  complete measure of traffic. The present evidence is insufficient to
+  estimate a page-to-registration conversion rate. Distribution to a relevant
+  external audience remains the priority; the GermanPedia question is still
+  awaiting exact user approval and must not be sent meanwhile.
