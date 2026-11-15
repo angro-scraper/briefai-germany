@@ -119,6 +119,38 @@ void main() {
     expect(AppStrings.interfaceLocale('de'), const Locale('de'));
   });
 
+  test('first-run interface follows a supported device language', () {
+    expect(AppStrings.initialInterfaceLanguage(deviceLanguage: 'de'), 'de');
+    expect(AppStrings.initialInterfaceLanguage(deviceLanguage: 'en'), 'en');
+    expect(AppStrings.initialInterfaceLanguage(deviceLanguage: 'fr'), 'en');
+  });
+
+  test('saved choices take precedence over the device language', () {
+    expect(
+      AppStrings.initialInterfaceLanguage(
+        deviceLanguage: 'de',
+        savedAiLanguage: 'sr',
+      ),
+      'sr',
+    );
+    expect(
+      AppStrings.initialInterfaceLanguage(
+        deviceLanguage: 'de',
+        savedAiLanguage: 'sr',
+        requestedAiLanguage: 'en',
+      ),
+      'en',
+    );
+    expect(
+      AppStrings.initialInterfaceLanguage(
+        deviceLanguage: 'de',
+        savedInterfaceLanguage: 'sr',
+        requestedAiLanguage: 'en',
+      ),
+      'sr',
+    );
+  });
+
   test(
     'every advertised interface language ships every static string',
     () async {

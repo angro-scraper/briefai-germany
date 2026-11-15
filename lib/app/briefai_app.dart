@@ -84,27 +84,28 @@ class _BriefAiAppState extends State<BriefAiApp> {
     final storedAiLanguage =
         preferences.getString('briefai.ai-language') ??
         storedLegacyLanguage ??
-        await widget.services.auth.preferredLanguage();
+        (widget.services.auth.isSignedIn
+            ? await widget.services.auth.preferredLanguage()
+            : null);
     final storedInterfaceLanguage = preferences.getString(
       'briefai.interface-language',
     );
-    final inferredInterfaceLanguage = requestedLanguageIsValid
-        ? requestedAiLanguage
-        : storedAiLanguage;
-    final interfaceLanguage =
-        storedInterfaceLanguage != null &&
-            AppStrings.hasFullyLocalizedInterface(storedInterfaceLanguage)
-        ? storedInterfaceLanguage
-        : AppStrings.hasFullyLocalizedInterface(inferredInterfaceLanguage)
-        ? inferredInterfaceLanguage
-        : 'en';
+    final interfaceLanguage = AppStrings.initialInterfaceLanguage(
+      savedInterfaceLanguage: storedInterfaceLanguage,
+      requestedAiLanguage: requestedLanguageIsValid
+          ? requestedAiLanguage
+          : null,
+      savedAiLanguage: storedAiLanguage,
+      deviceLanguage:
+          WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    );
     // Older builds could leave the visible interface and AI explanation
     // language out of sync. Unless the user explicitly chose a separate AI
     // language in Profile, the visible interface is the source of truth.
     final aiLanguage = requestedLanguageIsValid
         ? requestedAiLanguage
         : preferences.getBool('briefai.ai-language-explicit') == true
-        ? storedAiLanguage
+        ? (storedAiLanguage ?? interfaceLanguage)
         : interfaceLanguage;
     _state
       ..setLocale(interfaceLanguage)

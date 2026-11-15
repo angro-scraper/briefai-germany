@@ -95,6 +95,27 @@ class AppStrings {
   static bool hasFullyLocalizedInterface(String languageCode) =>
       fullyLocalizedLanguageCodes.contains(languageCode);
 
+  /// Keep an existing choice, but start a new installation in a language the
+  /// device owner can read. Unsupported device languages fall back to English.
+  static String initialInterfaceLanguage({
+    required String deviceLanguage,
+    String? savedInterfaceLanguage,
+    String? requestedAiLanguage,
+    String? savedAiLanguage,
+  }) {
+    for (final language in [
+      savedInterfaceLanguage,
+      requestedAiLanguage,
+      savedAiLanguage,
+      deviceLanguage,
+    ]) {
+      if (language != null && hasFullyLocalizedInterface(language)) {
+        return language;
+      }
+    }
+    return 'en';
+  }
+
   /// Flutter must never select a partial interface translation through the
   /// device locale. Wider language support belongs only to AI output, below.
   /// Locale used by Flutter's own Material/Cupertino controls. Serbian needs
