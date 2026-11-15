@@ -1085,16 +1085,16 @@ class _AnalyticsConsentCardState extends State<AnalyticsConsentCard> {
               const SizedBox(height: 6),
               Text(strings.text('privacyChoiceBody')),
               const SizedBox(height: 10),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton(
-                    onPressed: () => unawaited(_choose(false)),
-                    child: Text(strings.text('decline')),
-                  ),
-                  const Spacer(),
                   FilledButton(
                     onPressed: () => unawaited(_choose(true)),
                     child: Text(strings.text('accept')),
+                  ),
+                  TextButton(
+                    onPressed: () => unawaited(_choose(false)),
+                    child: Text(strings.text('decline')),
                   ),
                 ],
               ),
