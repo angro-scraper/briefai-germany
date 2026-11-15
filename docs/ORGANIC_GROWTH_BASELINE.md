@@ -390,3 +390,30 @@ tailoring or submitting it; obtain approval for the final text and destination.
   estimate a page-to-registration conversion rate. Distribution to a relevant
   external audience remains the priority; the GermanPedia question is still
   awaiting exact user approval and must not be sent meanwhile.
+
+## Channel response and screening — 15 November 2026, 01:30 Berlin time
+
+- Search Console still displayed “data is processing” for both Search
+  Performance and Page Indexing. No search reach or indexing count is
+  available to evaluate yet.
+- The public `r/sideprojects` introduction remains visible on
+  `u/AMIA_Technologies`. Reddit's account view displayed **1 view** for the
+  comment; its discussion displayed no reply to that comment at this check.
+  This maker audience is not evidence of reach among people handling German
+  administrative letters. Do not repeat the promotion in the same thread.
+- The AMIA Roundcube webmail session had expired, so partner replies could
+  not be checked. Do not infer no reply or send a follow-up from that state.
+- Screened additional no-cost editorial candidates before outreach. PUGAT
+  accepts sourced migration guides, but its editorial principles explicitly
+  exclude advertising and promotional content; a BriefAI acquisition piece
+  would conflict with that rule. Germany Update invites guest articles but
+  currently presents broad commercial/link-oriented topics, not a verified
+  newcomer audience. Newsakt routes company/partner content to sponsored
+  placements, outside the no-paid-ads goal. Deutschland4U's site describes a
+  relevant English-language newcomer audience but its contact URL returned
+  404 and reach is unverified. None is a stronger immediate outreach target
+  than the pending GermanPedia permission query.
+  Sources: https://pugat.de/en/submit/ ;
+  https://pugat.de/en/editorial-principles/ ;
+  https://germanyupdate.de/schreiben-sie-fur-uns/ ;
+  https://newsakt.de/gastbeitrag ; https://www.deutschland4u.com/ .
