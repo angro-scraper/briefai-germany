@@ -328,3 +328,28 @@ uses a disclosed AMIA byline, and confines any BriefAI link to an optional
 author note. This is an internal draft, **not** an accepted or published
 placement. Wait for the editor's reply about cost, fit, length and links before
 tailoring or submitting it; obtain approval for the final text and destination.
+
+## Next-channel screening — 15 November 2026
+
+- The newly published AMIA Bluesky Jobcenter video was present in the public
+  `app.bsky.feed.getPosts` record with its intended link and video embed. At
+  this early check it had 0 likes, reposts, replies and quotes. Those zeros
+  measure only visible social engagement, not impressions, clicks or installs.
+  Do not repeat a near-identical post merely because early engagement is zero.
+- My Life in Germany accepts how-to guides about living in Germany but its
+  guest policy asks for authentic personal stories, says no ads or sales
+  pitches, and requires an outline before any full article. A company-authored
+  BriefAI promotion is not a clean fit; do not pitch it as a personal story:
+  https://www.mylifeingermany.com/guest-posting-guidelines/
+- GermanPedia explicitly invites expat contributions and has a cooperation
+  contact for services relevant to newcomers. Its editorial standards insist
+  on independence, official sources and clear labelling of sponsorship. A
+  *question* about a no-cost, disclosed company-authored educational article
+  could be appropriate, but free placement, author-note link rules and reach
+  are not verified. Do not submit through the contributor form or email a
+  pitch without approval of exact content and destination:
+  https://germanpedia.com/write-for-us/
+  https://germanpedia.com/editorial-values/
+  https://germanpedia.com/contact/
+- FindEnglish remains excluded: its actual provider page requires an annual
+  fee despite a footer describing the directory as free.
