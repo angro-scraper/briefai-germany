@@ -42,6 +42,13 @@ subscriptions within 30 days. This checkpoint is not evidence that the goal is
 met. The small increase in accounts despite more analyses makes distribution
 and conversion measurement the immediate priorities.
 
+For this 30-day campaign, use the 14 November checkpoint of **17 Auth
+accounts** as day 0, not the earlier 20 October historical count of 14. The
+account success threshold is therefore **1,017 total Auth accounts**, alongside
+at least **20 newly verified paid subscriptions**. A fresh production read is
+still needed before reporting any post-baseline change; the consent-based
+`Registrations` event cannot replace the Auth count.
+
 The public German Google Play listing showed the coarse "5+ downloads" band on
 14 November; this is not a count of new installs. The German App Store listing
 still points its privacy-policy field at the legacy `onrender.com` host. That

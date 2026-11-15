@@ -34,16 +34,26 @@ Store links:
 The current `Registrations` funnel card must **not** be used as the account
 total: it is consent-based analytics and does not presently represent every
 Apple/Google registration. The `Users` metric should instead be the Firebase
-Authentication count. Fix the admin Google sign-in before the first weekly
-review, otherwise the baseline is unknown.
+Authentication count. The starting account count has been verified, but a
+fresh production read is required for each subsequent checkpoint. If admin
+access is unavailable, leave the current result unknown instead of
+substituting the incomplete funnel card.
 
 ## 30-day scoreboard
 
-Record these values daily, starting on day 0:
+Record these values daily, starting on day 0. The 20 October count of 14
+accounts is historical context, **not** the start of this 30-day campaign.
+The most recent verified starting checkpoint is 14 November 2026 at about
+22:15 Berlin time: 17 Firebase Authentication accounts and zero Firestore
+subscription records. Accordingly, the account target is at least **1,017
+total Auth accounts** (1,000 above that starting count). The subscription
+target is at least 20 newly verified paid subscriptions; Firestore records
+alone are insufficient if a store purchase failed to create an entitlement.
+The first post-baseline count has not yet been read, so no growth is claimed.
 
 | Day | Auth accounts | New accounts | First analyses | Paid subscriptions | iOS installs | Android installs | Best source | Notes |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| 0 | — | — | — | — | — | — | — | Establish verified baseline after admin access is fixed. |
+| 0 — 14 Nov | 17 | 0 | Not measured | 0 Firestore subscription records; store purchases not checked | Not measured | Not measured | Not measured | Last verified checkpoint, ~22:15 Berlin; 17 includes the owner's account. Do not infer external acquisition. |
 
 Decision rules:
 
