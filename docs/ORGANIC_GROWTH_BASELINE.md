@@ -435,3 +435,27 @@ tailoring or submitting it; obtain approval for the final text and destination.
   residence-status problems, often financially or legally sensitive. No
   fresh thread was sufficiently appropriate for a product mention; no
   comment or message was posted.
+
+## Google indexing checkpoint — 15 November 2026, about 01:38 Berlin time
+
+- Search Console URL Inspection for `https://briefai.salvesca.com/` reported
+  **not on Google**, “Crawled – currently not indexed”; last crawl was
+  14 November 2026 at 22:12:53 Berlin time. The live test said the URL is
+  available and can be indexed. A fresh request for priority crawling was
+  accepted. This does not promise indexing or search traffic.
+- URL Inspection for `https://briefai.salvesca.com/de/` reported **not on
+  Google**, “URL is unknown to Google”, with no recorded crawl. The live test
+  said it can be indexed, and its priority-crawl request was accepted.
+- The live site returns HTTP 200 for both homepages. Each page has a
+  self-referencing canonical; the German page has German title and description.
+  `robots.txt` allows crawling and references `/sitemap.xml`. The current
+  public sitemap returns HTTP 200 and includes both homepages plus the new
+  guide. Search Console still shows the sitemap as successful, last read
+  14 November, with 19 discovered pages; the current sitemap has 22 URL
+  entries. The URL-inspection “no referring sitemap” and temporary processing
+  messages may reflect incomplete processing, not necessarily a malformed
+  current sitemap. Do not change sitemap or claim an indexability fix without
+  stronger evidence.
+- Because even the German homepage has not yet been crawled, organic search
+  cannot be counted as a near-term acquisition source. Qualified partner or
+  community distribution is more urgent while Google processes the site.
