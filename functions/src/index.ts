@@ -1222,6 +1222,18 @@ export const recordAnalyticsEvent = onCall(
     if (event === "registration" && !request.auth?.uid) {
       throw new HttpsError("unauthenticated", "Prijava je obavezna za registraciju.");
     }
+    if (event === "registration") {
+      // The native wrapper cannot reliably provide isNewUser for social sign-in.
+      // Verify the account creation time before counting an acquisition.
+      const account = await getAuth().getUser(request.auth!.uid);
+      const createdAt = Date.parse(account.metadata.creationTime ?? "");
+      const registrationWindowMs = 30 * 60 * 1000;
+      if (!Number.isFinite(createdAt) ||
+          createdAt > Date.now() + 60 * 1000 ||
+          Date.now() - createdAt > registrationWindowMs) {
+        return {recorded: false};
+      }
+    }
     await recordProductAnalyticsEvent({
       event: event as ProductAnalyticsEvent,
       visitorId: request.data?.visitorId,

@@ -1411,10 +1411,12 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _google() => _run(() async {
     await widget.services.auth.rememberPartnerCode(_partnerCode.text);
     await widget.services.auth.signInWithGoogle();
+    unawaited(widget.services.analytics.trackRegistration());
   });
   Future<void> _apple() => _run(() async {
     await widget.services.auth.rememberPartnerCode(_partnerCode.text);
     await widget.services.auth.signInWithApple();
+    unawaited(widget.services.analytics.trackRegistration());
   });
 
   Future<void> _run(Future<void> Function() action) async {

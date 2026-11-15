@@ -256,7 +256,14 @@ class PrivacyAnalyticsService {
   Future<void> setConsent(bool allowed) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_consentKey, allowed);
-    if (allowed) await trackPageView();
+    if (allowed) {
+      await trackPageView();
+      // Consent can be chosen after sign-up; the server verifies that the
+      // account is new and deduplicates retries by UID.
+      if (cloudEnabled && FirebaseAuth.instance.currentUser != null) {
+        await trackRegistration();
+      }
+    }
   }
 
   Future<void> trackPageView() => _track('page_view');
