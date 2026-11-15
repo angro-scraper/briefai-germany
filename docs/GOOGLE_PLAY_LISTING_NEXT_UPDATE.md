@@ -10,6 +10,14 @@ It did not include an Android binary, a pricing change, or new screenshots.
 Google's automated pre-review checks were still running when the submission
 was verified. The listing becomes public only after Google completes review.
 
+**Public listing recheck, 15 November 2026:** The German Google Play page now
+shows the submitted `5 Gratis-Analysen` short description and the full
+description says that the first five letter analyses and two questionnaires
+can be tried free, followed by subscriptions or one-time credit packs. This
+confirms public copy propagation, not installs, purchases, feature reliability
+or a changed screenshot set.
+Source: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany&hl=de&gl=DE
+
 ## Why this update was needed
 
 The live German default listing was inspected on 20 October 2026. It says

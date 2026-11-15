@@ -18,6 +18,15 @@ that AMIA Technologies is the App Store seller/developer unless that legal
 developer identity has actually been changed in App Store Connect. AMIA may be
 identified as the product team only if legally accurate.
 
+**Public storefront recheck, 15 November 2026:** The Germany App Store page
+currently identifies **Ivica Trajkov** as seller/developer and shows the
+subtitle `Behördenbriefe verstehen`. This newer public observation supersedes
+the historical `Adem Cilgin` statement above for customer-facing copy; it does
+not establish the legal relationship between that individual and AMIA
+Technologies. Keep AMIA described as the product team, not as the iOS store
+seller, until App Store Connect and company records are reconciled.
+Source: https://apps.apple.com/de/app/briefai-germany/id6794959959
+
 ## Proposed German metadata
 
 Use this only after confirming that Germany is the intended primary market and
