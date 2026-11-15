@@ -54,6 +54,7 @@ The first post-baseline count has not yet been read, so no growth is claimed.
 | Day | Auth accounts | New accounts | First analyses | Paid subscriptions | iOS installs | Android installs | Best source | Notes |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | 0 — 14 Nov | 17 | 0 | Not measured | 0 Firestore subscription records; store purchases not checked | Not measured | Not measured | Not measured | Last verified checkpoint, ~22:15 Berlin; 17 includes the owner's account. Do not infer external acquisition. |
+| 1 — 15 Nov, early check | 17 | 0 | Not measured | 0 Firestore subscription documents; store purchases not checked | Not measured | Not measured | No proven source | Production Auth showed `1 – 17 of 17` at ~01:33 Berlin. `adminMetrics/current` still showed 62 lifetime analyses, last updated 14 Nov 10:27 Berlin; this is not a count of first analyses or unique users. |
 
 Decision rules:
 

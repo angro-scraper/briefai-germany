@@ -417,3 +417,21 @@ tailoring or submitting it; obtain approval for the final text and destination.
   https://pugat.de/en/editorial-principles/ ;
   https://germanyupdate.de/schreiben-sie-fur-uns/ ;
   https://newsakt.de/gastbeitrag ; https://www.deutschland4u.com/ .
+
+## Production checkpoint — 15 November 2026, about 01:33 Berlin time
+
+- Firebase Authentication still displayed `1 – 17 of 17` accounts. Relative
+  to the 14 November campaign baseline, verified new accounts are **0**.
+- Firestore `subscriptions` still displayed “This collection has no
+  documents.” This verifies zero recorded entitlements, not zero possible
+  store transactions if a purchase-to-entitlement link failed.
+- `adminMetrics/current` still displayed 62 lifetime analyses and four
+  questionnaire analyses; its update timestamp remained 14 November 2026 at
+  10:27:37 Berlin time. These are not first-analysis or unique-user metrics.
+- The AMIA Roundcube tab in the existing Edge profile also redirected to
+  `?_task=login&_err=session`; no partner reply check was possible without
+  user sign-in. Do not infer that there were no replies.
+- Recent public Reddit search results centred on individual Jobcenter or
+  residence-status problems, often financially or legally sensitive. No
+  fresh thread was sufficiently appropriate for a product mention; no
+  comment or message was posted.
