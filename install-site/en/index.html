@@ -57,13 +57,14 @@
     <aside id="analytics-choice" class="analytics-choice" role="dialog" aria-label="Privacy choice" hidden><strong>Privacy and optional measurement</strong><p>May we count page visits and store-link clicks? Letter contents, recognized text and replies are not sent as analytics events. Hosting and Firebase may independently process technical data, including IP addresses, for operations and security. <a href="/privacy.html" lang="de" style="color:#dbe5ff">Details (German)</a>.</p><div class="analytics-choice-actions"><button class="decline" type="button" data-analytics-choice="no">Decline</button><button class="accept" type="button" data-analytics-choice="yes">Accept</button></div></aside>
     <script type="module">
       import {recordPublicAnalytics} from '/firebase-site-security.js';
+      import {resolveLandingSource} from '/analytics-source.js';
       (() => {
         const consentKey = 'briefai.analytics-consent';
         const visitorKey = 'briefai.analytics-visitor-id';
         const banner = document.getElementById('analytics-choice');
         const consent = localStorage.getItem(consentKey);
         const landingQuery = new URLSearchParams(location.search);
-        const source = landingQuery.get('utm_source') || 'seo_en_landing';
+        const source = resolveLandingSource(location.search, document.referrer, location.origin);
         const referralCode = (landingQuery.get('ref') || '').trim().toLowerCase();
         document.querySelectorAll('a[href^="/app/"]').forEach(link => {
           const destination = new URL(link.href);

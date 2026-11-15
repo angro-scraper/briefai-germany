@@ -285,13 +285,14 @@
     </script>
     <script type="module">
       import {recordPublicAnalytics} from '/firebase-site-security.js';
+      import {resolveLandingSource} from '/analytics-source.js';
 
       (() => {
         const consentKey = 'briefai.analytics-consent';
         const visitorKey = 'briefai.analytics-visitor-id';
         const banner = document.getElementById('analytics-choice');
         const consent = localStorage.getItem(consentKey);
-        const source = new URLSearchParams(location.search).get('utm_source') || 'direct';
+        const source = resolveLandingSource(location.search, document.referrer, location.origin);
         const visitorId = () => {
           let value = localStorage.getItem(visitorKey);
           if (!value) { value = crypto.randomUUID(); localStorage.setItem(visitorKey, value); }

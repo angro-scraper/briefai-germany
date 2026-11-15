@@ -72,13 +72,14 @@
     <aside id="analytics-choice" class="analytics-choice" role="dialog" aria-label="Datenschutz-Auswahl" hidden><strong>Datenschutz und optionale Messung</strong><p>Dürfen wir Besuche und Installationsklicks messen? Briefinhalte, OCR-Texte und Antworten werden nicht als Messwerte gesendet. Hosting und Firebase können unabhängig davon technische Daten einschließlich IP-Adressen für Betrieb und Sicherheit verarbeiten. <a href="/privacy.html" style="color:#dbe5ff">Einzelheiten</a>.</p><div class="analytics-choice-actions"><button class="decline" type="button" data-analytics-choice="no">Ablehnen</button><button class="accept" type="button" data-analytics-choice="yes">Zustimmen</button></div></aside>
     <script type="module">
       import {recordPublicAnalytics} from '/firebase-site-security.js';
+      import {resolveLandingSource} from '/analytics-source.js';
       (() => {
         const consentKey = 'briefai.analytics-consent';
         const visitorKey = 'briefai.analytics-visitor-id';
         const banner = document.getElementById('analytics-choice');
         const consent = localStorage.getItem(consentKey);
         const landingQuery = new URLSearchParams(location.search);
-        const source = landingQuery.get('utm_source') || 'seo_de_landing';
+        const source = resolveLandingSource(location.search, document.referrer, location.origin);
         const referralCode = (landingQuery.get('ref') || '').trim().toLowerCase();
         document.querySelectorAll('a[href^="/app/"]').forEach(link => {
           const destination = new URL(link.href);
