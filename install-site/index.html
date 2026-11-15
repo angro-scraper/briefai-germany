@@ -149,7 +149,25 @@
       // Keep a short channel label when the landing page opens the web app.
       // This lets consented web registrations be attributed to the campaign
       // that sent the visitor, without forwarding referrers or personal data.
-      const campaignSource = landingQuery.get('utm_source');
+      const campaignSource = (() => {
+        const label = landingQuery.get('utm_source')?.trim().toLowerCase();
+        if (label && /^[a-z0-9_-]{1,32}$/.test(label)) return label;
+        if (!document.referrer) return 'unknown';
+        try {
+          const host = new URL(document.referrer).hostname.toLowerCase().replace(/^www\./, '');
+          const ownHost = location.hostname.toLowerCase().replace(/^www\./, '');
+          if (host === ownHost) return 'internal';
+          if (/^google\.(?:com|de|at|ch|co\.uk|fr|nl|pl|ro|com\.tr|com\.ua)$/.test(host)) return 'ref_google';
+          if (host === 'bing.com') return 'ref_bing';
+          if (host === 'duckduckgo.com') return 'ref_duckduckgo';
+          if (host === 'ecosia.org') return 'ref_ecosia';
+          if (host === 'search.yahoo.com' || host === 'yahoo.com') return 'ref_yahoo';
+          if (host === 'search.brave.com') return 'ref_brave';
+          return 'ref_external';
+        } catch {
+          return 'unknown';
+        }
+      })();
       const referralCandidate = (landingQuery.get('ref') || '').trim().toLowerCase();
       const referralCode = /^[a-z0-9][a-z0-9_-]{2,31}$/.test(referralCandidate)
         ? referralCandidate
