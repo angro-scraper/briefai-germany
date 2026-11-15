@@ -1,9 +1,9 @@
 # BriefAI Germany — drafts for short organic videos
 
-Status: **drafts only, not approved for publication**. Each version needs a
-fluent-speaker review before it is recorded or posted. Use fictionalised sample
-letters only; never show a real person's letter, name, reference number or
-deadline.
+Status: the Jobcenter video was published on Bluesky on 15 November 2026;
+all other versions remain drafts. Each new version needs a fluent-speaker
+review before it is recorded or posted. Use fictionalised sample letters
+only; never show a real person's letter, name, reference number or deadline.
 
 ## Production rules
 
@@ -11,8 +11,10 @@ deadline.
   that BriefAI replaces a lawyer, authority or adviser.
 - Brand transparently: `BriefAI Germany by AMIA Technologies`.
 - Ending card: `Information tool — not legal advice` in the video's language.
-- Put both store links in the post caption/profile link, never claim that a
-  particular outcome will result from using the app.
+- Put both store links in the post caption when the platform permits; if a
+  short-character platform permits only one useful link, point to a reviewed
+  guide that visibly contains both store links. Never claim that a particular
+  outcome will result from using the app.
 
 Store links:
 
@@ -30,7 +32,8 @@ Store links:
 explicitly fictional letter and the actual BriefAI brand asset. The rendered
 wording is a shorter adaptation of the storyboard below; it still requires a
 fluent German review and destination-specific approval before publication.
-No video or caption has been posted.
+This version was subsequently approved and posted on Bluesky as documented
+below; the longer captions remain unpublished drafts.
 
 **Caption proposed for review, not publication:**
 
@@ -46,6 +49,19 @@ No video or caption has been posted.
 >
 > iOS: https://apps.apple.com/app/id6794959959
 > Android: https://play.google.com/store/apps/details?id=com.briefai.briefai_germany
+
+**Bluesky video test published 15 November 2026:** The user approved the
+rendered 27-second video and this exact 293-character German text. It was
+posted from `@amiatechnologies.bsky.social` with German language metadata and
+a distinct source tag:
+
+> Post vom Jobcenter? Prüfen Sie Absender, Aktenzeichen, Aufgabe und jedes Datum im Original. Frist unklar? Fragen Sie rechtzeitig nach. BriefAI Germany von AMIA Technologies ist keine Rechtsberatung. https://briefai.salvesca.com/jobcenter-bescheid-frist-pruefen/?utm_source=bluesky_video
+
+Public post: <https://bsky.app/profile/amiatechnologies.bsky.social/post/3n2cpww6zcs24>.
+The Bluesky profile displayed the full text and an embedded 27-second player;
+the site confirmed “Your post was sent”. This tests a video format after the
+earlier static posts showed no visible engagement at the last checkpoint.
+Views, visits, registrations and subscriptions have not been measured yet.
 
 | Time | Visual | Caption / voice-over |
 | --- | --- | --- |
