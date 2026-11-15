@@ -353,3 +353,23 @@ tailoring or submitting it; obtain approval for the final text and destination.
   https://germanpedia.com/contact/
 - FindEnglish remains excluded: its actual provider page requires an annual
   fee despite a footer describing the directory as free.
+
+## Production measurement checkpoint — 15 November 2026, 01:16 Berlin time
+
+- Production Firebase Authentication `briefai-germany` still showed `1–17 of
+  17` users. Its newest listed account was created 26 October 2026. Thus no
+  new Firebase Auth accounts are visible since the 14 November checkpoint;
+  this does not establish whether anyone visited the landing pages or store.
+- The verified Search Console URL-prefix property still reported that Search
+  Performance and Page Indexing data were processing. Neither impressions
+  nor clicks nor indexed-page counts can yet be claimed. The `/sitemap.xml`
+  submission was marked `Successful`, last read 14 November 2026, with 19
+  discovered pages. The public sitemap has since changed; this report is not
+  proof that the newer pages have been processed.
+- Next qualified outreach candidate: GermanPedia's
+  `cooperation@germanpedia.com`, which explicitly invites partnership queries
+  from services relevant to newcomers. Ask only whether an unpaid,
+  source-based, disclosed AMIA educational contribution is eligible and what
+  their author-note link rules are. Do not imply editorial approval or send a
+  guest post. No email has been sent. Source:
+  https://germanpedia.com/contact/
