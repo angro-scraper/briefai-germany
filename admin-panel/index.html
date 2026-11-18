@@ -28,7 +28,7 @@
       <p id="status">Sign in with an account that has the Firebase admin claim.</p>
       <section class="toolbar" aria-label="Admin controls">
         <button id="refresh-dashboard" type="button">Refresh dashboard</button>
-        <span id="privacy-note">Privacy: letters, OCR, analyses and chats stay only on user devices and cannot be opened in admin.</span>
+        <span id="privacy-note">Privacy: original letter files stay on the device by default. Extracted text is sent for AI analysis when requested; encrypted cloud backup is optional. Admin cannot open users' letters.</span>
       </section>
       <section class="metrics" aria-label="Current metrics">
         <article><span>Users</span><strong id="users">—</strong></article>
@@ -42,15 +42,25 @@
         <article><span>AI model</span><strong id="ai-model">—</strong></article>
       </section>
       <section class="card wide-card">
-        <div class="section-heading"><div><h2>Website funnel</h2><p>Consent-based, privacy-preserving product metrics. No letter content or personal profiles are included.</p></div><span id="analytics-window" class="status-pill">Last 30 days</span></div>
+        <div class="section-heading"><div><h2>Discovery metrics</h2><p>Consent-based counts. Earlier page-view history can include app opens; native registrations cannot be joined to store clicks. No letter content or personal profiles are included.</p></div><span id="analytics-window" class="status-pill">Last 30 days</span></div>
         <section class="metrics" aria-label="Website funnel metrics">
           <article><span>Page views</span><strong id="page-views">—</strong></article>
           <article><span>Unique visitors</span><strong id="unique-visitors">—</strong></article>
           <article><span>Install clicks</span><strong id="install-clicks">—</strong></article>
           <article><span>Registrations</span><strong id="analytics-registrations">—</strong></article>
-          <article><span>Visit → registration</span><strong id="visit-conversion">—</strong></article>
         </section>
         <div class="table-wrap"><table><thead><tr><th>Source</th><th>Views</th><th>Install clicks</th><th>Registrations</th></tr></thead><tbody id="analytics-sources-table"><tr><td colspan="4">No consented traffic recorded yet.</td></tr></tbody></table></div>
+      </section>
+      <section class="card wide-card">
+        <div class="section-heading"><div><h2>In-app funnel</h2><p>Last 30 days; consent-based event counts, not unique people. Purchase totals must come from verified store records, not these events.</p></div></div>
+        <section class="metrics" aria-label="In-app funnel metrics">
+          <article><span>App opens</span><strong id="app-opens">—</strong></article>
+          <article><span>Onboarding completed</span><strong id="onboarding-completes">—</strong></article>
+          <article><span>Analyses started</span><strong id="analysis-starts">—</strong></article>
+          <article><span>Analyses completed</span><strong id="analysis-completes">—</strong></article>
+          <article><span>Second document</span><strong id="second-documents">—</strong></article>
+          <article><span>Paywall opened</span><strong id="paywall-opens">—</strong></article>
+        </section>
       </section>
       <section class="card wide-card">
         <div class="section-heading"><div><h2>Android tester applications</h2><p>Emails collected with consent only for Google Play closed testing. Add each address in Play Console, then mark its status here.</p></div><button id="refresh-tester-leads" class="secondary-action" type="button">Refresh testers</button></div>

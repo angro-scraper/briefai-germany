@@ -255,9 +255,15 @@ class PrivacyAnalyticsService {
 
   Future<void> setConsent(bool allowed) async {
     final preferences = await SharedPreferences.getInstance();
+    final wasAllowed = preferences.getBool(_consentKey) == true;
     await preferences.setBool(_consentKey, allowed);
     if (allowed) {
-      await trackPageView();
+      if (!wasAllowed) {
+        await trackAppOpen();
+        if (preferences.getBool('briefai.onboarding-complete') == true) {
+          await trackOnboardingComplete();
+        }
+      }
       // Consent can be chosen after sign-up; the server verifies that the
       // account is new and deduplicates retries by UID.
       if (cloudEnabled && FirebaseAuth.instance.currentUser != null) {
@@ -269,27 +275,35 @@ class PrivacyAnalyticsService {
   Future<void> trackPageView() => _track('page_view');
   Future<void> trackInstallClick() => _track('install_click');
   Future<void> trackRegistration() => _track('registration');
+  Future<void> trackAppOpen() => _track('app_open', funnel: true);
+  Future<void> trackOnboardingComplete() =>
+      _track('onboarding_complete', funnel: true);
+  Future<void> trackAnalysisStart() => _track('analysis_start', funnel: true);
+  Future<void> trackAnalysisComplete() =>
+      _track('analysis_complete', funnel: true);
+  Future<void> trackSecondDocument() => _track('second_document', funnel: true);
+  Future<void> trackPaywallOpen() => _track('paywall_open', funnel: true);
 
-  Future<void> _track(String event) async {
+  Future<void> _track(String event, {bool funnel = false}) async {
     if (!cloudEnabled) return;
     final preferences = await SharedPreferences.getInstance();
     if (preferences.getBool(_consentKey) != true) return;
-    var visitorId = preferences.getString(_visitorKey);
-    if (visitorId == null || visitorId.isEmpty) {
-      visitorId = const Uuid().v4();
-      await preferences.setString(_visitorKey, visitorId);
-    }
     final source = kIsWeb
         ? (Uri.base.queryParameters['utm_source'] ?? 'direct')
         : 'native';
+    final payload = <String, String>{'event': event, 'source': source};
+    if (!funnel) {
+      var visitorId = preferences.getString(_visitorKey);
+      if (visitorId == null || visitorId.isEmpty) {
+        visitorId = const Uuid().v4();
+        await preferences.setString(_visitorKey, visitorId);
+      }
+      payload['visitorId'] = visitorId;
+    }
     try {
       await FirebaseFunctions.instanceFor(
         region: 'europe-west3',
-      ).httpsCallable('recordAnalyticsEvent').call<void>({
-        'event': event,
-        'visitorId': visitorId,
-        'source': source,
-      });
+      ).httpsCallable('recordAnalyticsEvent').call<void>(payload);
     } on Object {
       // Metrics are optional and must never block the primary product flow.
     }

@@ -219,7 +219,23 @@ async function loadMetrics() {
     new Intl.NumberFormat('de-DE').format((metric.aiInputTokens ?? 0) + (metric.aiOutputTokens ?? 0));
   document.querySelector('#ai-model').textContent = metric.aiModel ?? '—';
   renderAnalytics(metric.analytics);
+  renderFunnel(metric.funnel);
   renderPlans(metric);
+}
+
+function renderFunnel(funnel) {
+  const counts = funnel?.last30 ?? {};
+  const number = new Intl.NumberFormat('de-DE');
+  for (const [id, field] of Object.entries({
+    'app-opens': 'appOpens',
+    'onboarding-completes': 'onboardingCompletes',
+    'analysis-starts': 'analysisStarts',
+    'analysis-completes': 'analysisCompletes',
+    'second-documents': 'secondDocuments',
+    'paywall-opens': 'paywallOpens',
+  })) {
+    document.getElementById(id).textContent = number.format(Number(counts[field] ?? 0));
+  }
 }
 
 function renderAnalytics(analytics) {
@@ -231,9 +247,6 @@ function renderAnalytics(analytics) {
   document.querySelector('#unique-visitors').textContent = number.format(Number(period.uniqueVisitors ?? 0));
   document.querySelector('#install-clicks').textContent = number.format(Number(period.installClicks ?? 0));
   document.querySelector('#analytics-registrations').textContent = number.format(registrations);
-  document.querySelector('#visit-conversion').textContent = pageViews
-    ? `${((registrations / pageViews) * 100).toFixed(1)}%`
-    : '—';
   const table = document.querySelector('#analytics-sources-table');
   table.replaceChildren();
   const sources = Array.isArray(analytics?.sources) ? analytics.sources : [];

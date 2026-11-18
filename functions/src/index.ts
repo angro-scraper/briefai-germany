@@ -1141,12 +1141,28 @@ function berlinDate(value: Date): string {
 }
 
 type ProductAnalyticsEvent = "page_view" | "install_click" | "registration";
+type FunnelEvent = "app_open" | "onboarding_complete" | "analysis_start" |
+  "analysis_complete" | "second_document" | "paywall_open";
 
-const productAnalyticsEvents = new Set<ProductAnalyticsEvent>([
+const productAnalyticsEvents = new Set<string>([
   "page_view",
   "install_click",
   "registration",
+  "app_open",
+  "onboarding_complete",
+  "analysis_start",
+  "analysis_complete",
+  "second_document",
+  "paywall_open",
 ]);
+const funnelFields: Record<FunnelEvent, string> = {
+  app_open: "appOpens",
+  onboarding_complete: "onboardingCompletes",
+  analysis_start: "analysisStarts",
+  analysis_complete: "analysisCompletes",
+  second_document: "secondDocuments",
+  paywall_open: "paywallOpens",
+};
 
 function analyticsSource(value: unknown): string {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "direct";
@@ -1212,12 +1228,29 @@ async function recordProductAnalyticsEvent({
   });
 }
 
+async function recordFunnelAnalyticsEvent(event: FunnelEvent, source: unknown): Promise<void> {
+  // Aggregate counts contain no document text, files, account ID or
+  // persistent visitor identifier. The client sends them only with consent.
+  const day = berlinDate(new Date());
+  const sourceKey = analyticsSource(source);
+  await db.collection("productFunnelDaily").doc(day).set({
+    [funnelFields[event]]: FieldValue.increment(1),
+    [`sources.${sourceKey}.${event}`]: FieldValue.increment(1),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+}
+
 export const recordAnalyticsEvent = onCall(
   {region: "europe-west3", enforceAppCheck: true},
   async (request) => {
+    requirePublicBurstAllowance(request, "analytics", 120, 60 * 1000);
     const event = request.data?.event;
-    if (typeof event !== "string" || !productAnalyticsEvents.has(event as ProductAnalyticsEvent)) {
+    if (typeof event !== "string" || !productAnalyticsEvents.has(event)) {
       throw new HttpsError("invalid-argument", "Nepoznat analytics događaj.");
+    }
+    if (event in funnelFields) {
+      await recordFunnelAnalyticsEvent(event as FunnelEvent, request.data?.source);
+      return {recorded: true};
     }
     if (event === "registration" && !request.auth?.uid) {
       throw new HttpsError("unauthenticated", "Prijava je obavezna za registraciju.");
@@ -2380,6 +2413,28 @@ async function productAnalyticsOverview() {
   };
 }
 
+async function productFunnelOverview() {
+  const now = new Date();
+  const days = Array.from({length: 30}, (_, index) => berlinDate(
+    new Date(now.getTime() - index * 24 * 60 * 60 * 1000),
+  ));
+  const snapshots = await db.getAll(
+    ...days.map((day) => db.collection("productFunnelDaily").doc(day)),
+  );
+  const fields = Object.values(funnelFields);
+  const empty = () => Object.fromEntries(fields.map((field) => [field, 0]));
+  const last30 = empty();
+  const last7 = empty();
+  for (const [index, snapshot] of snapshots.entries()) {
+    const data = snapshot.data() ?? {};
+    for (const field of fields) {
+      last30[field] += Number(data[field] ?? 0);
+      if (index < 7) last7[field] += Number(data[field] ?? 0);
+    }
+  }
+  return {last7, last30};
+}
+
 /**
  * Firebase Authentication is the source of truth for registered accounts.
  * The local-first app mirrors a lightweight profile to Firestore only after a
@@ -2401,7 +2456,7 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
   await requireAdmin(request.auth?.uid);
   const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const monthKey = berlinDate(new Date()).slice(0, 7);
-  const [registeredUsers, profileUsers, activeUsers, premiumUsers, metrics, aiMetrics, analytics] = await Promise.all([
+  const [registeredUsers, profileUsers, activeUsers, premiumUsers, metrics, aiMetrics, analytics, funnel] = await Promise.all([
     registeredAuthUserCount(),
     db.collection("users").count().get(),
     db.collection("users").where("lastActiveAt", ">=", activeSince).count().get(),
@@ -2409,6 +2464,7 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
     db.collection("adminMetrics").doc("current").get(),
     db.collection("adminMetrics").doc(`ai-${monthKey}`).get(),
     productAnalyticsOverview(),
+    productFunnelOverview(),
   ]);
   return {
     users: registeredUsers,
@@ -2430,6 +2486,7 @@ export const adminOverview = onCall({region: "europe-west3", enforceAppCheck: fa
       aiBudgetUsd: plan.aiBudgetUsd,
     })),
     analytics,
+    funnel,
   };
 });
 

@@ -115,13 +115,18 @@ class _BriefAiAppState extends State<BriefAiApp> {
       interfaceLanguage,
     );
     await preferences.setString('briefai.ai-language', aiLanguage);
+    unawaited(widget.services.analytics.trackAppOpen());
     if (mounted) setState(() => _restored = true);
   }
 
   Future<void> _completeOnboarding() async {
+    final firstCompletion = !_state.onboardingComplete;
     _state.completeOnboarding();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool('briefai.onboarding-complete', true);
+    if (firstCompletion) {
+      unawaited(widget.services.analytics.trackOnboardingComplete());
+    }
   }
 
   Future<void> _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
@@ -535,7 +540,6 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     widget.services.household.addListener(_onHouseholdProfileChanged);
     unawaited(_bindLocalVault());
-    unawaited(widget.services.analytics.trackPageView());
     if (widget.services.cloudEnabled) {
       _authSubscription = widget.services.auth.authChanges.listen((user) {
         unawaited(_bindLocalVault());
@@ -1947,6 +1951,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       if (_text.text.trim().isEmpty) {
         throw StateError(enterTextFirst);
       }
+      unawaited(widget.services.analytics.trackAnalysisStart());
       final analysis = await widget.services.ai.analyse(
         letterId: id,
         text: _text.text,
@@ -1961,7 +1966,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         await widget.services.entitlements.recordAnalysis('local-device');
         widget.state.setFreeAnalysesUsed(widget.state.freeAnalysesUsed + 1);
       }
+      final isSecondDocument = widget.state.letters.length == 1;
       widget.state.addAnalysis(analysis);
+      unawaited(widget.services.analytics.trackAnalysisComplete());
+      if (isSecondDocument) {
+        unawaited(widget.services.analytics.trackSecondDocument());
+      }
       // A notification permission or OEM scheduler failure must never hide a
       // completed AI result. The analysis remains available even if reminders
       // cannot be registered on this device.
@@ -2974,6 +2984,7 @@ class _QuestionnairePackagesScreenState
   @override
   void initState() {
     super.initState();
+    unawaited(widget.services.analytics.trackPaywallOpen());
     _offers = () async {
       if (kIsWeb) {
         return (
@@ -5283,6 +5294,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(widget.services.analytics.trackPaywallOpen());
     _offers = () async {
       if (kIsWeb) {
         final nativeWrapper = await widget.services.purchases
