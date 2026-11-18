@@ -454,7 +454,7 @@ class AuthService {
         'Native prijava još nije spremna. Zatvorite aplikaciju i pokušajte ponovo.',
       );
     }
-    await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
+    await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
     await _ensureProfile();
   }
 
@@ -473,7 +473,7 @@ class AuthService {
         'Apple prijava još nije spremna. Zatvorite aplikaciju i pokušajte ponovo.',
       );
     }
-    await FirebaseAuth.instance.signInWithProvider(AppleAuthProvider());
+    await FirebaseAuth.instance.signInWithPopup(AppleAuthProvider());
     await _ensureProfile();
   }
 
