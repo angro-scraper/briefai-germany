@@ -9,12 +9,15 @@ and iOS wrappers.
 - Native Flutter WebView shell at `lib/wrapper_main.dart`; it always loads the
   current PWA, so ordinary product updates do not require a new Store binary.
 - Images and PDFs are OCR-processed on the user's device.
-- Original files, OCR text, analyses, replies and letter chat are stored only
-  in the local IndexedDB/application database.
-- Firebase is limited to authentication, profile/usage metadata, verified
+- By default, original files and the letter archive stay in the local
+  IndexedDB/application database. An optional, user-initiated encrypted cloud
+  backup stores an encrypted archive in the account's private Firebase Storage
+  path; it is not uploaded automatically on sign-in.
+- Firebase also handles authentication, profile/usage metadata, verified
   subscription entitlement, App Check, messaging and aggregate admin metrics.
-- OpenAI is called only through authenticated Cloud Functions. The OCR text is
-  sent for the current request but is not written to a cloud archive.
+- When a user requests AI analysis, recognized text (and answers entered for
+  reply or form drafts) is sent through Cloud Functions to the OpenAI API.
+  The original image or PDF is not sent for that analysis.
 - A private multilingual on-device fallback keeps basic analysis available
   when the AI backend is unavailable.
 
@@ -48,6 +51,7 @@ Apple, signing or service-account secrets.
 - PWA: <https://briefai.salvesca.com/app/>
 - Admin: <https://briefai.salvesca.com/admin/>
 - Platform page: <https://briefai.salvesca.com/>
+- iPhone: <https://apps.apple.com/app/id6794959959>
 - Android instalacija i sva buduća ažuriranja:
   <https://play.google.com/store/apps/details?id=com.briefai.briefai_germany>
 
