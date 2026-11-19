@@ -57,5 +57,8 @@ export function resolveGuideSource(guideLabel, search, referrer, siteOrigin) {
   if (campaign) return campaign;
   const guide = Object.hasOwn(guideCodes, guideLabel) ? guideCodes[guideLabel] : 'g_other';
   const referral = resolveLandingSource('', referrer, siteOrigin);
-  return `${guide}_${referral}`;
+  // The long publisher label would make several combined guide sources exceed
+  // the backend's 32-character limit and silently turn into "direct".
+  const guideReferral = referral === 'ref_deutschlanddecoded' ? 'ref_dd' : referral;
+  return `${guide}_${guideReferral}`;
 }
