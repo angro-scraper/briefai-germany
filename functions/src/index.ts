@@ -9,6 +9,7 @@ import {defineSecret, defineString} from "firebase-functions/params";
 import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
 import OpenAI from "openai";
 import {createHash, createPublicKey, createSign, randomUUID, verify} from "node:crypto";
+import {dailyAnalyticsSources} from "./analytics_sources";
 
 initializeApp();
 
@@ -2358,15 +2359,11 @@ async function productAnalyticsOverview() {
       aggregate.installClicks += Number(data.installClicks ?? 0);
       aggregate.registrations += Number(data.registrations ?? 0);
     }
-    if (data.sources && typeof data.sources === "object") {
-      for (const [source, raw] of Object.entries(data.sources as Record<string, unknown>)) {
-        if (!raw || typeof raw !== "object") continue;
-        const eventCounts = raw as Record<string, unknown>;
+    for (const [source, eventCounts] of Object.entries(dailyAnalyticsSources(data))) {
         const bucket = sources[source] ??= {pageViews: 0, installClicks: 0, registrations: 0};
-        bucket.pageViews += Number(eventCounts.page_view ?? 0);
-        bucket.installClicks += Number(eventCounts.install_click ?? 0);
-        bucket.registrations += Number(eventCounts.registration ?? 0);
-      }
+        bucket.pageViews += eventCounts.pageViews;
+        bucket.installClicks += eventCounts.installClicks;
+        bucket.registrations += eventCounts.registrations;
     }
   }
   return {
