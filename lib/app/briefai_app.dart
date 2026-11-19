@@ -3063,10 +3063,11 @@ class _QuestionnairePackagesScreenState
               // product look purchasable and ended in a generic failure.
               _PlanCard(
                 title: details[pack.productId]?.title ?? '${pack.credits}',
-                price:
-                    details[pack.productId]?.price ??
-                    prices[pack.productId] ??
-                    pack.fallbackPrice,
+                price: storeProductAvailable(pack.productId)
+                    ? details[pack.productId]?.price ??
+                          prices[pack.productId] ??
+                          pack.fallbackPrice
+                    : context.strings.purchaseMessage('unavailable'),
                 features: [
                   context.strings.creditPackText('item', count: pack.credits),
                   context.strings.creditPackText('detail'),
@@ -5371,6 +5372,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ? snapshot.data?.nativeWrapper == true &&
                         wrapperPrices.containsKey(productId)
                   : productById.containsKey(productId);
+              bool nativeOfferUnavailable(String productId) =>
+                  (kIsWeb ? snapshot.data?.nativeWrapper == true : true) &&
+                  !storeProductAvailable(productId);
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
                 children: [
@@ -5447,10 +5451,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       title:
                           productById[pack.productId]?.title ??
                           strings.creditPackText('item', count: pack.credits),
-                      price:
-                          productById[pack.productId]?.price ??
-                          wrapperPrices[pack.productId] ??
-                          pack.fallbackPrice,
+                      price: !storeProductAvailable(pack.productId)
+                          ? strings.purchaseMessage('unavailable')
+                          : productById[pack.productId]?.price ??
+                                wrapperPrices[pack.productId] ??
+                                pack.fallbackPrice,
                       features: [
                         strings.creditPackText('item', count: pack.credits),
                         strings.creditPackText('detail'),
@@ -5472,14 +5477,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       title:
                           '${plan.key.toUpperCase()} · '
                           '${plan.monthlyAnalysisLimit}',
-                      price: strings
-                          .text('pricePerMonth')
-                          .replaceFirst(
-                            '{price}',
-                            productById[plan.productId]?.price ??
-                                wrapperPrices[plan.productId] ??
-                                plan.fallbackPrice,
-                          ),
+                      price: nativeOfferUnavailable(plan.productId)
+                          ? strings.purchaseMessage('unavailable')
+                          : strings
+                                .text('pricePerMonth')
+                                .replaceFirst(
+                                  '{price}',
+                                  productById[plan.productId]?.price ??
+                                      wrapperPrices[plan.productId] ??
+                                      plan.fallbackPrice,
+                                ),
                       features: [
                         strings
                             .text('analysesPerMonth')
@@ -5499,10 +5506,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           : storeProductAvailable(plan.productId)
                           ? () => _buy(productById[plan.productId])
                           : null,
-                      unavailable:
-                          snapshot.data?.nativeWrapper == true &&
-                              !storeProductAvailable(plan.productId) ||
-                          !kIsWeb && !storeProductAvailable(plan.productId),
+                      unavailable: nativeOfferUnavailable(plan.productId),
                     ),
                     const SizedBox(height: 12),
                   ],
