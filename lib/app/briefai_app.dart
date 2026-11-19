@@ -1367,6 +1367,34 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                 ),
+                const SizedBox(height: 12),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Link(
+                      uri: Uri.parse(
+                        'https://briefai.salvesca.com/privacy.html',
+                      ),
+                      target: LinkTarget.self,
+                      builder: (context, followLink) => TextButton(
+                        key: const ValueKey('sign-in-privacy-link'),
+                        onPressed: followLink,
+                        child: Text(strings.text('privacyPolicy')),
+                      ),
+                    ),
+                    const Text('·'),
+                    Link(
+                      uri: Uri.parse('https://briefai.salvesca.com/terms.html'),
+                      target: LinkTarget.self,
+                      builder: (context, followLink) => TextButton(
+                        key: const ValueKey('sign-in-terms-link'),
+                        onPressed: followLink,
+                        child: Text(strings.text('terms')),
+                      ),
+                    ),
+                  ],
+                ),
                 if (_loading) ...[
                   const SizedBox(height: 22),
                   const Center(
