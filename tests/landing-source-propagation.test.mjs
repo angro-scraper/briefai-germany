@@ -16,6 +16,10 @@ for (const [query, referrer] of [
   ['?utm_source=invalid%20value', 'https://www.google.de/search?q=letter'],
   ['', 'https://bing.com/search?q=letter'],
   ['', 'https://briefai.salvesca.com/de/'],
+  ['', 'https://www.deutschlanddecoded.com/letter-guide?private=1'],
+  ['', 'https://deutschlanddecoded.com.evil.example/'],
+  ['', 'https://www.adriaveza.de/de/partner/briefai-germany-amia-technologies.html?private=1'],
+  ['', 'https://adriaveza.de.evil.example/'],
   ['', 'https://other.example/path?private=1'],
 ]) {
   test(`root web-app source matches consented analytics for ${query || '(untagged)'} / ${referrer || '(no referrer)'}`, () => {
@@ -30,3 +34,10 @@ for (const [query, referrer] of [
     assert.ok(actual.length <= 32);
   });
 }
+
+test('known partner referrers are reduced to safe labels', () => {
+  assert.equal(resolveLandingSource('', 'https://deutschlanddecoded.com/letter-guide?private=1', 'https://briefai.salvesca.com'), 'ref_deutschlanddecoded');
+  assert.equal(resolveLandingSource('', 'https://www.adriaveza.de/de/partner/briefai-germany-amia-technologies.html?private=1', 'https://briefai.salvesca.com'), 'ref_adriaveza');
+  assert.equal(resolveLandingSource('', 'https://deutschlanddecoded.com.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
+  assert.equal(resolveLandingSource('', 'https://adriaveza.de.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
+});

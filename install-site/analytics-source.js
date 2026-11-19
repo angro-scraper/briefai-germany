@@ -20,6 +20,8 @@ export function resolveLandingSource(search, referrer, siteOrigin) {
     if (referringHost === 'ecosia.org') return 'ref_ecosia';
     if (referringHost === 'search.yahoo.com' || referringHost === 'yahoo.com') return 'ref_yahoo';
     if (referringHost === 'search.brave.com') return 'ref_brave';
+    if (referringHost === 'deutschlanddecoded.com') return 'ref_deutschlanddecoded';
+    if (referringHost === 'adriaveza.de') return 'ref_adriaveza';
     return 'ref_external';
   } catch {
     return 'unknown';
