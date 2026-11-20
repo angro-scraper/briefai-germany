@@ -41,6 +41,7 @@ const guideCodes = Object.freeze({
   seo_de_finanzamt_steuerbescheid: 'g_de_tax',
   seo_de_jobcenter_mitwirkung: 'g_de_mitw',
   seo_de_jobcenter_anhoerung: 'g_de_hear',
+  seo_de_jobcenter_termin: 'g_de_jcterm',
   seo_de_krankenkasse_bescheid: 'g_de_health',
   seo_de_jobcenter_veraenderungsmitteilung: 'g_de_change',
   seo_de_jobcenter_frist: 'g_de_jcfrist',
