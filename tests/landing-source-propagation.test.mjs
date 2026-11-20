@@ -6,6 +6,9 @@ import { resolveGuideSource, resolveLandingSource } from '../install-site/analyt
 
 const landing = readFileSync(new URL('../install-site/index.html', import.meta.url), 'utf8');
 const analyticsSourceScript = readFileSync(new URL('../install-site/analytics-source.js', import.meta.url), 'utf8');
+const appointmentGuide = readFileSync(new URL('../install-site/jobcenter-einladung-termin-verstehen/index.html', import.meta.url), 'utf8');
+const germanLanding = readFileSync(new URL('../install-site/de/index.html', import.meta.url), 'utf8');
+const sitemap = readFileSync(new URL('../install-site/sitemap.xml', import.meta.url), 'utf8');
 const sourceExpression = landing.match(/const campaignSource = (\(\(\) => \{[\s\S]*?\}\)\(\));/);
 assert.ok(sourceExpression, 'the root landing must derive its web-app source');
 assert.match(landing, /if \(campaignSource\) appQuery\.set\('utm_source', campaignSource\)/);
@@ -61,4 +64,22 @@ test('English Jobcenter guide has its own short source label', () => {
     resolveGuideSource('seo_en_jobcenter_documents', '', '', 'https://briefai.salvesca.com'),
     'g_en_jcdocs_unknown',
   );
+});
+
+test('German Jobcenter appointment guide has its own short source label', () => {
+  assert.equal(
+    resolveGuideSource('seo_de_jobcenter_termin', '', '', 'https://briefai.salvesca.com'),
+    'g_de_jcterm_unknown',
+  );
+});
+
+test('Jobcenter appointment guide is discoverable and offers both stores with a disclaimer', () => {
+  const slug = '/jobcenter-einladung-termin-verstehen/';
+  assert.match(appointmentGuide, /<meta name="briefai-source" content="seo_de_jobcenter_termin"/);
+  assert.ok(germanLanding.includes(`href="${slug}"`));
+  assert.ok(sitemap.includes(`https://briefai.salvesca.com${slug}`));
+  assert.match(appointmentGuide, /apps\.apple\.com\/app\/id6794959959/);
+  assert.match(appointmentGuide, /play\.google\.com\/store\/apps\/details\?id=com\.briefai\.briefai_germany/);
+  assert.match(appointmentGuide, /keine Rechts- oder Sozialberatung/);
+  assert.match(appointmentGuide, /https:\/\/www\.arbeitsagentur\.de\/grundsicherung\/termin-jobcenter/);
 });
