@@ -119,6 +119,26 @@ void main() {
     expect(AppStrings.interfaceLocale('de'), const Locale('de'));
   });
 
+  test('account requirement is explained in every interface language', () {
+    const englishNotice = 'A free account is required to analyse a letter.';
+    expect(const AppStrings(Locale('en')).analysisAccountNotice, englishNotice);
+    expect(
+      const AppStrings(Locale('de')).analysisAccountNotice,
+      'Für die Briefanalyse ist ein kostenloses Konto erforderlich.',
+    );
+    expect(
+      const AppStrings(Locale('sr')).analysisAccountNotice,
+      'Za analizu pisma potreban je besplatan nalog.',
+    );
+    for (final language in AppStrings.fullyLocalizedLanguageCodes) {
+      final notice = AppStrings(Locale(language)).analysisAccountNotice;
+      expect(notice.trim(), isNotEmpty);
+      if (language != 'en') {
+        expect(notice, isNot(englishNotice));
+      }
+    }
+  });
+
   test('first-run interface follows a supported device language', () {
     expect(AppStrings.initialInterfaceLanguage(deviceLanguage: 'de'), 'de');
     expect(AppStrings.initialInterfaceLanguage(deviceLanguage: 'en'), 'en');

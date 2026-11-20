@@ -158,6 +158,26 @@ class AppStrings {
       _values['en']![key] ??
       key;
 
+  /// Shown before document selection when a signed-out user opens analysis.
+  String get analysisAccountNotice => switch (locale.languageCode) {
+    'ar' => 'يتطلب تحليل الرسالة حسابًا مجانيًا.',
+    'bg' => 'За анализа на писмо е нужен безплатен акаунт.',
+    'bs' => 'Za analizu pisma potreban je besplatan nalog.',
+    'de' => 'Für die Briefanalyse ist ein kostenloses Konto erforderlich.',
+    'el' => 'Για την ανάλυση επιστολής απαιτείται δωρεάν λογαριασμός.',
+    'hr' => 'Za analizu pisma potreban je besplatan korisnički račun.',
+    'it' => 'Per analizzare una lettera serve un account gratuito.',
+    'mk' => 'За анализа на писмо е потребна бесплатна сметка.',
+    'pl' => 'Do analizy pisma potrzebne jest bezpłatne konto.',
+    'ro' => 'Pentru analiza unei scrisori este necesar un cont gratuit.',
+    'ru' => 'Для анализа письма нужна бесплатная учётная запись.',
+    'sq' => 'Për të analizuar një letër nevojitet një llogari falas.',
+    'sr' => 'Za analizu pisma potreban je besplatan nalog.',
+    'tr' => 'Mektup analizi için ücretsiz bir hesap gerekir.',
+    'uk' => 'Для аналізу листа потрібен безкоштовний обліковий запис.',
+    _ => 'A free account is required to analyse a letter.',
+  };
+
   String get partnerCodeOptional => switch (locale.languageCode) {
     'ar' => 'رمز الشريك (اختياري)',
     'bg' => 'Код на партньор (по избор)',
