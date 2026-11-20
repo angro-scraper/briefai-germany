@@ -24,6 +24,9 @@ for (const [query, referrer] of [
   ['', 'https://deutschlanddecoded.com.evil.example/'],
   ['', 'https://www.adriaveza.de/de/partner/briefai-germany-amia-technologies.html?private=1'],
   ['', 'https://adriaveza.de.evil.example/'],
+  ['', 'https://getindieapps.com/app/briefai-germany?private=1'],
+  ['', 'https://indie-apps.com/apps/briefai-germany-959959?private=1'],
+  ['', 'https://getindieapps.com.evil.example/'],
   ['', 'https://other.example/path?private=1'],
 ]) {
   test(`root web-app source matches consented analytics for ${query || '(untagged)'} / ${referrer || '(no referrer)'}`, () => {
@@ -42,8 +45,11 @@ for (const [query, referrer] of [
 test('known partner referrers are reduced to safe labels', () => {
   assert.equal(resolveLandingSource('', 'https://deutschlanddecoded.com/letter-guide?private=1', 'https://briefai.salvesca.com'), 'ref_deutschlanddecoded');
   assert.equal(resolveLandingSource('', 'https://www.adriaveza.de/de/partner/briefai-germany-amia-technologies.html?private=1', 'https://briefai.salvesca.com'), 'ref_adriaveza');
+  assert.equal(resolveLandingSource('', 'https://getindieapps.com/app/briefai-germany?private=1', 'https://briefai.salvesca.com'), 'ref_getindieapps');
+  assert.equal(resolveLandingSource('', 'https://indie-apps.com/apps/briefai-germany-959959?private=1', 'https://briefai.salvesca.com'), 'ref_indieapps');
   assert.equal(resolveLandingSource('', 'https://deutschlanddecoded.com.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
   assert.equal(resolveLandingSource('', 'https://adriaveza.de.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
+  assert.equal(resolveLandingSource('', 'https://getindieapps.com.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
 });
 
 test('guide source stays within the backend limit for long publisher referrers', () => {
