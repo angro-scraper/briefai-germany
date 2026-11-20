@@ -55,3 +55,10 @@ test('guide source stays within the backend limit for long publisher referrers',
     assert.ok(source.endsWith('_ref_dd'), `${guide} publisher attribution was lost`);
   }
 });
+
+test('English Jobcenter guide has its own short source label', () => {
+  assert.equal(
+    resolveGuideSource('seo_en_jobcenter_documents', '', '', 'https://briefai.salvesca.com'),
+    'g_en_jcdocs_unknown',
+  );
+});

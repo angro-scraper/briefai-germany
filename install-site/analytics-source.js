@@ -46,6 +46,7 @@ const guideCodes = Object.freeze({
   seo_de_jobcenter_frist: 'g_de_jcfrist',
   seo_bg_sluzhebno_pismo: 'g_bg_letter',
   seo_en_official_letter: 'g_en_letter',
+  seo_en_jobcenter_documents: 'g_en_jcdocs',
   seo_ru_nemetskoe_pismo: 'g_ru_letter',
   seo_de_rundfunkbeitrag_gez: 'g_de_gez',
   seo_ro_scrisoare: 'g_ro_letter',
