@@ -22,6 +22,8 @@ export function resolveLandingSource(search, referrer, siteOrigin) {
     if (referringHost === 'search.brave.com') return 'ref_brave';
     if (referringHost === 'deutschlanddecoded.com') return 'ref_deutschlanddecoded';
     if (referringHost === 'adriaveza.de') return 'ref_adriaveza';
+    if (referringHost === 'getindieapps.com') return 'ref_getindieapps';
+    if (referringHost === 'indie-apps.com') return 'ref_indieapps';
     return 'ref_external';
   } catch {
     return 'unknown';
