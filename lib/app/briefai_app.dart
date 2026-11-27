@@ -1751,6 +1751,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             ),
             const SizedBox(height: 8),
             Text(strings.text('localProcessing')),
+            if (kCloudAiEnabled &&
+                widget.services.cloudEnabled &&
+                widget.services.auth.uid == null) ...[
+              const SizedBox(height: 8),
+              Text(
+                strings.analysisAccountNotice,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 18),
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1946,6 +1955,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Future<void> _analyse() async {
+    // Do not ask a visitor to create an account when there is no letter to
+    // analyse yet. The account gate is only relevant once input is present.
+    if (_documents.isEmpty && _text.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.strings.text('enterTextFirst'))),
+      );
+      return;
+    }
     if (!await _ensureCloudAiAccess(context, widget.services)) return;
     if (!mounted) return;
     setState(() {
