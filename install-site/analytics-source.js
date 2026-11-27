@@ -30,6 +30,17 @@ export function resolveLandingSource(search, referrer, siteOrigin) {
   }
 }
 
+export function resolveAppLinkSource(landingSource, fallbackSource) {
+  const isUsable = value =>
+    typeof value === 'string' &&
+    /^[a-z0-9_-]{1,32}$/.test(value.trim().toLowerCase()) &&
+    !['unknown', 'internal'].includes(value.trim().toLowerCase());
+
+  if (isUsable(landingSource)) return landingSource.trim().toLowerCase();
+  if (isUsable(fallbackSource)) return fallbackSource.trim().toLowerCase();
+  return null;
+}
+
 // One short, stable page code plus one observed referral category fits the
 // server's 32-character source limit. The old seo_* labels were page names,
 // not evidence of a search-engine visit; several exceeded that limit and
