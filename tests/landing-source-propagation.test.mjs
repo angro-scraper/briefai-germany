@@ -26,7 +26,9 @@ for (const [query, referrer] of [
   ['', 'https://adriaveza.de.evil.example/'],
   ['', 'https://getindieapps.com/app/briefai-germany?private=1'],
   ['', 'https://indie-apps.com/apps/briefai-germany-959959?private=1'],
+  ['', 'https://iapp4me.com/apps/briefai-germany?private=1'],
   ['', 'https://getindieapps.com.evil.example/'],
+  ['', 'https://iapp4me.com.evil.example/'],
   ['', 'https://other.example/path?private=1'],
 ]) {
   test(`root web-app source matches consented analytics for ${query || '(untagged)'} / ${referrer || '(no referrer)'}`, () => {
@@ -47,9 +49,24 @@ test('known partner referrers are reduced to safe labels', () => {
   assert.equal(resolveLandingSource('', 'https://www.adriaveza.de/de/partner/briefai-germany-amia-technologies.html?private=1', 'https://briefai.salvesca.com'), 'ref_adriaveza');
   assert.equal(resolveLandingSource('', 'https://getindieapps.com/app/briefai-germany?private=1', 'https://briefai.salvesca.com'), 'ref_getindieapps');
   assert.equal(resolveLandingSource('', 'https://indie-apps.com/apps/briefai-germany-959959?private=1', 'https://briefai.salvesca.com'), 'ref_indieapps');
+  assert.equal(resolveLandingSource('', 'https://www.iapp4me.com/apps/briefai-germany?private=1', 'https://briefai.salvesca.com'), 'ref_iapp4me');
   assert.equal(resolveLandingSource('', 'https://deutschlanddecoded.com.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
   assert.equal(resolveLandingSource('', 'https://adriaveza.de.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
   assert.equal(resolveLandingSource('', 'https://getindieapps.com.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
+  assert.equal(resolveLandingSource('', 'https://iapp4me.com.evil.example/', 'https://briefai.salvesca.com'), 'ref_external');
+});
+
+test('iApp4Me referral labels remain within the backend source limit', () => {
+  const site = 'https://briefai.salvesca.com';
+  const publisher = 'https://www.iapp4me.com/apps/briefai-germany';
+  const guideLabels = [...analyticsSourceScript.matchAll(/^  (seo_[a-z0-9_]+):/gm)]
+    .map((match) => match[1]);
+  assert.ok(guideLabels.length >= 10, 'expected all published guide labels');
+  for (const guide of guideLabels) {
+    const source = resolveGuideSource(guide, '', publisher, site);
+    assert.ok(source.length <= 32, `${guide} source exceeds backend limit: ${source}`);
+    assert.ok(source.endsWith('_ref_iapp4me'), `${guide} referral attribution was lost`);
+  }
 });
 
 test('guide source stays within the backend limit for long publisher referrers', () => {

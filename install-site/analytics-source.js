@@ -24,6 +24,7 @@ export function resolveLandingSource(search, referrer, siteOrigin) {
     if (referringHost === 'adriaveza.de') return 'ref_adriaveza';
     if (referringHost === 'getindieapps.com') return 'ref_getindieapps';
     if (referringHost === 'indie-apps.com') return 'ref_indieapps';
+    if (referringHost === 'iapp4me.com') return 'ref_iapp4me';
     return 'ref_external';
   } catch {
     return 'unknown';
